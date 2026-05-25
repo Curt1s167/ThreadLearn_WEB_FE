@@ -10,7 +10,7 @@ Nền tảng học lập trình đa luồng tích hợp AI (WDP301). Đây là *
 
 - **Node.js** ≥ 18 (khuyến nghị 20+)
 - **npm** ≥ 9
-- Backend chạy ở `http://localhost:3001` (Vite đã proxy `/api` sang BE — xem [vite.config.ts](vite.config.ts))
+- Backend chạy ở `http://localhost:5000` (Vite đã proxy `/api` sang BE — xem [vite.config.ts](vite.config.ts))
 
 ## 2. Cài đặt & chạy
 
@@ -25,8 +25,8 @@ npm run lint        # ESLint
 ### Biến môi trường (`.env`)
 
 ```env
-VITE_API_BASE_URL=http://localhost:3001/api/v1
-VITE_SOCKET_URL=http://localhost:3001
+VITE_API_BASE_URL=http://localhost:5000/api/v1
+VITE_SOCKET_URL=http://localhost:5000
 VITE_GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
