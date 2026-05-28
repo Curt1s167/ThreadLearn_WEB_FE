@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -65,7 +66,7 @@ export const ForgotPasswordPage: React.FC = () => {
                 </p>
               </div>
               <Link
-                to="/login"
+                href="/login"
                 className="text-sm text-violet-400 hover:text-violet-300 font-mono transition-colors flex items-center gap-1"
               >
                 <ArrowLeft size={13} />
@@ -79,7 +80,7 @@ export const ForgotPasswordPage: React.FC = () => {
                   Forgot password?
                 </h1>
                 <p className="text-sm text-gray-600 font-mono mt-1">
-                  Enter your email and we'll send you a reset link
+                  Enter your email and we&apos;ll send you a reset link
                 </p>
               </div>
 
@@ -104,7 +105,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
               <div className="mt-5 text-center">
                 <Link
-                  to="/login"
+                  href="/login"
                   className="text-sm text-gray-600 hover:text-gray-400 font-mono transition-colors flex items-center gap-1 justify-center"
                 >
                   <ArrowLeft size={13} />
@@ -131,8 +132,8 @@ const resetSchema = z
   });
 
 export const ResetPasswordPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get('token') || '';
   const [done, setDone] = useState(false);
 
@@ -159,7 +160,7 @@ export const ResetPasswordPage: React.FC = () => {
         <div className="text-center">
           <p className="text-gray-400 font-mono">Invalid reset link</p>
           <Link
-            to="/login"
+            href="/login"
             className="text-violet-400 hover:text-violet-300 font-mono text-sm mt-3 inline-block"
           >
             Go to sign in
@@ -203,7 +204,7 @@ export const ResetPasswordPage: React.FC = () => {
                   Your password has been updated. You can now sign in.
                 </p>
               </div>
-              <Button onClick={() => navigate('/login')} className="mt-2">
+              <Button onClick={() => router.push('/login')} className="mt-2">
                 Sign in
                 <ArrowRight size={14} />
               </Button>

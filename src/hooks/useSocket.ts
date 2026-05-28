@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
@@ -5,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store';
 import type { Notification } from '../types';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
 
 /**
  * Socket.IO hook — connects when authenticated, auto-joins user room.

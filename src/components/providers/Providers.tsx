@@ -1,9 +1,8 @@
+'use client';
+
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { AppRouter } from './routes';
-import { ErrorBoundary } from './components/shared/ErrorBoundary';
-import './styles/globals.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,10 +15,10 @@ const queryClient = new QueryClient({
   },
 });
 
-const App: React.FC = () => (
-  <ErrorBoundary>
+export const Providers = ({ children }: { children: React.ReactNode }) => {
+  return (
     <QueryClientProvider client={queryClient}>
-      <AppRouter />
+      {children}
       <Toaster
         position="bottom-right"
         toastOptions={{
@@ -33,7 +32,5 @@ const App: React.FC = () => (
         }}
       />
     </QueryClientProvider>
-  </ErrorBoundary>
-);
-
-export default App;
+  );
+};

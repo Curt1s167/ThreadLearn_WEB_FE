@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle, XCircle, Clock, Zap, ChevronRight, ArrowLeft, Bookmark,
@@ -15,7 +15,7 @@ import { NotesPanel } from './NotesPanel';
 // ─── Quiz Page ────────────────────────────────────────────────────────────────
 export const QuizPage: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [startedAt] = useState(new Date().toISOString());
   const [result, setResult] = useState<{ score: number; passed: boolean } | null>(null);
@@ -54,7 +54,7 @@ export const QuizPage: React.FC = () => {
     return (
       <Card className="p-8 text-center max-w-md mx-auto">
         <p className="text-gray-400 font-mono">No quiz found for this lesson</p>
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mt-4 mx-auto">
+        <Button variant="ghost" onClick={() => router.back()} className="mt-4 mx-auto">
           <ArrowLeft size={14} />
           Go back
         </Button>
@@ -89,7 +89,7 @@ export const QuizPage: React.FC = () => {
           </div>
         )}
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft size={13} />
             Back to lesson
           </Button>
@@ -106,7 +106,7 @@ export const QuizPage: React.FC = () => {
   return (
     <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="btn-ghost">
+        <button onClick={() => router.back()} className="btn-ghost">
           <ArrowLeft size={14} />
         </button>
         <div className="flex-1">
@@ -160,7 +160,7 @@ export const QuizPage: React.FC = () => {
 // ─── Lesson Viewer Page ───────────────────────────────────────────────────────
 export const LessonPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'content' | 'comments' | 'notes'>('content');
 
@@ -182,7 +182,7 @@ export const LessonPage: React.FC = () => {
     <div className="flex flex-col gap-4 animate-fade-in">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <button onClick={() => navigate(-1)} className="btn-ghost shrink-0">
+          <button onClick={() => router.back()} className="btn-ghost shrink-0">
             <ArrowLeft size={14} />
           </button>
           {isLoading ? (
@@ -196,7 +196,7 @@ export const LessonPage: React.FC = () => {
             <button onClick={() => toggleBookmark()} className="btn-ghost" title="Bookmark">
               <Bookmark size={14} />
             </button>
-            <button onClick={() => navigate(`/quiz/${id}`)} className="btn-outline text-sm">
+            <button onClick={() => router.push(`/quiz/${id}`)} className="btn-outline text-sm">
               <Zap size={13} />
               Take quiz
             </button>
@@ -275,14 +275,14 @@ export const LessonPage: React.FC = () => {
 
 // ─── 404 Page ─────────────────────────────────────────────────────────────────
 export const NotFoundPage: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
       <div className="text-center">
         <p className="font-mono font-bold text-[96px] text-white/5 leading-none">404</p>
         <h1 className="font-mono font-bold text-2xl text-gray-300 -mt-4">Page not found</h1>
         <p className="text-gray-600 font-mono text-sm mt-2">The page you are looking for does not exist.</p>
-        <button onClick={() => navigate('/dashboard')} className="btn-primary mt-6 mx-auto">
+        <button onClick={() => router.push('/dashboard')} className="btn-primary mt-6 mx-auto">
           Go home
         </button>
       </div>

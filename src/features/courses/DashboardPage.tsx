@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import {
   BookOpen, Flame, Star, Trophy, ArrowRight,
   Zap, TrendingUp, Clock,
@@ -30,7 +30,7 @@ const StatCard: React.FC<{
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['gamification-stats'],
@@ -64,7 +64,7 @@ export const DashboardPage: React.FC = () => {
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <Button onClick={() => navigate('/courses')}>
+        <Button onClick={() => router.push('/courses')}>
           <BookOpen size={14} />
           Browse courses
         </Button>
@@ -151,7 +151,7 @@ export const DashboardPage: React.FC = () => {
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-mono font-semibold text-gray-200 text-sm">Active courses</h2>
           <button
-            onClick={() => navigate('/courses')}
+            onClick={() => router.push('/courses')}
             className="text-xs text-violet-400 hover:text-violet-300 font-mono flex items-center gap-1 transition-colors"
           >
             View all <ArrowRight size={12} />
@@ -166,7 +166,7 @@ export const DashboardPage: React.FC = () => {
         ) : enrollments && enrollments.length > 0 ? (
           <div className="flex flex-col gap-2">
             {enrollments.slice(0, 4).map((enrollment) => (
-              <Card key={enrollment._id} className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all cursor-pointer" onClick={() => navigate(`/courses/${enrollment.courseId}`)}>
+              <Card key={enrollment._id} className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all cursor-pointer" onClick={() => router.push(`/courses/${enrollment.courseId}`)}>
                 <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
                   <BookOpen size={14} className="text-violet-400" />
                 </div>
@@ -201,7 +201,7 @@ export const DashboardPage: React.FC = () => {
                 Enroll in a course to start learning
               </p>
             </div>
-            <Button variant="outline" onClick={() => navigate('/courses')}>
+            <Button variant="outline" onClick={() => router.push('/courses')}>
               <TrendingUp size={13} />
               Explore courses
             </Button>
@@ -220,7 +220,7 @@ export const DashboardPage: React.FC = () => {
           ].map((item) => (
             <button
               key={item.to}
-              onClick={() => navigate(item.to)}
+              onClick={() => router.push(item.to)}
               className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-violet-500/20 hover:bg-white/[0.05] transition-all font-mono text-sm text-gray-400 hover:text-gray-200"
             >
               <span className={item.color}>{item.icon}</span>
