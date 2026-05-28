@@ -1,5 +1,4 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { useUIStore } from '../store';
@@ -7,7 +6,7 @@ import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useSocket } from '../hooks/useSocket';
 import { useAuthBootstrap } from '../hooks';
 
-export const DashboardLayout: React.FC = () => {
+export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { sidebarCollapsed } = useUIStore();
 
   // Bootstrap: revalidate user session + load stats
@@ -27,7 +26,7 @@ export const DashboardLayout: React.FC = () => {
       >
         <div className="p-6 max-w-7xl mx-auto">
           <ErrorBoundary>
-            <Outlet />
+            {children}
           </ErrorBoundary>
         </div>
       </main>

@@ -1,13 +1,13 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Bookmark, BookOpen, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { bookmarksService } from '../../services';
 import { Card, EmptyState, Skeleton } from '../../components/shared';
 
 export const BookmarksPage: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const { data: bookmarks, isLoading } = useQuery({
@@ -48,7 +48,7 @@ export const BookmarksPage: React.FC = () => {
               </div>
               <div
                 className="flex-1 min-w-0 cursor-pointer"
-                onClick={() => navigate(`/lessons/${bm.lessonId}`)}
+                onClick={() => router.push(`/lessons/${bm.lessonId}`)}
               >
                 <p className="text-sm text-gray-200 font-mono truncate hover:text-violet-300 transition-colors">
                   {bm.lesson?.title || `Lesson #${bm.lessonId.slice(-6)}`}

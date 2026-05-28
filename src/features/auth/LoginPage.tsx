@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,9 +19,9 @@ type FormData = z.infer<typeof schema>;
 export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { setAuth } = useAuthStore();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from') || '/dashboard';
 
   const {
     register,
@@ -33,7 +34,7 @@ export const LoginPage: React.FC = () => {
       const result = await authService.login(data);
       setAuth(result.user, result.accessToken, result.refreshToken);
       toast.success('Welcome back!');
-      navigate(from, { replace: true });
+      router.replace(from);
     } catch {
       toast.error('Invalid credentials. Please try again.');
     }
@@ -111,7 +112,7 @@ export const LoginPage: React.FC = () => {
 
             <div className="flex justify-end">
               <Link
-                to="/forgot-password"
+                href="/forgot-password"
                 className="text-xs text-violet-400 hover:text-violet-300 font-mono transition-colors"
               >
                 Forgot password?
@@ -127,7 +128,7 @@ export const LoginPage: React.FC = () => {
 
         <p className="text-center text-sm text-gray-700 font-mono mt-5">
           No account?{' '}
-          <Link to="/register" className="text-violet-400 hover:text-violet-300 transition-colors">
+          <Link href="/register" className="text-violet-400 hover:text-violet-300 transition-colors">
             Create one
           </Link>
         </p>
