@@ -19,6 +19,11 @@ import type {
   Enrollment,
   UserStats,
   User,
+  AdminDashboardStatisticsResponse,
+  AdminStudent,
+  AdminStudentListQuery,
+  AdminStudentListResponse,
+  RegisterRequest,
 } from '../types';
 
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
@@ -246,38 +251,69 @@ export const aiService = {
 
 // ─── Admin (UC10–UC14) ────────────────────────────────────────────────────────
 export const adminService = {
-  getStats: async () => {
-    const { data } = await apiClient.get<ApiResponse<PlatformStats>>(
+  getDashboardStatistics: async () => {
+    const { data } = await apiClient.get<ApiResponse<AdminDashboardStatisticsResponse>>(
       '/admin/stats'
     );
     return data.data;
   },
-  listUsers: async (page = 1, limit = 20) => {
-    const { data } = await apiClient.get<PaginatedApiResponse<User>>(
-      `/admin/users?page=${page}&limit=${limit}`
+
+  getStats: async (): Promise<PlatformStats> => adminService.getDashboardStatistics(),
+
+  listStudents: async (query: AdminStudentListQuery = {}) => {
+    const { data } = await apiClient.get<ApiResponse<AdminStudentListResponse>>(
+      '/admin/users',
+      { params: query }
     );
     return data.data;
   },
-  createStudent: async (payload: { name: string; email: string; password: string }) => {
-    const { data } = await apiClient.post<ApiResponse<User>>(
+
+  listUsers: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<PaginatedApiResponse<User>>(
+      '/admin/users',
+      { params: { page, limit } }
+    );
+    return data.data;
+  },
+
+  createStudent: async (payload: RegisterRequest) => {
+    const { data } = await apiClient.post<ApiResponse<AdminStudent>>(
       '/admin/users',
       payload
     );
     return data.data;
   },
-  updateUser: async (id: string, payload: Partial<User>) => {
-    const { data } = await apiClient.put<ApiResponse<User>>(
+
+  updateStudent: async (id: string, payload: Partial<AdminStudent>) => {
+    const { data } = await apiClient.put<ApiResponse<AdminStudent>>(
       `/admin/users/${id}`,
       payload
     );
     return data.data;
   },
-  toggleUserLock: async (id: string) => {
-    const { data } = await apiClient.patch<ApiResponse<User>>(
+
+  updateUser: async (id: string, payload: Partial<User>) => {
+    return adminService.updateStudent(id, payload as Partial<AdminStudent>);
+  },
+
+  lockStudent: async (id: string) => {
+    const { data } = await apiClient.patch<ApiResponse<AdminStudent>>(
       `/admin/users/${id}/lock`
     );
     return data.data;
   },
+
+  unlockStudent: async (id: string) => {
+    const { data } = await apiClient.patch<ApiResponse<AdminStudent>>(
+      `/admin/users/${id}/unlock`
+    );
+    return data.data;
+  },
+
+  toggleUserLock: async (id: string) => {
+    return adminService.lockStudent(id);
+  },
+
   toggleCoursePublish: async (id: string) => {
     const { data } = await apiClient.patch<ApiResponse<Course>>(
       `/admin/courses/${id}/publish`

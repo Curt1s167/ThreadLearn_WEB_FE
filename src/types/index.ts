@@ -4,7 +4,7 @@ export type UserRole = 'STUDENT' | 'ADMIN';
 
 export type PlanType = 'FREE' | 'PREMIUM';
 
-export interface User {
+export interface AuthUser {
   _id: string;
   email: string;
   name: string;
@@ -19,27 +19,65 @@ export interface User {
   updatedAt: string;
 }
 
+export type User = AuthUser;
+
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
 }
 
 export interface AuthResponse {
-  user: User;
+  user: AuthUser;
   accessToken: string;
   refreshToken: string;
 }
 
-export interface LoginPayload {
+export interface LoginRequest {
   email: string;
   password: string;
 }
 
-export interface RegisterPayload {
+export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
 }
+
+export type LoginPayload = LoginRequest;
+export type RegisterPayload = RegisterRequest;
+
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface UpdateProfileRequest {
+  name?: string;
+}
+
+export type AdminStudent = AuthUser & { role: 'STUDENT' };
+
+export interface AdminStudentListQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isLocked?: boolean;
+  isEmailVerified?: boolean;
+}
+
+export type AdminStudentListResponse = PaginatedResponse<AdminStudent>;
 
 // ─── User Stats & Gamification ───────────────────────────────────────────────
 
@@ -228,7 +266,7 @@ export interface AIHistoryLog {
 
 // ─── Analytics (Admin) ────────────────────────────────────────────────────────
 
-export interface PlatformStats {
+export interface AdminDashboardStatisticsResponse {
   totalStudents: number;
   totalCourses: number;
   totalEnrollments: number;
@@ -236,6 +274,8 @@ export interface PlatformStats {
   courseCompletionRate: number;
   quizPassRate: number;
 }
+
+export type PlatformStats = AdminDashboardStatisticsResponse;
 
 // ─── API Responses ────────────────────────────────────────────────────────────
 

@@ -3,6 +3,11 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios';
+import {
+  getStoredAuthTokens,
+  useAuthStore,
+} from '../store/auth.store';
+import type { ApiResponse, AuthTokens } from '../types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 
@@ -15,9 +20,9 @@ export const apiClient = axios.create({
 // ─── Request Interceptor — attach Bearer token ────────────────────────────────
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const { accessToken } = getStoredAuthTokens();
+    if (accessToken && config.headers) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
@@ -37,6 +42,12 @@ const processQueue = (error: unknown, token: string | null = null) => {
     else resolve(token!);
   });
   failedQueue = [];
+};
+
+const redirectToLogin = () => {
+  if (typeof window !== 'undefined') {
+    window.location.href = '/login';
+  }
 };
 
 apiClient.interceptors.response.use(
@@ -59,27 +70,35 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      const { refreshToken } = getStoredAuthTokens();
       if (!refreshToken) {
         isRefreshing = false;
-        localStorage.clear();
-        window.location.href = '/login';
+        useAuthStore.getState().logout();
+        redirectToLogin();
         return Promise.reject(error);
       }
 
       try {
-        const response = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refreshToken,
+        const response = await axios.post<ApiResponse<Partial<AuthTokens>>>(
+          `${BASE_URL}/auth/refresh`,
+          { refreshToken }
+        );
+        const { accessToken, refreshToken: nextRefreshToken } = response.data.data;
+        if (!accessToken) {
+          throw new Error('Refresh response did not include an access token');
+        }
+
+        useAuthStore.getState().updateTokens({
+          accessToken,
+          ...(nextRefreshToken ? { refreshToken: nextRefreshToken } : {}),
         });
-        const { accessToken } = response.data.data;
-        localStorage.setItem('accessToken', accessToken);
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.clear();
-        window.location.href = '/login';
+        useAuthStore.getState().logout();
+        redirectToLogin();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

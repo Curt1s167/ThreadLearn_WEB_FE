@@ -3,17 +3,24 @@ import { Search, Bell, Sun, Moon, LogOut, Command } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
+import { authService } from '../services/auth.service';
 
 export const Topbar: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, refreshToken, logout } = useAuthStore();
   const { theme, toggleTheme, sidebarCollapsed } = useUIStore();
   const [searchValue, setSearchValue] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
-    router.replace('/login');
+  const handleLogout = async () => {
+    try {
+      await authService.logout(refreshToken ?? undefined);
+    } catch {
+      // Local logout should still happen if the server session is already gone.
+    } finally {
+      logout();
+      router.replace('/login');
+    }
   };
 
   return (
