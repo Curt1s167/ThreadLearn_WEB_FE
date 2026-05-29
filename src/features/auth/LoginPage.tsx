@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '../../services/auth.service';
+import { extractApiError } from '../../services/apiClient';
 import { useAuthStore } from '../../store';
 import { Button, Input } from '../../components/shared';
 
@@ -18,10 +19,10 @@ type FormData = z.infer<typeof schema>;
 
 export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [requiresVerification, setRequiresVerification] = useState(false);
   const { setAuth } = useAuthStore();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const from = searchParams.get('from') || '/dashboard';
 
   const {
     register,
@@ -30,13 +31,31 @@ export const LoginPage: React.FC = () => {
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
+    setAuthError(null);
+    setRequiresVerification(false);
+
     try {
       const result = await authService.login(data);
       setAuth(result.user, result.accessToken, result.refreshToken);
       toast.success('Welcome back!');
-      router.replace(from);
-    } catch {
-      toast.error('Invalid credentials. Please try again.');
+      router.replace(result.user.role === 'ADMIN' ? '/admin' : '/dashboard');
+    } catch (error) {
+      const message = extractApiError(error);
+      const normalized = message.toLowerCase();
+      const isUnverified =
+        normalized.includes('verify') ||
+        normalized.includes('verified') ||
+        normalized.includes('verification') ||
+        normalized.includes('unverified');
+
+      if (isUnverified) {
+        setRequiresVerification(true);
+        setAuthError('Please verify your email before signing in. Resend verification will be available in the next task.');
+      } else {
+        setAuthError(message || 'Invalid credentials. Please try again.');
+      }
+
+      toast.error(isUnverified ? 'Email verification required' : 'Invalid credentials. Please try again.');
     }
   };
 
@@ -84,6 +103,20 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            {authError && (
+              <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2.5 flex gap-2">
+                <AlertCircle size={14} className="text-rose-400 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-rose-300 font-mono">{authError}</p>
+                  {requiresVerification && (
+                    <p className="text-[11px] text-gray-500 font-mono mt-1">
+                      Check your inbox for the verification email, then return here to sign in.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             <Input
               label="Email"
               type="email"
