@@ -1,16 +1,23 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle, XCircle, Clock, Zap, ChevronRight, ArrowLeft, Bookmark,
+  Code2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { quizService, lessonsService, bookmarksService, enrollmentsService } from '../../services';
+import { useExercise } from '../../hooks/useCodeExecution';
 import { Card, Button, Badge } from '../../components/shared';
 import { CommentsSection } from './CommentsSection';
 import { NotesPanel } from './NotesPanel';
+import { WebIDE } from './WebIDE';
+import { VerdictPanel } from './VerdictPanel';
+import type { RunCodeResult } from '../../types';
 
 // ─── Quiz Page ────────────────────────────────────────────────────────────────
 export const QuizPage: React.FC = () => {
@@ -37,7 +44,7 @@ export const QuizPage: React.FC = () => {
         startedAt,
       }),
     onSuccess: (data) => {
-      setResult({ score: data.score, passed: data.passed });
+      setResult({ score: data!.score, passed: data!.passed });
     },
     onError: () => toast.error('Failed to submit quiz'),
   });
@@ -162,13 +169,19 @@ export const LessonPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'content' | 'comments' | 'notes'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'exercise'>('content');
+  const [runResult, setRunResult] = useState<RunCodeResult | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [currentCode, setCurrentCode] = useState('');
 
   const { data: lesson, isLoading } = useQuery({
     queryKey: ['lesson', id],
     queryFn: () => lessonsService.getById(id!),
     enabled: !!id,
   });
+
+  const { data: exerciseResp } = useExercise(id!);
+  const exercise = exerciseResp?.data;
 
   const { mutate: toggleBookmark } = useMutation({
     mutationFn: () => bookmarksService.toggle(id!),
@@ -178,8 +191,14 @@ export const LessonPage: React.FC = () => {
     },
   });
 
+  const tabs = [
+    { key: 'content' as const, label: 'Nội dung' },
+    ...(exercise ? [{ key: 'exercise' as const, label: 'Bài tập', icon: <Code2 size={11} /> }] : []),
+  ];
+
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
+      {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <button onClick={() => router.back()} className="btn-ghost shrink-0">
@@ -212,6 +231,7 @@ export const LessonPage: React.FC = () => {
         </div>
       ) : lesson ? (
         <>
+          {/* Meta bar */}
           <Card className="px-4 py-2.5 flex items-center gap-4 flex-wrap">
             {lesson.duration > 0 && (
               <span className="flex items-center gap-1 text-xs text-gray-600 font-mono">
@@ -224,45 +244,89 @@ export const LessonPage: React.FC = () => {
                 Attachment
               </a>
             )}
-            <span className="text-xs text-gray-700 font-mono">Order: #{lesson.order}</span>
+            {exercise && (
+              <Badge color="amber">
+                <Code2 size={10} />
+                {exercise.language}
+              </Badge>
+            )}
           </Card>
 
+          {/* Tabs */}
           <div className="flex gap-1 border-b border-white/[0.06] pb-0.5">
-            {(['content', 'comments', 'notes'] as const).map((tab) => (
+            {tabs.map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 text-xs font-mono rounded-t-lg transition-colors ${
-                  activeTab === tab
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 text-xs font-mono rounded-t-lg transition-colors flex items-center gap-1.5 ${
+                  activeTab === tab.key
                     ? 'text-violet-300 bg-violet-500/10 border border-b-0 border-violet-500/20'
                     : 'text-gray-600 hover:text-gray-400'
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab.icon}
+                {tab.label}
               </button>
             ))}
           </div>
 
+          {/* Content tab */}
           {activeTab === 'content' && (
-            <Card className="p-6">
-              {lesson.videoUrl && (
-                <div className="mb-5 rounded-xl overflow-hidden border border-white/[0.05] bg-black aspect-video">
-                  <iframe src={lesson.videoUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-                </div>
-              )}
-              <div className="prose prose-invert prose-sm max-w-none font-mono text-gray-300 leading-relaxed [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-white/[0.06] [&_pre]:p-4 [&_code]:text-violet-300 [&_a]:text-violet-400 [&_h1]:text-gray-100 [&_h2]:text-gray-200 [&_h3]:text-gray-200 [&_blockquote]:border-violet-500/30 [&_blockquote]:text-gray-500">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {lesson.content}
-                </ReactMarkdown>
+            <div className="flex gap-4">
+              <div className="flex-1 min-w-0 flex flex-col gap-4">
+                <Card className="p-6">
+                  {lesson.videoUrl && (
+                    <div className="mb-5 rounded-xl overflow-hidden border border-white/[0.05] bg-black aspect-video">
+                      <iframe src={lesson.videoUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    </div>
+                  )}
+                  <div
+                    id="lesson-body"
+                    className="prose prose-invert prose-sm max-w-none font-mono text-gray-300 leading-relaxed [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-white/[0.06] [&_pre]:p-4 [&_code]:text-violet-300 [&_a]:text-violet-400 [&_h1]:text-gray-100 [&_h2]:text-gray-200 [&_h3]:text-gray-200 [&_blockquote]:border-violet-500/30 [&_blockquote]:text-gray-500"
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {lesson.content}
+                    </ReactMarkdown>
+                  </div>
+                </Card>
+
+                <Card className="p-4">
+                  <CommentsSection targetType="LESSON" targetId={id!} />
+                </Card>
               </div>
-            </Card>
+
+              {/* Notes sidebar */}
+              <div className="w-72 shrink-0 hidden lg:block">
+                <NotesPanel lessonId={id!} />
+              </div>
+            </div>
           )}
-          {activeTab === 'comments' && (
-            <Card className="p-4">
-              <CommentsSection lessonId={id!} />
-            </Card>
+
+          {/* Exercise tab */}
+          {activeTab === 'exercise' && exercise && (
+            <div className="flex gap-4 min-h-[600px]">
+              {/* WebIDE — 60% */}
+              <div className="flex-[3] min-w-0">
+                <WebIDE
+                  exercise={exercise}
+                  onCodeChange={setCurrentCode}
+                  onRunResult={(result, running) => {
+                    setRunResult(result);
+                    setIsRunning(running);
+                  }}
+                />
+              </div>
+              {/* Verdict panel — 40% */}
+              <div className="flex-[2] min-w-0">
+                <VerdictPanel
+                  result={runResult}
+                  isLoading={isRunning}
+                  code={currentCode}
+                  language={exercise.language}
+                />
+              </div>
+            </div>
           )}
-          {activeTab === 'notes' && <NotesPanel lessonId={id!} />}
         </>
       ) : (
         <Card className="p-8 text-center">

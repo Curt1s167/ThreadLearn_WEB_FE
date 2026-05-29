@@ -237,6 +237,207 @@ export interface PlatformStats {
   quizPassRate: number;
 }
 
+// ─── DEV3: Comments ──────────────────────────────────────────────────────────
+
+export type CommentTargetType = 'COURSE' | 'LESSON';
+
+export interface CommentUserRef {
+  _id: string;
+  fullName: string;
+  avatarUrl?: string | null;
+}
+
+export interface CommentV2 {
+  _id: string;
+  targetType: CommentTargetType;
+  targetId: string;
+  content: string;
+  isDeleted: boolean;
+  parentId?: string | null;
+  userId: CommentUserRef;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── DEV3: Bookmarks ──────────────────────────────────────────────────────────
+
+export type BookmarkTargetType = 'COURSE' | 'LESSON';
+
+export interface BookmarkV2 {
+  _id: string;
+  userId: string;
+  targetType: BookmarkTargetType;
+  targetId: string;
+  title: string;
+  thumbnailUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BookmarkToggleResult {
+  bookmarked: boolean;
+  _id?: string;
+  userId?: string;
+  targetType?: BookmarkTargetType;
+  targetId?: string;
+  title?: string;
+  thumbnailUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ─── DEV3: Notes ─────────────────────────────────────────────────────────────
+
+export interface NoteV2 {
+  _id: string;
+  userId: string;
+  lessonId: string;
+  anchorText: string;
+  anchorStart: number;
+  anchorEnd: number;
+  noteContent: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── DEV3: Exercises & Code Execution ────────────────────────────────────────
+
+export interface TestCase {
+  input: string;
+  expectedOutput: string;
+  isHidden: boolean;
+  points: number;
+}
+
+export interface Exercise {
+  _id: string;
+  lessonId: string;
+  title: string;
+  description: string;
+  starterCode: string;
+  language: 'javascript' | 'python';
+  testCases: TestCase[];
+  totalPoints: number;
+  timeLimit: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type Verdict = 'PASS' | 'PARTIAL' | 'FAIL' | 'ERROR';
+
+export interface TestResult {
+  passed: boolean;
+  isHidden: boolean;
+  input: string | null;
+  expectedOutput: string | null;
+  actualOutput: string | null;
+  executionTime: number;
+}
+
+export interface RunCodeResult {
+  executionId: string;
+  verdict: Verdict;
+  passedCases: number;
+  totalCases: number;
+  score: number;
+  testResults: TestResult[];
+}
+
+export interface SubmissionHistory {
+  _id: string;
+  userId: string;
+  exerciseId: string;
+  code: string;
+  language: string;
+  status: Verdict | 'PENDING';
+  actualOutput: string;
+  expectedOutput: string;
+  passedCases: number;
+  totalCases: number;
+  executionTime: number;
+  memoryUsage: number;
+  stderr: string;
+  createdAt: string;
+}
+
+// ─── DEV3: AI Analysis ────────────────────────────────────────────────────────
+
+export interface AIAnalysisResult {
+  analysisId: string;
+  suggestions: string[];
+  raceConditions: string[];
+  optimizedCode: string;
+  explanation: string;
+  remainingQuota: number;
+  quotaLimit: number;
+}
+
+export interface AIAnalysisHistoryItem {
+  _id: string;
+  userId: string;
+  codeExecutionId?: string | null;
+  language: string;
+  suggestions: string[];
+  raceConditions: string[];
+  tokensUsed: number;
+  createdAt: string;
+}
+
+// ─── DEV3: Notifications ─────────────────────────────────────────────────────
+
+export type NotificationTypeV2 =
+  | 'LESSON_COMPLETED'
+  | 'QUIZ_PASSED'
+  | 'QUIZ_FAILED'
+  | 'COURSE_COMPLETED'
+  | 'COURSE_ENROLLED'
+  | 'LEVEL_UP'
+  | 'BOOKMARK_COURSE_UPDATED'
+  | 'PAYMENT_SUCCESS'
+  | 'NEW_USER_REGISTERED'
+  | 'STUDENT_COMMENT_REPORT'
+  | 'SYSTEM_ERROR'
+  | 'SYSTEM'
+  | 'ACHIEVEMENT'
+  | 'LEADERBOARD'
+  | 'ENROLLMENT';
+
+export interface NotificationV2 {
+  _id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: NotificationTypeV2;
+  metadata?: Record<string, unknown>;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface UnreadCountResult {
+  count: number;
+}
+
+// ─── DEV3: Meta (paginated) ───────────────────────────────────────────────────
+
+export interface PaginatedMeta {
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  unreadCount?: number;
+}
+
+export interface PaginatedV2Response<T> {
+  message: string;
+  data: T[];
+  meta: PaginatedMeta;
+}
+
+export interface SingleV2Response<T> {
+  message: string;
+  data: T;
+}
+
 // ─── API Responses ────────────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {

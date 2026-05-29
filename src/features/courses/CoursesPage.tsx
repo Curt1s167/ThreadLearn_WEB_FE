@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, BookOpen, Users, Filter, ChevronDown } from 'lucide-react';
 import { coursesService } from '../../services';
 import { Card, Badge, Skeleton, EmptyState } from '../../components/shared';
+import { BookmarkButton } from '../../components/shared/BookmarkButton';
 import type { CourseLevel } from '../../types';
 
 const LEVELS: CourseLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
@@ -123,11 +124,15 @@ export const CoursesPage: React.FC = () => {
                   <BookOpen size={28} className="text-violet-600/50" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#111118]/60 to-transparent" />
-                {!course.isPublished && (
-                  <div className="absolute top-2 right-2">
-                    <Badge color="gray">Draft</Badge>
-                  </div>
-                )}
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  {!course.isPublished && <Badge color="gray">Draft</Badge>}
+                  <BookmarkButton
+                    targetType="COURSE"
+                    targetId={course._id}
+                    title={course.title}
+                    thumbnailUrl={course.thumbnailUrl}
+                  />
+                </div>
               </div>
 
               {/* Content */}

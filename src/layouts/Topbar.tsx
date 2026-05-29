@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, Bell, Sun, Moon, LogOut, Command } from 'lucide-react';
+import { Search, Sun, Moon, LogOut, Command } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
+import { NotificationBell } from '../features/notifications/NotificationBell';
 
 export const Topbar: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -68,13 +69,7 @@ export const Topbar: React.FC = () => {
         </button>
 
         {/* Notifications */}
-        <button
-          onClick={() => router.push('/notifications')}
-          className="relative p-2 rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
-        >
-          <Bell size={15} />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-violet-500 rounded-full" />
-        </button>
+        <NotificationBell />
 
         {/* User menu */}
         <div className="relative ml-1">
