@@ -97,8 +97,9 @@ export const authService = {
   // UC03 — Verify email
   verifyEmail: async (request: VerifyEmailRequest | string) => {
     const token = typeof request === 'string' ? request : request.token;
-    const { data } = await apiClient.get<ApiResponse<null>>(
-      `/auth/verify?token=${encodeURIComponent(token)}`
+    const { data } = await apiClient.post<ApiResponse<null>>(
+      '/auth/verify-email',
+      { token }
     );
     return data;
   },

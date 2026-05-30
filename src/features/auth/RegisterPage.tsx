@@ -7,6 +7,7 @@ import { Zap, Mail, Lock, User, Eye, EyeOff, ArrowRight, CheckCircle } from 'luc
 import { toast } from 'sonner';
 import { authService } from '../../services/auth.service';
 import { extractApiError } from '../../services/apiClient';
+import { useAuthStore } from '../../store';
 import { Button, Input } from '../../components/shared';
 
 const schema = z.object({
@@ -24,6 +25,7 @@ type FormData = z.infer<typeof schema>;
 export const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const { logout } = useAuthStore();
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<FormData>({ resolver: zodResolver(schema) });
@@ -37,6 +39,7 @@ export const RegisterPage: React.FC = () => {
         email,
         password,
       });
+      logout();
       setRegisteredEmail(email);
       toast.success('Account created. Please verify your email before signing in.');
     } catch (error) {
@@ -73,13 +76,21 @@ export const RegisterPage: React.FC = () => {
                   If the link expires, use the verify email page to request a new one.
                 </p>
               </div>
-              <Link
-                href="/login"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-mono font-medium rounded-lg border border-transparent bg-violet-600 hover:bg-violet-500 text-white transition-all duration-150"
-              >
-                Go to sign in
-                <ArrowRight size={14} />
-              </Link>
+              <div className="w-full flex flex-col gap-2">
+                <Link
+                  href="/verify-email"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-mono font-medium rounded-lg border border-transparent bg-violet-600 hover:bg-violet-500 text-white transition-all duration-150"
+                >
+                  Verify email
+                  <ArrowRight size={14} />
+                </Link>
+                <Link
+                  href="/login"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-mono font-medium rounded-lg border border-white/10 text-gray-400 hover:text-gray-100 hover:bg-white/5 transition-all duration-150"
+                >
+                  Go to sign in
+                </Link>
+              </div>
             </div>
           ) : (
             <>
