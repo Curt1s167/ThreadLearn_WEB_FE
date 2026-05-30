@@ -89,6 +89,7 @@ export const RegisterPage: React.FC = () => {
               </div>
 
               <button
+                type="button"
                 onClick={authService.loginWithGoogle}
                 className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all font-mono text-sm text-gray-300 mb-5"
               >

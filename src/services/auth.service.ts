@@ -13,10 +13,7 @@ import type {
   VerifyEmailRequest,
 } from '../types';
 
-const getApiOrigin = () => {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
-  return apiBaseUrl.replace(/\/api\/v1\/?$/, '');
-};
+const getApiBaseUrl = () => process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 export const authService = {
   // UC01 — Register
@@ -52,9 +49,21 @@ export const authService = {
     return data.data;
   },
 
-  getGoogleOAuthUrl: () => `${getApiOrigin()}/api/auth/signin/google`,
+  getGoogleOAuthUrl: () => `${getApiBaseUrl()}/auth/google`,
 
-  // UC05 — Google OAuth (redirects to BE NextAuth)
+  exchangeGoogleCallback: async (payload: {
+    code?: string;
+    sessionToken?: string;
+    state?: string;
+  }) => {
+    const { data } = await apiClient.post<ApiResponse<AuthResponse>>(
+      '/auth/google/callback',
+      payload
+    );
+    return data.data;
+  },
+
+  // UC05 — Google OAuth
   loginWithGoogle: () => {
     window.location.href = authService.getGoogleOAuthUrl();
   },
