@@ -296,15 +296,39 @@ export interface AIHistoryLog {
 // ─── Analytics (Admin) ────────────────────────────────────────────────────────
 
 export interface AdminDashboardStatisticsResponse {
+  totalUsers: number;
   totalStudents: number;
+  totalAdmins: number;
+  activeStudents: number;
+  lockedStudents: number;
+  verifiedUsers: number;
+  unverifiedUsers: number;
+  newUsersThisMonth: number;
   totalCourses: number;
+  totalLessons: number;
   totalEnrollments: number;
   totalQuizAttempts: number;
-  courseCompletionRate: number;
-  quizPassRate: number;
+  totalAiRequests?: number;
+  totalCodeExecutions?: number;
+  totalNotifications?: number;
+  completedLessons?: number;
+  averageQuizScore?: number;
+  quizPassRate?: number;
+  activeUsersThisMonth?: number;
+  courseCompletionRate?: number;
+  newUsersByMonth?: MonthlyStatistic[];
+  enrollmentsByMonth?: MonthlyStatistic[];
+  quizAttemptsByMonth?: MonthlyStatistic[];
+  coursesCreatedByMonth?: MonthlyStatistic[];
+  lessonsCreatedByMonth?: MonthlyStatistic[];
 }
 
 export type PlatformStats = AdminDashboardStatisticsResponse;
+
+export interface MonthlyStatistic {
+  month: string;
+  count: number;
+}
 
 // ─── API Responses ────────────────────────────────────────────────────────────
 
