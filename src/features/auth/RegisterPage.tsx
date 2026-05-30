@@ -70,7 +70,7 @@ export const RegisterPage: React.FC = () => {
                   We sent a verification link to {registeredEmail}. Verify your email before signing in.
                 </p>
                 <p className="text-xs text-gray-700 font-mono mt-2">
-                  Resend verification will be available in the next auth task.
+                  If the link expires, use the verify email page to request a new one.
                 </p>
               </div>
               <Link

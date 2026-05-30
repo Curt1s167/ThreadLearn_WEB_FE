@@ -20,7 +20,6 @@ export interface AuthUser {
   isVerified?: boolean;
   isActive?: boolean;
   lastLoginAt?: string;
-  googleId?: string;
   createdAt: string;
   updatedAt: string;
 }

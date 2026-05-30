@@ -98,7 +98,7 @@ export const authService = {
   verifyEmail: async (request: VerifyEmailRequest | string) => {
     const token = typeof request === 'string' ? request : request.token;
     const { data } = await apiClient.get<ApiResponse<null>>(
-      `/auth/verify?token=${token}`
+      `/auth/verify?token=${encodeURIComponent(token)}`
     );
     return data;
   },

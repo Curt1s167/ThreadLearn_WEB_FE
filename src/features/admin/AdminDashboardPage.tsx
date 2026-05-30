@@ -61,6 +61,16 @@ const formatMonthLabel = (month: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 };
 
+const normalizeMonthlyData = (data?: MonthlyStatistic[]) =>
+  Array.isArray(data)
+    ? data
+        .filter((item) => item?.month)
+        .map((item) => ({
+          month: item.month,
+          count: Number.isFinite(Number(item.count)) ? Number(item.count) : 0,
+        }))
+    : [];
+
 const StatTile: React.FC<StatCard> = (card) => (
   <Card className="p-4">
     <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${card.color}`}>
@@ -72,7 +82,7 @@ const StatTile: React.FC<StatCard> = (card) => (
 );
 
 const MonthlyBarChart: React.FC<MonthlyChart> = ({ title, description, data }) => {
-  const rows = data ?? [];
+  const rows = normalizeMonthlyData(data);
   const max = Math.max(...rows.map((item) => item.count), 0);
 
   return (

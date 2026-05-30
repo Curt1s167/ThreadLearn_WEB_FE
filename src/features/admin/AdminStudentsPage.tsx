@@ -74,6 +74,16 @@ const isVerified = (student: AdminStudent) =>
 const isActive = (student: AdminStudent) =>
   student.isActive ?? !student.isLocked;
 
+const getVerificationUpdatePayload = (value?: boolean): Pick<
+  AdminStudentUpdateRequest,
+  'isVerified' | 'isEmailVerified'
+> => ({
+  // DEV 1 backend should accept isVerified. Keep isEmailVerified during mapping
+  // because older frontend data already reads that sanitized email status name.
+  isVerified: value,
+  isEmailVerified: value,
+});
+
 const formatDate = (value?: string) => {
   if (!value) return 'Not available';
   const date = new Date(value);
@@ -310,8 +320,7 @@ export const AdminStudentsPage: React.FC = () => {
         lastName: data.lastName,
         name: `${data.firstName} ${data.lastName}`.trim(),
         ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : { avatarUrl: '' }),
-        isVerified: data.isVerified,
-        isEmailVerified: data.isVerified,
+        ...getVerificationUpdatePayload(data.isVerified),
       },
     });
   };

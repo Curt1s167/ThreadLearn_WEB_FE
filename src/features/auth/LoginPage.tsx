@@ -50,7 +50,7 @@ export const LoginPage: React.FC = () => {
 
       if (isUnverified) {
         setRequiresVerification(true);
-        setAuthError('Please verify your email before signing in. Resend verification will be available in the next task.');
+        setAuthError('Please verify your email before signing in. Use the verify email page to resend the verification link if needed.');
       } else {
         setAuthError(message || 'Invalid credentials. Please try again.');
       }
@@ -111,7 +111,7 @@ export const LoginPage: React.FC = () => {
                   <p className="text-xs text-rose-300 font-mono">{authError}</p>
                   {requiresVerification && (
                     <p className="text-[11px] text-gray-500 font-mono mt-1">
-                      Check your inbox for the verification email, then return here to sign in.
+                      Check your inbox, or open the verify email page to request a new link.
                     </p>
                   )}
                 </div>

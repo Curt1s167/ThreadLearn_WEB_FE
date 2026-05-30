@@ -70,12 +70,18 @@ export const OAuthCallbackPage: React.FC = () => {
         return;
       }
 
+      // Supported DEV 1 redirects:
+      // token + user, token + session, or code/session token exchange.
       const accessToken =
         searchParams.get('accessToken') ||
         searchParams.get('access_token') ||
         searchParams.get('token');
       const refreshToken =
-        searchParams.get('refreshToken') || searchParams.get('refresh_token');
+        searchParams.get('refreshToken') ||
+        searchParams.get('refresh_token') ||
+        searchParams.get('sessionToken') ||
+        searchParams.get('session_token') ||
+        searchParams.get('session');
       const user = parseUserParam(
         searchParams.get('user') || searchParams.get('userData')
       );
