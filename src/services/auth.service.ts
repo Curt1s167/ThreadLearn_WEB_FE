@@ -15,6 +15,66 @@ import type {
 
 const getApiBaseUrl = () => process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 
+const getBackendOrigin = () => {
+  try {
+    return new URL(getApiBaseUrl()).origin;
+  } catch {
+    return getApiBaseUrl().replace(/\/api\/v\d+\/?$/, '');
+  }
+};
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const hasOwn = (value: Record<string, unknown>, key: string) =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
+const unwrapApiData = <T>(response: unknown): T => {
+  if (isObject(response) && hasOwn(response, 'data')) {
+    const firstData = response.data;
+
+    if (isObject(firstData) && hasOwn(firstData, 'data')) {
+      return firstData.data as T;
+    }
+
+    return firstData as T;
+  }
+
+  return response as T;
+};
+
+export const normalizeAvatarUrl = (avatarUrl?: string) => {
+  if (!avatarUrl) return avatarUrl;
+  if (/^https?:\/\//i.test(avatarUrl)) return avatarUrl;
+
+  const backendOrigin = getBackendOrigin();
+  if (avatarUrl.startsWith('/uploads/')) {
+    return `${backendOrigin}${avatarUrl}`;
+  }
+  if (avatarUrl.startsWith('uploads/')) {
+    return `${backendOrigin}/${avatarUrl}`;
+  }
+
+  return avatarUrl;
+};
+
+const normalizeAuthUser = (user: AuthUser): AuthUser => ({
+  ...user,
+  ...(user.avatarUrl !== undefined ? { avatarUrl: normalizeAvatarUrl(user.avatarUrl) } : {}),
+});
+
+type AvatarUploadResponse = AuthUser | { avatarUrl: string };
+
+const normalizeAvatarUploadResponse = (response: unknown): AvatarUploadResponse => {
+  const payload = unwrapApiData<AvatarUploadResponse>(response);
+
+  if (isObject(payload) && typeof payload.avatarUrl === 'string' && !('email' in payload)) {
+    return { avatarUrl: normalizeAvatarUrl(payload.avatarUrl) || payload.avatarUrl };
+  }
+
+  return normalizeAuthUser(payload as AuthUser);
+};
+
 export const authService = {
   // UC01 — Register
   register: async (payload: RegisterRequest) => {
@@ -124,7 +184,7 @@ export const authService = {
   // Get current user profile
   getProfile: async () => {
     const { data } = await apiClient.get<ApiResponse<AuthUser>>('/users/profile');
-    return data.data;
+    return normalizeAuthUser(unwrapApiData<AuthUser>(data));
   },
 
   getMe: async () => authService.getProfile(),
@@ -133,17 +193,17 @@ export const authService = {
   uploadAvatar: async (file: File) => {
     const form = new FormData();
     form.append('avatar', file);
-    const { data } = await apiClient.post<ApiResponse<AuthUser | { avatarUrl: string }>>(
+    const { data } = await apiClient.post<ApiResponse<AvatarUploadResponse>>(
       '/users/avatar',
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
-    return data.data;
+    return normalizeAvatarUploadResponse(data);
   },
 
   // Update profile
   updateProfile: async (payload: UpdateProfileRequest) => {
     const { data } = await apiClient.patch<ApiResponse<AuthUser>>('/users/profile', payload);
-    return data.data;
+    return normalizeAuthUser(unwrapApiData<AuthUser>(data));
   },
 };

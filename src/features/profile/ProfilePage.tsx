@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -17,7 +17,7 @@ import {
   User,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { authService } from '../../services/auth.service';
+import { authService, normalizeAvatarUrl } from '../../services/auth.service';
 import { extractApiError } from '../../services/apiClient';
 import { useAuthStore } from '../../store';
 import type { AuthUser } from '../../types';
@@ -63,13 +63,14 @@ const formatDate = (value?: string) => {
 };
 
 const getVerificationStatus = (user: AuthUser) =>
-  user.isVerified ?? user.isEmailVerified ?? false;
+  Boolean(user.isVerified ?? user.isEmailVerified);
 
 const getActiveStatus = (user: AuthUser) =>
   user.isActive ?? !user.isLocked;
 
 export const ProfilePage: React.FC = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, setUser, logout } = useAuthStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -102,6 +103,11 @@ export const ProfilePage: React.FC = () => {
 
   const currentUser = profile || user;
 
+  const applyProfileUser = useCallback((nextUser: AuthUser) => {
+    queryClient.setQueryData(['auth-profile'], nextUser);
+    setUser(nextUser);
+  }, [queryClient, setUser]);
+
   useEffect(() => {
     if (!profile) return;
 
@@ -112,12 +118,12 @@ export const ProfilePage: React.FC = () => {
       return;
     }
 
-    setUser(profile);
+    applyProfileUser(profile);
     reset({
       firstName: getFirstName(profile),
       lastName: getLastName(profile),
     });
-  }, [logout, profile, reset, router, setUser]);
+  }, [applyProfileUser, logout, profile, reset, router]);
 
   useEffect(() => {
     if (!avatarPreview) return;
@@ -127,7 +133,7 @@ export const ProfilePage: React.FC = () => {
     };
   }, [avatarPreview]);
 
-  const avatarSrc = avatarPreview || currentUser?.avatarUrl;
+  const avatarSrc = avatarPreview || normalizeAvatarUrl(currentUser?.avatarUrl);
 
   const detailItems = useMemo(() => {
     if (!currentUser) return [];
@@ -181,15 +187,15 @@ export const ProfilePage: React.FC = () => {
 
     try {
       const result = await authService.uploadAvatar(file);
-      const updatedUser =
-        '_id' in result
-          ? result
-          : currentUser
-            ? { ...currentUser, avatarUrl: result.avatarUrl }
-            : null;
+      const updatedUser = 'email' in result
+        ? { ...currentUser, ...result }
+        : currentUser
+          ? { ...currentUser, avatarUrl: result.avatarUrl }
+          : null;
 
       if (updatedUser) {
-        setUser(updatedUser);
+        applyProfileUser(updatedUser);
+        setAvatarPreview(null);
       }
       toast.success('Avatar updated!');
     } catch (uploadError) {
@@ -210,11 +216,12 @@ export const ProfilePage: React.FC = () => {
         lastName,
         name: `${firstName} ${lastName}`.trim(),
       });
+      const nextUser = currentUser ? { ...currentUser, ...updatedUser } : updatedUser;
 
-      setUser(updatedUser);
+      applyProfileUser(nextUser);
       reset({
-        firstName: getFirstName(updatedUser),
-        lastName: getLastName(updatedUser),
+        firstName: getFirstName(nextUser),
+        lastName: getLastName(nextUser),
       });
       toast.success('Profile updated!');
     } catch (saveError) {
