@@ -80,10 +80,28 @@ export interface UpdateProfileRequest {
 
 export type AdminStudent = AuthUser & { role: 'STUDENT' };
 
+export interface AdminStudentCreateRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password?: string;
+}
+
+export interface AdminStudentUpdateRequest {
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  avatarUrl?: string;
+  isVerified?: boolean;
+  isEmailVerified?: boolean;
+}
+
 export interface AdminStudentListQuery {
   page?: number;
   limit?: number;
   search?: string;
+  isActive?: boolean;
+  isVerified?: boolean;
   isLocked?: boolean;
   isEmailVerified?: boolean;
 }

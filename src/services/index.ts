@@ -21,9 +21,10 @@ import type {
   User,
   AdminDashboardStatisticsResponse,
   AdminStudent,
+  AdminStudentCreateRequest,
   AdminStudentListQuery,
   AdminStudentListResponse,
-  RegisterRequest,
+  AdminStudentUpdateRequest,
 } from '../types';
 
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
@@ -262,7 +263,7 @@ export const adminService = {
 
   listStudents: async (query: AdminStudentListQuery = {}) => {
     const { data } = await apiClient.get<ApiResponse<AdminStudentListResponse>>(
-      '/admin/users',
+      '/admin/students',
       { params: query }
     );
     return data.data;
@@ -276,36 +277,36 @@ export const adminService = {
     return data.data;
   },
 
-  createStudent: async (payload: RegisterRequest) => {
+  createStudent: async (payload: AdminStudentCreateRequest) => {
     const { data } = await apiClient.post<ApiResponse<AdminStudent>>(
-      '/admin/users',
+      '/admin/students',
       payload
     );
     return data.data;
   },
 
-  updateStudent: async (id: string, payload: Partial<AdminStudent>) => {
-    const { data } = await apiClient.put<ApiResponse<AdminStudent>>(
-      `/admin/users/${id}`,
+  updateStudent: async (id: string, payload: AdminStudentUpdateRequest) => {
+    const { data } = await apiClient.patch<ApiResponse<AdminStudent>>(
+      `/admin/students/${id}`,
       payload
     );
     return data.data;
   },
 
   updateUser: async (id: string, payload: Partial<User>) => {
-    return adminService.updateStudent(id, payload as Partial<AdminStudent>);
+    return adminService.updateStudent(id, payload as AdminStudentUpdateRequest);
   },
 
   lockStudent: async (id: string) => {
     const { data } = await apiClient.patch<ApiResponse<AdminStudent>>(
-      `/admin/users/${id}/lock`
+      `/admin/students/${id}/lock`
     );
     return data.data;
   },
 
   unlockStudent: async (id: string) => {
     const { data } = await apiClient.patch<ApiResponse<AdminStudent>>(
-      `/admin/users/${id}/unlock`
+      `/admin/students/${id}/unlock`
     );
     return data.data;
   },
