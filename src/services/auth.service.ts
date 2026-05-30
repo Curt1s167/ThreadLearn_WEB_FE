@@ -122,7 +122,7 @@ export const authService = {
 
   // Get current user profile
   getProfile: async () => {
-    const { data } = await apiClient.get<ApiResponse<AuthUser>>('/users/me');
+    const { data } = await apiClient.get<ApiResponse<AuthUser>>('/users/profile');
     return data.data;
   },
 
@@ -132,7 +132,7 @@ export const authService = {
   uploadAvatar: async (file: File) => {
     const form = new FormData();
     form.append('avatar', file);
-    const { data } = await apiClient.post<ApiResponse<{ avatarUrl: string }>>(
+    const { data } = await apiClient.post<ApiResponse<AuthUser | { avatarUrl: string }>>(
       '/users/avatar',
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } }
@@ -142,7 +142,7 @@ export const authService = {
 
   // Update profile
   updateProfile: async (payload: UpdateProfileRequest) => {
-    const { data } = await apiClient.put<ApiResponse<AuthUser>>('/users/me', payload);
+    const { data } = await apiClient.patch<ApiResponse<AuthUser>>('/users/profile', payload);
     return data.data;
   },
 };

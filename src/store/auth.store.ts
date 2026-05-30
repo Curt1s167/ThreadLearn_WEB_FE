@@ -47,16 +47,20 @@ export const clearAuthStorage = () => {
 };
 
 export const sanitizeAuthUser = (user: AuthUser): AuthUser => {
+  const fallbackName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
   const sanitized: AuthUser = {
-    _id: user._id,
+    _id: user._id || user.id || '',
+    id: user.id || user._id,
     email: user.email,
-    name: user.name,
+    name: user.name || fallbackName || user.email,
     role: user.role,
     planType: user.planType,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
 
+  if (user.firstName !== undefined) sanitized.firstName = user.firstName;
+  if (user.lastName !== undefined) sanitized.lastName = user.lastName;
   if (user.avatarUrl !== undefined) sanitized.avatarUrl = user.avatarUrl;
   if (user.subscriptionExpiresAt !== undefined) {
     sanitized.subscriptionExpiresAt = user.subscriptionExpiresAt;
@@ -65,7 +69,9 @@ export const sanitizeAuthUser = (user: AuthUser): AuthUser => {
   if (user.isEmailVerified !== undefined) {
     sanitized.isEmailVerified = user.isEmailVerified;
   }
-  if (user.googleId !== undefined) sanitized.googleId = user.googleId;
+  if (user.isVerified !== undefined) sanitized.isVerified = user.isVerified;
+  if (user.isActive !== undefined) sanitized.isActive = user.isActive;
+  if (user.lastLoginAt !== undefined) sanitized.lastLoginAt = user.lastLoginAt;
 
   return sanitized;
 };

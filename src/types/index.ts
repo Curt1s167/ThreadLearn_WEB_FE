@@ -6,14 +6,20 @@ export type PlanType = 'FREE' | 'PREMIUM';
 
 export interface AuthUser {
   _id: string;
+  id?: string;
   email: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   avatarUrl?: string;
   role: UserRole;
   planType: PlanType;
   subscriptionExpiresAt?: string;
   isLocked?: boolean;
   isEmailVerified?: boolean;
+  isVerified?: boolean;
+  isActive?: boolean;
+  lastLoginAt?: string;
   googleId?: string;
   createdAt: string;
   updatedAt: string;
@@ -66,7 +72,10 @@ export interface ResetPasswordRequest {
 }
 
 export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
   name?: string;
+  avatarUrl?: string;
 }
 
 export type AdminStudent = AuthUser & { role: 'STUDENT' };
