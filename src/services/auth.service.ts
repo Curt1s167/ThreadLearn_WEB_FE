@@ -29,18 +29,44 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const hasOwn = (value: Record<string, unknown>, key: string) =>
   Object.prototype.hasOwnProperty.call(value, key);
 
-const unwrapApiData = <T>(response: unknown): T => {
-  if (isObject(response) && hasOwn(response, 'data')) {
-    const firstData = response.data;
+const getNested = (value: unknown, path: string[]) =>
+  path.reduce<unknown>((current, key) => (
+    isObject(current) ? current[key] : undefined
+  ), value);
 
-    if (isObject(firstData) && hasOwn(firstData, 'data')) {
-      return firstData.data as T;
-    }
+const looksLikeUser = (value: unknown): value is AuthUser =>
+  isObject(value) &&
+  typeof value.email === 'string' &&
+  (typeof value.id === 'string' || typeof value._id === 'string');
 
-    return firstData as T;
+const extractUser = (response: unknown): AuthUser => {
+  const candidates = [
+    getNested(response, ['data', 'user']),
+    getNested(response, ['data', 'data', 'user']),
+    getNested(response, ['data', 'data', 'data', 'user']),
+    getNested(response, ['data', 'data']),
+    getNested(response, ['data']),
+    getNested(response, ['user']),
+    response,
+  ];
+
+  const user = candidates.find(looksLikeUser);
+  if (!user) {
+    throw new Error('Profile response did not include a valid user object');
   }
 
-  return response as T;
+  return user;
+};
+
+const unwrapApiData = <T>(response: unknown): T => {
+  if (!isObject(response) || !hasOwn(response, 'data')) return response as T;
+
+  const firstData = response.data;
+  if (isObject(firstData) && hasOwn(firstData, 'data')) {
+    return firstData.data as T;
+  }
+
+  return firstData as T;
 };
 
 export const normalizeAvatarUrl = (avatarUrl?: string) => {
@@ -58,21 +84,40 @@ export const normalizeAvatarUrl = (avatarUrl?: string) => {
   return avatarUrl;
 };
 
-const normalizeAuthUser = (user: AuthUser): AuthUser => ({
-  ...user,
-  ...(user.avatarUrl !== undefined ? { avatarUrl: normalizeAvatarUrl(user.avatarUrl) } : {}),
-});
+const normalizeAuthUser = (user: AuthUser): AuthUser => {
+  const fallbackName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+
+  return {
+    ...user,
+    _id: user._id || user.id || '',
+    id: user.id || user._id,
+    name: user.name || fallbackName || user.email,
+    ...(user.avatarUrl !== undefined ? { avatarUrl: normalizeAvatarUrl(user.avatarUrl) } : {}),
+  };
+};
+
+const extractAndNormalizeUser = (response: unknown) => normalizeAuthUser(extractUser(response));
+
+const normalizeAuthResponse = (response: unknown): AuthResponse => {
+  const payload = unwrapApiData<AuthResponse>(response);
+  return {
+    ...payload,
+    user: extractAndNormalizeUser(payload.user ?? payload),
+  };
+};
 
 type AvatarUploadResponse = AuthUser | { avatarUrl: string };
 
 const normalizeAvatarUploadResponse = (response: unknown): AvatarUploadResponse => {
-  const payload = unwrapApiData<AvatarUploadResponse>(response);
-
-  if (isObject(payload) && typeof payload.avatarUrl === 'string' && !('email' in payload)) {
+  try {
+    return extractAndNormalizeUser(response);
+  } catch {
+    const payload = unwrapApiData<AvatarUploadResponse>(response);
+    if (!isObject(payload) || typeof payload.avatarUrl !== 'string') {
+      throw new Error('Avatar upload response did not include a valid avatar URL or user object');
+    }
     return { avatarUrl: normalizeAvatarUrl(payload.avatarUrl) || payload.avatarUrl };
   }
-
-  return normalizeAuthUser(payload as AuthUser);
 };
 
 export const authService = {
@@ -91,7 +136,7 @@ export const authService = {
       '/auth/login',
       payload
     );
-    return data.data;
+    return normalizeAuthResponse(data);
   },
 
   // Log out current session
@@ -106,7 +151,7 @@ export const authService = {
   // Get current authenticated session
   getSession: async () => {
     const { data } = await apiClient.get<ApiResponse<AuthUser>>('/auth/session');
-    return data.data;
+    return extractAndNormalizeUser(data);
   },
 
   getGoogleOAuthUrl: () => `${getApiBaseUrl()}/auth/google`,
@@ -120,7 +165,7 @@ export const authService = {
       '/auth/google/callback',
       payload
     );
-    return data.data;
+    return normalizeAuthResponse(data);
   },
 
   // UC05 — Google OAuth
@@ -184,7 +229,7 @@ export const authService = {
   // Get current user profile
   getProfile: async () => {
     const { data } = await apiClient.get<ApiResponse<AuthUser>>('/users/profile');
-    return normalizeAuthUser(unwrapApiData<AuthUser>(data));
+    return extractAndNormalizeUser(data);
   },
 
   getMe: async () => authService.getProfile(),
@@ -204,6 +249,6 @@ export const authService = {
   // Update profile
   updateProfile: async (payload: UpdateProfileRequest) => {
     const { data } = await apiClient.patch<ApiResponse<AuthUser>>('/users/profile', payload);
-    return normalizeAuthUser(unwrapApiData<AuthUser>(data));
+    return extractAndNormalizeUser(data);
   },
 };
