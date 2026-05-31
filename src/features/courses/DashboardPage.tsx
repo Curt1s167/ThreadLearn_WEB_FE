@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from '../../store';
 import { gamificationService, enrollmentsService, leaderboardService } from '../../services';
 import { Card, Badge, Skeleton, Button } from '../../components/shared';
+import type { AuthUser } from '../../types';
 
 const StatCard: React.FC<{
   icon: React.ReactNode;
@@ -28,9 +29,26 @@ const StatCard: React.FC<{
   </Card>
 );
 
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const getDashboardName = (user?: AuthUser | null) => {
+  const firstName = user?.firstName?.trim();
+  const lastName = user?.lastName?.trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+
+  return fullName || firstName || user?.email?.split('@')[0] || 'there';
+};
+
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const router = useRouter();
+  const greeting = getGreeting();
+  const dashboardName = getDashboardName(user);
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['gamification-stats'],
@@ -58,7 +76,7 @@ export const DashboardPage: React.FC = () => {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-mono font-bold text-2xl text-gray-100">
-            gm, {user?.name?.split(' ')[0]} 👋
+            {greeting}, {dashboardName} {'\u{1F44B}'}
           </h1>
           <p className="text-gray-600 font-mono text-sm mt-1">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
