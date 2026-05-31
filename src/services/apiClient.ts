@@ -1,10 +1,20 @@
-import axios, {
+﻿import axios, {
   AxiosError,
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+
+/**
+ * Remove only auth-related keys — never localStorage.clear() because it wipes
+ * unrelated UX state (theme, editor draft code under `code_<exerciseId>_*`, etc.).
+ */
+function clearAuthStorage() {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('auth-storage'); // zustand persist key
+}
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -62,7 +72,7 @@ apiClient.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) {
         isRefreshing = false;
-        localStorage.clear();
+        clearAuthStorage();
         window.location.href = '/login';
         return Promise.reject(error);
       }
@@ -78,7 +88,7 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.clear();
+        clearAuthStorage();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
@@ -102,3 +112,5 @@ export const extractApiError = (error: unknown): string => {
   }
   return 'An unexpected error occurred';
 };
+
+

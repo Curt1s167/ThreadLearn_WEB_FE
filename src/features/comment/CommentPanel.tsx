@@ -1,6 +1,5 @@
-'use client';
-
-import React, { useState } from 'react';
+﻿
+import React, { useState, useEffect } from 'react';
 import { MessageSquare, Send, CornerDownRight, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '../../store';
 import { Avatar, Button, Card } from '../../components/shared';
@@ -141,7 +140,10 @@ const CommentItem: React.FC<{
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [showReplies, setShowReplies] = useState(false);
-  const isOwner = user?._id === comment.userId._id;
+  const isOwner    = user?._id === comment.userId._id;
+  const isAdmin    = user?.role === 'ADMIN';
+  const canEdit    = isOwner;
+  const canDelete  = isOwner || isAdmin;
 
   return (
     <div className="py-3">
@@ -207,23 +209,17 @@ const CommentItem: React.FC<{
                 {showReplies ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                 Replies
               </button>
-              {isOwner && (
-                <>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="text-[11px] text-gray-600 hover:text-gray-300 font-mono flex items-center gap-1 transition-colors"
-                  >
-                    <Pencil size={10} />
-                    Sửa
-                  </button>
-                  <button
-                    onClick={() => deleteComment(comment._id)}
-                    className="text-[11px] text-gray-600 hover:text-rose-400 font-mono flex items-center gap-1 transition-colors"
-                  >
-                    <Trash2 size={10} />
-                    Xóa
-                  </button>
-                </>
+              {canEdit && (
+                <button onClick={() => setIsEditing(true)}
+                  className="text-[11px] text-gray-600 hover:text-gray-300 font-mono flex items-center gap-1 transition-colors">
+                  <Pencil size={10} /> Sửa
+                </button>
+              )}
+              {canDelete && (
+                <button onClick={() => deleteComment(comment._id)}
+                  className="text-[11px] text-gray-600 hover:text-rose-400 font-mono flex items-center gap-1 transition-colors">
+                  <Trash2 size={10} /> Xóa
+                </button>
               )}
             </div>
           )}
@@ -237,16 +233,29 @@ const CommentItem: React.FC<{
   );
 };
 
-export const CommentsSection: React.FC<Props> = ({ targetType, targetId }) => {
+export const CommentPanel: React.FC<Props> = ({ targetType, targetId }) => {
   const [newComment, setNewComment] = useState('');
-  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
-  const [page] = useState(1);
+  const [replyTo,    setReplyTo]    = useState<{ id: string; name: string } | null>(null);
+  const [page,       setPage]       = useState(1);
+  const [allComments, setAllComments] = useState<CommentV2[]>([]);
 
-  const { data, isLoading } = useComments(targetType, targetId, page);
+  const { data, isLoading, isFetching } = useComments(targetType, targetId, page);
   const { mutate: postComment, isPending } = useCreateComment();
 
-  const comments = data?.data ?? [];
   const total = data?.meta?.total ?? 0;
+
+  // Accumulate pages
+  useEffect(() => {
+    if (data?.data) {
+      setAllComments((prev) => page === 1 ? data.data : [...prev, ...data.data]);
+    }
+  }, [data, page]);
+
+  // Reset when target changes
+  useEffect(() => {
+    setPage(1);
+    setAllComments([]);
+  }, [targetId]);
 
   const handleReply = (id: string, name: string) => {
     setReplyTo({ id, name });
@@ -265,6 +274,13 @@ export const CommentsSection: React.FC<Props> = ({ targetType, targetId }) => {
         onSuccess: () => {
           setNewComment('');
           setReplyTo(null);
+          // Reset to page 1 so the new top-level comment is visible immediately.
+          // The useEffect on `page === 1` will then overwrite `allComments`
+          // with the freshly-fetched first page.
+          if (!replyTo) {
+            setAllComments([]);
+            setPage(1);
+          }
         },
       }
     );
@@ -319,16 +335,23 @@ export const CommentsSection: React.FC<Props> = ({ targetType, targetId }) => {
             <div key={i} className="h-14 skeleton rounded-lg" />
           ))}
         </div>
-      ) : comments.length > 0 ? (
-        <div className="divide-y divide-white/[0.03]">
-          {comments.map((comment) => (
-            <CommentItem
-              key={comment._id}
-              comment={comment}
-              onReply={handleReply}
-            />
-          ))}
-        </div>
+      ) : allComments.length > 0 ? (
+        <>
+          <div className="divide-y divide-white/[0.03]">
+            {allComments.map((comment) => (
+              <CommentItem key={comment._id} comment={comment} onReply={(id, name) => setReplyTo({ id, name })} />
+            ))}
+          </div>
+          {data?.meta?.hasMore && (
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={isFetching}
+              className="w-full text-xs font-mono text-gray-600 hover:text-violet-400 py-2 transition-colors disabled:opacity-50"
+            >
+              {isFetching ? 'Đang tải...' : 'Xem thêm bình luận'}
+            </button>
+          )}
+        </>
       ) : (
         <p className="text-xs text-gray-700 font-mono py-4 text-center">
           Chưa có bình luận. Hãy là người đầu tiên!
@@ -337,3 +360,4 @@ export const CommentsSection: React.FC<Props> = ({ targetType, targetId }) => {
     </div>
   );
 };
+

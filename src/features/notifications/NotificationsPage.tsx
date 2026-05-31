@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import React, { useState } from 'react';
 import {
   Bell, CheckCheck, Zap, Trophy, BookOpen, GraduationCap,
@@ -120,3 +119,4 @@ export const NotificationsPage: React.FC = () => {
     </div>
   );
 };
+

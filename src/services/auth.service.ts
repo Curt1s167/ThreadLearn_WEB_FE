@@ -7,84 +7,89 @@ import type {
   User,
 } from '../types';
 
+/**
+ * BE returns user with: { id, email, firstName, lastName, role, isPremium, avatarUrl }
+ * FE consumes: { _id, email, name, role, planType, avatarUrl }
+ * This adapter bridges the two shapes — single source of truth.
+ */
+function mapUserFromBE(beUser: any): User {
+  return {
+    _id:       beUser._id ?? beUser.id ?? '',
+    email:     beUser.email,
+    name:      beUser.name ?? `${beUser.firstName ?? ''} ${beUser.lastName ?? ''}`.trim(),
+    avatarUrl: beUser.avatarUrl,
+    role:      beUser.role ?? 'STUDENT',
+    planType:  beUser.planType ?? (beUser.isPremium ? 'PREMIUM' : 'FREE'),
+    subscriptionExpiresAt: beUser.subscriptionExpiresAt,
+    isLocked:        beUser.isLocked,
+    isEmailVerified: beUser.isEmailVerified,
+    googleId:        beUser.googleId,
+    createdAt:       beUser.createdAt,
+    updatedAt:       beUser.updatedAt,
+  };
+}
+
+function mapAuthResponse(raw: any): AuthResponse {
+  return {
+    user:         mapUserFromBE(raw.user),
+    accessToken:  raw.accessToken,
+    refreshToken: raw.refreshToken,
+  };
+}
+
 export const authService = {
-  // UC01 — Register
   register: async (payload: RegisterPayload) => {
-    const { data } = await apiClient.post<ApiResponse<AuthResponse>>(
-      '/auth/register',
-      payload
-    );
-    return data.data;
+    const { data } = await apiClient.post<ApiResponse<AuthResponse>>('/auth/register', payload);
+    return mapAuthResponse(data.data);
   },
 
-  // UC04, UC06 — Login with email/password
   login: async (payload: LoginPayload) => {
-    const { data } = await apiClient.post<ApiResponse<AuthResponse>>(
-      '/auth/login',
-      payload
-    );
-    return data.data;
+    const { data } = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', payload);
+    return mapAuthResponse(data.data);
   },
 
-  // UC05 — Google OAuth (redirects to BE NextAuth)
   loginWithGoogle: () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '')}/api/auth/signin/google`;
+    const base = import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') ?? 'http://localhost:5000';
+    window.location.href = `${base}/api/v1/auth/google`;
   },
 
-  // UC07 — Forgot password
   forgotPassword: async (email: string) => {
-    const { data } = await apiClient.post<ApiResponse<null>>(
-      '/auth/forgot-password',
-      { email }
-    );
+    const { data } = await apiClient.post<ApiResponse<null>>('/auth/forgot-password', { email });
     return data;
   },
 
-  // UC08 — Reset password
   resetPassword: async (token: string, newPassword: string) => {
-    const { data } = await apiClient.post<ApiResponse<null>>(
-      '/auth/reset-password',
-      { token, newPassword }
-    );
+    const { data } = await apiClient.post<ApiResponse<null>>('/auth/reset-password', { token, newPassword });
     return data;
   },
 
-  // UC03 — Verify email
   verifyEmail: async (token: string) => {
-    const { data } = await apiClient.get<ApiResponse<null>>(
-      `/auth/verify?token=${token}`
-    );
+    const { data } = await apiClient.get<ApiResponse<null>>(`/auth/verify?token=${token}`);
     return data;
   },
 
-  // Refresh token
   refreshToken: async (refreshToken: string) => {
-    const { data } = await apiClient.post<ApiResponse<{ accessToken: string }>>(
-      '/auth/refresh',
-      { refreshToken }
-    );
+    const { data } = await apiClient.post<ApiResponse<{ accessToken: string }>>('/auth/refresh', { refreshToken });
     return data.data;
   },
 
-  // Get current user profile
   getMe: async () => {
-    const { data } = await apiClient.get<ApiResponse<User>>('/users/me');
-    return data.data;
+    // BE returns { user: {...} } or the user directly — handle both.
+    const { data } = await apiClient.get<ApiResponse<any>>('/auth/me');
+    const raw = data.data?.user ?? data.data;
+    return mapUserFromBE(raw);
   },
 
-  // UC09 — Update avatar
   uploadAvatar: async (file: File) => {
     const form = new FormData();
     form.append('avatar', file);
     const { data } = await apiClient.post<ApiResponse<{ avatarUrl: string }>>(
-      '/users/avatar',
-      form,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
+      '/users/avatar', form,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
     );
     return data.data;
   },
 
-  // Update profile
   updateProfile: async (payload: Partial<Pick<User, 'name'>>) => {
     const { data } = await apiClient.put<ApiResponse<User>>('/users/me', payload);
     return data.data;

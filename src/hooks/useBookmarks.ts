@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { bookmarkService } from '../services/bookmark.service';
@@ -38,3 +37,4 @@ export function useMyBookmarks(targetType?: BookmarkTargetType) {
     queryFn: () => bookmarkService.getMyBookmarks({ targetType }),
   });
 }
+

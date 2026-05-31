@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import React from 'react';
 import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { useBookmarkCheck, useToggleBookmark } from '../../hooks/useBookmarks';
@@ -46,3 +45,4 @@ export const BookmarkButton: React.FC<Props> = ({
     </button>
   );
 };
+

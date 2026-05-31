@@ -1,7 +1,5 @@
-'use client';
-
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+﻿import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store';
 import { authService } from '../services/auth.service';
@@ -69,9 +67,10 @@ export function useAuthBootstrap() {
 // ─── Logout helper ────────────────────────────────────────────────────────────
 export function useLogout() {
   const { logout } = useAuthStore();
-  const router = useRouter();
+  const navigate = useNavigate();
   return () => {
     logout();
-    router.replace('/login');
+    navigate('/login', { replace: true });
   };
 }
+

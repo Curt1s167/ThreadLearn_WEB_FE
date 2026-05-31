@@ -1,8 +1,6 @@
-'use client';
-
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Bell, CheckCheck, ArrowRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { useUnreadCount, useMarkAllAsRead, useNotifications } from '../../hooks/useNotifications';
 import { useMarkAsRead } from '../../hooks/useNotifications';
 import { useNotificationSocket } from '../../hooks/useNotificationSocket';
@@ -10,7 +8,7 @@ import { useNotificationSocket } from '../../hooks/useNotificationSocket';
 export const NotificationBell: React.FC = () => {
   useNotificationSocket();
 
-  const router = useRouter();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -104,7 +102,7 @@ export const NotificationBell: React.FC = () => {
 
             {/* Footer */}
             <button
-              onClick={() => { router.push('/notifications'); setOpen(false); }}
+              onClick={() => { navigate('/notifications'); setOpen(false); }}
               className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-mono text-gray-500 hover:text-violet-400 border-t border-white/[0.06] transition-colors"
             >
               Xem tất cả
@@ -116,3 +114,4 @@ export const NotificationBell: React.FC = () => {
     </div>
   );
 };
+

@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { noteService } from '../services/note.service';
@@ -48,3 +47,4 @@ export function useDeleteNote() {
     onError: () => toast.error('Không thể xóa ghi chú'),
   });
 }
+

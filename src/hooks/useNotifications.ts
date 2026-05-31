@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationService } from '../services/notification.service';
 
@@ -38,3 +37,4 @@ export function useMarkAllAsRead() {
     },
   });
 }
+

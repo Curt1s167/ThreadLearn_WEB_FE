@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import React, { useState } from 'react';
 import { CheckCircle2, XCircle, AlertTriangle, Terminal, Bot } from 'lucide-react';
 import { Card, Button } from '../../components/shared';
@@ -149,3 +148,4 @@ export const VerdictPanel: React.FC<Props> = ({ result, isLoading, code, languag
     </div>
   );
 };
+

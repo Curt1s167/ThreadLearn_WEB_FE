@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { commentService } from '../services/comment.service';
@@ -68,3 +67,4 @@ export function useDeleteComment() {
     onError: () => toast.error('Không thể xóa bình luận'),
   });
 }
+

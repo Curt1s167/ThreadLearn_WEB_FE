@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { Play, RotateCcw, Loader2 } from 'lucide-react';
@@ -125,3 +124,4 @@ export const WebIDE: React.FC<Props> = ({ exercise, onCodeChange, onRunResult })
     </div>
   );
 };
+

@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import React, { useState, useEffect, useRef } from 'react';
 import { StickyNote, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
 import { Card, Button } from '../../components/shared';
@@ -153,7 +152,7 @@ const NotePopup: React.FC<{
   );
 };
 
-export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
+export const NotePanel: React.FC<Props> = ({ lessonId }) => {
   const { data, isLoading } = useNotes(lessonId);
   const [popup, setPopup] = useState<NotePopupState | null>(null);
   const [showAddManual, setShowAddManual] = useState(false);
@@ -289,3 +288,4 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
     </>
   );
 };
+

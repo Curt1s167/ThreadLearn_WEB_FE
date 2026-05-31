@@ -156,34 +156,12 @@ export const commentsService = {
   },
 };
 
-// ─── Bookmarks (UC38–UC39) ────────────────────────────────────────────────────
-export const bookmarksService = {
-  getAll: async () => {
-    const { data } = await apiClient.get<ApiResponse<Bookmark[]>>('/bookmarks');
-    return data.data;
-  },
-  toggle: async (lessonId: string) => {
-    const { data } = await apiClient.post<ApiResponse<{ bookmarked: boolean }>>(
-      '/bookmarks',
-      { lessonId }
-    );
-    return data.data;
-  },
-};
-
-// ─── Notes (UC40) ─────────────────────────────────────────────────────────────
-export const notesService = {
-  getByLesson: async (lessonId: string) => {
-    const { data } = await apiClient.get<ApiResponse<Note>>(
-      `/notes?lessonId=${lessonId}`
-    );
-    return data.data;
-  },
-  upsert: async (payload: { lessonId: string; noteText: string; codeSnippet?: string }) => {
-    const { data } = await apiClient.post<ApiResponse<Note>>('/notes', payload);
-    return data.data;
-  },
-};
+// ─── Bookmarks / Notes (v2) ───────────────────────────────────────────────────
+// Re-export the dedicated v2 services so callers can `import { bookmarksService }`
+// from this barrel and still hit the correct endpoints
+// (/bookmarks/toggle, /bookmarks/me, /bookmarks/check, /notes...).
+export { bookmarkService as bookmarksService } from './bookmark.service';
+export { noteService     as notesService     } from './note.service';
 
 // ─── Notifications (UC32) ─────────────────────────────────────────────────────
 export const notificationsService = {

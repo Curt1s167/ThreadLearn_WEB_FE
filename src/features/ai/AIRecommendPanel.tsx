@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import React, { useState } from 'react';
 import { Bot, X, Lock, Loader2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, Button, Badge } from '../../components/shared';
@@ -156,3 +155,4 @@ export const AIRecommendPanel: React.FC<Props> = ({
     </Card>
   );
 };
+

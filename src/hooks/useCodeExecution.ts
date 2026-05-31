@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { codeExecutionService } from '../services/codeExecution.service';
@@ -32,3 +31,4 @@ export function useExecutionHistory(exerciseId: string) {
     enabled: !!exerciseId,
   });
 }
+

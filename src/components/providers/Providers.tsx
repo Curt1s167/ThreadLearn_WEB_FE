@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
@@ -34,3 +33,4 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
     </QueryClientProvider>
   );
 };
+

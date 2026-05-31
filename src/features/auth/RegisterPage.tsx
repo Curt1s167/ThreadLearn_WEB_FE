@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,7 +24,7 @@ type FormData = z.infer<typeof schema>;
 export const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { setAuth } = useAuthStore();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<FormData>({ resolver: zodResolver(schema) });
@@ -34,7 +34,7 @@ export const RegisterPage: React.FC = () => {
       const result = await authService.register({ name, email, password });
       setAuth(result.user, result.accessToken, result.refreshToken);
       toast.success('Account created! Welcome to ThreadLearn.');
-      router.push('/dashboard');
+      navigate('/dashboard');
     } catch {
       toast.error('Registration failed. Email may already be in use.');
     }
@@ -126,7 +126,7 @@ export const RegisterPage: React.FC = () => {
 
         <p className="text-center text-sm text-gray-700 font-mono mt-5">
           Already have an account?{' '}
-          <Link href="/login" className="text-violet-400 hover:text-violet-300 transition-colors">
+          <Link to="/login" className="text-violet-400 hover:text-violet-300 transition-colors">
             Sign in
           </Link>
         </p>
@@ -134,3 +134,6 @@ export const RegisterPage: React.FC = () => {
     </div>
   );
 };
+
+
+

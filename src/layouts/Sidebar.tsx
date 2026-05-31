@@ -1,6 +1,5 @@
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+﻿import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
@@ -46,7 +45,7 @@ const adminItems: NavItem[] = [
 export const Sidebar: React.FC = () => {
   const { user } = useAuthStore();
   const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const isAdmin = user?.role === 'ADMIN';
 
   return (
@@ -95,7 +94,7 @@ export const Sidebar: React.FC = () => {
         {navItems.map((item) => (
           <Link
             key={item.to}
-            href={item.to}
+            to={item.to}
             className={`${pathname === item.to || pathname.startsWith(item.to + '/') ? 'sidebar-item-active' : 'sidebar-item'} ${
               sidebarCollapsed ? 'justify-center px-0 py-2' : ''
             }`}
@@ -121,7 +120,7 @@ export const Sidebar: React.FC = () => {
             {adminItems.map((item) => (
               <Link
                 key={item.to}
-                href={item.to}
+                to={item.to}
                 className={`${pathname === item.to || (item.to !== '/admin' && pathname.startsWith(item.to)) ? 'sidebar-item-active' : 'sidebar-item'} ${
                   sidebarCollapsed ? 'justify-center px-0 py-2' : ''
                 }`}
@@ -138,7 +137,7 @@ export const Sidebar: React.FC = () => {
       {/* User footer */}
       <div className={`border-t border-white/[0.06] p-2 shrink-0`}>
         <Link
-          href="/profile"
+          to="/profile"
           className={`flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/5 transition-colors ${
             sidebarCollapsed ? 'justify-center' : ''
           }`}
@@ -155,3 +154,6 @@ export const Sidebar: React.FC = () => {
     </aside>
   );
 };
+
+
+

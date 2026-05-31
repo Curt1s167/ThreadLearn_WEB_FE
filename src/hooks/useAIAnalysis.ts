@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { aiAnalysisService } from '../services/aiAnalysis.service';
@@ -26,3 +25,4 @@ export function useAIHistory(page = 1) {
     queryFn: () => aiAnalysisService.getHistory(page),
   });
 }
+

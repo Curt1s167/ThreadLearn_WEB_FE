@@ -1,5 +1,4 @@
-'use client';
-
+﻿
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserStats } from '../types';
@@ -60,3 +59,4 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+

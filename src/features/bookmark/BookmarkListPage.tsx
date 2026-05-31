@@ -1,7 +1,5 @@
-'use client';
-
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+﻿import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bookmark, BookOpen, GraduationCap, Trash2 } from 'lucide-react';
 import { Card, EmptyState, Skeleton } from '../../components/shared';
 import { useMyBookmarks, useToggleBookmark } from '../../hooks/useBookmarks';
@@ -10,7 +8,7 @@ import type { BookmarkTargetType } from '../../types';
 type FilterTab = 'ALL' | 'COURSE' | 'LESSON';
 
 export const BookmarksPage: React.FC = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
 
   const targetType: BookmarkTargetType | undefined =
@@ -30,9 +28,9 @@ export const BookmarksPage: React.FC = () => {
 
   const handleNavigate = (targetType: BookmarkTargetType, targetId: string) => {
     if (targetType === 'COURSE') {
-      router.push(`/courses/${targetId}`);
+      navigate(`/courses/${targetId}`);
     } else {
-      router.push(`/lessons/${targetId}`);
+      navigate(`/lessons/${targetId}`);
     }
   };
 
@@ -146,3 +144,4 @@ export const BookmarksPage: React.FC = () => {
     </div>
   );
 };
+

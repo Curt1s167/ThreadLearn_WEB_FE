@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, Sun, Moon, LogOut, Command } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
 import { NotificationBell } from '../features/notifications/NotificationBell';
@@ -10,11 +10,11 @@ export const Topbar: React.FC = () => {
   const { theme, toggleTheme, sidebarCollapsed } = useUIStore();
   const [searchValue, setSearchValue] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    router.replace('/login');
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -36,7 +36,7 @@ export const Topbar: React.FC = () => {
             onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && searchValue.trim()) {
-                router.push(`/courses?search=${encodeURIComponent(searchValue)}`);
+                navigate(`/courses?search=${encodeURIComponent(searchValue)}`);
               }
             }}
             placeholder="Search courses..."
@@ -101,7 +101,7 @@ export const Topbar: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => { router.push('/profile'); setShowUserMenu(false); }}
+                  onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
                   className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 font-mono transition-colors"
                 >
                   Profile settings
@@ -121,3 +121,5 @@ export const Topbar: React.FC = () => {
     </header>
   );
 };
+
+
