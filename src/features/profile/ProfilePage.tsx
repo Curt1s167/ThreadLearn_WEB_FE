@@ -9,7 +9,6 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  IdCard,
   Mail,
   Save,
   Shield,
@@ -139,11 +138,9 @@ export const ProfilePage: React.FC = () => {
     if (!currentUser) return [];
 
     return [
-      { icon: <IdCard size={14} />, label: 'ID', value: currentUser.id || currentUser._id },
       { icon: <Mail size={14} />, label: 'Email', value: currentUser.email },
       { icon: <User size={14} />, label: 'First name', value: getFirstName(currentUser) },
       { icon: <User size={14} />, label: 'Last name', value: getLastName(currentUser) },
-      { icon: <Upload size={14} />, label: 'Avatar URL', value: currentUser.avatarUrl || 'Not set' },
       { icon: <Shield size={14} />, label: 'Role', value: currentUser.role },
       {
         icon: <CheckCircle size={14} />,
