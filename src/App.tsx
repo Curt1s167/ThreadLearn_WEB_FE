@@ -3,19 +3,23 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { LessonPage, QuizPage, NotFoundPage } from './features/lessons/pages';
+import { PageTransition } from './components/motion/PageTransition';
 
 const LoginPage       = lazy(() => import('./features/auth/LoginPage').then(m => ({ default: m.LoginPage })));
 const RegisterPage    = lazy(() => import('./features/auth/RegisterPage').then(m => ({ default: m.RegisterPage })));
 const ForgotPwPage    = lazy(() => import('./features/auth/PasswordPages').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPwPage     = lazy(() => import('./features/auth/PasswordPages').then(m => ({ default: m.ResetPasswordPage })));
 const DashboardPage   = lazy(() => import('./features/courses/DashboardPage').then(m => ({ default: m.DashboardPage })));
-const CoursesPage     = lazy(() => import('./features/courses/CoursesPage').then(m => ({ default: m.CoursesPage })));
+const CoursesPage      = lazy(() => import('./features/courses/CoursesPage').then(m => ({ default: m.CoursesPage })));
+const CourseDetailPage = lazy(() => import('./features/courses/CourseDetailPage').then(m => ({ default: m.CourseDetailPage })));
 const BookmarksPage   = lazy(() => import('./features/bookmark/BookmarkListPage').then(m => ({ default: m.BookmarksPage })));
 const NotificationsPage = lazy(() => import('./features/notifications/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const ProfilePage     = lazy(() => import('./features/profile/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const AIPage          = lazy(() => import('./features/ai/AIPage').then(m => ({ default: m.AIPage })));
 const LeaderboardPage = lazy(() => import('./features/leaderboard/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })));
 const AdminDashboard  = lazy(() => import('./features/admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const AdminCoursesPage = lazy(() => import('./features/admin/AdminCoursesPage').then(m => ({ default: m.AdminCoursesPage })));
+const AdminLessonsPage = lazy(() => import('./features/admin/AdminLessonsPage').then(m => ({ default: m.AdminLessonsPage })));
 const QuizHistoryPage = lazy(() => import('./features/quiz/QuizHistoryPage').then(m => ({ default: m.QuizHistoryPage })));
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -35,7 +39,11 @@ const Loader = () => (
 );
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <PrivateRoute><DashboardLayout>{children}</DashboardLayout></PrivateRoute>
+  <PrivateRoute>
+    <DashboardLayout>
+      <PageTransition>{children}</PageTransition>
+    </DashboardLayout>
+  </PrivateRoute>
 );
 
 export default function App() {
@@ -52,6 +60,7 @@ export default function App() {
         <Route path="/"              element={<Layout><DashboardPage /></Layout>} />
         <Route path="/dashboard"     element={<Navigate to="/" replace />} />
         <Route path="/courses"       element={<Layout><CoursesPage /></Layout>} />
+        <Route path="/courses/:id"   element={<Layout><CourseDetailPage /></Layout>} />
         <Route path="/lessons/:id"   element={<Layout><LessonPage /></Layout>} />
         <Route path="/quiz/:lessonId" element={<Layout><QuizPage /></Layout>} />
         <Route path="/bookmarks"     element={<Layout><BookmarksPage /></Layout>} />
@@ -62,7 +71,9 @@ export default function App() {
         <Route path="/quiz-history"  element={<Layout><QuizHistoryPage /></Layout>} />
 
         {/* Admin */}
-        <Route path="/admin" element={<AdminRoute><DashboardLayout><AdminDashboard /></DashboardLayout></AdminRoute>} />
+        <Route path="/admin"          element={<AdminRoute><DashboardLayout><AdminDashboard /></DashboardLayout></AdminRoute>} />
+        <Route path="/admin/courses"  element={<AdminRoute><DashboardLayout><AdminCoursesPage /></DashboardLayout></AdminRoute>} />
+        <Route path="/admin/courses/:courseId/lessons" element={<AdminRoute><DashboardLayout><AdminLessonsPage /></DashboardLayout></AdminRoute>} />
 
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />

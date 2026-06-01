@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo } from 'react';
+import { motion } from 'framer-motion';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface State { hasError: boolean; error: Error | null }
@@ -12,31 +13,35 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // eslint-disable-next-line no-console
     console.error('[ErrorBoundary]', error, info);
   }
 
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
+      if (this.props.fallback) return <>{this.props.fallback}</>;
       return (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] gap-6 p-8">
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
-            <AlertTriangle size={24} className="text-rose-400" />
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center min-h-[40vh] gap-5 p-8"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+            <AlertTriangle size={26} className="text-rose-400" />
           </div>
-          <div className="text-center">
-            <p className="font-mono font-semibold text-gray-200">Something went wrong</p>
-            <p className="text-sm text-gray-600 font-mono mt-1">
-              {this.state.error?.message || 'An unexpected error occurred'}
+          <div className="text-center max-w-sm">
+            <p className="font-mono font-semibold text-gray-100">Đã có lỗi xảy ra</p>
+            <p className="text-sm text-gray-500 font-mono mt-1">
+              {this.state.error?.message ?? 'Lỗi không mong muốn. Vui lòng thử tải lại.'}
             </p>
           </div>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
             className="inline-flex items-center gap-2 btn-outline text-sm font-mono"
           >
-            <RefreshCw size={14} />
-            Try again
+            <RefreshCw size={14} /> Thử lại
           </button>
-        </div>
+        </motion.div>
       );
     }
     return this.props.children;

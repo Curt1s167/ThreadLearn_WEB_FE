@@ -58,19 +58,28 @@ export interface UserStats {
 export type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 
 export interface Course {
-  _id: string;
-  title: string;
-  description: string;
-  thumbnailUrl?: string;
-  tags: string[];
-  level: CourseLevel;
-  language: string;
-  isPublished: boolean;
-  isDeleted?: boolean;
-  lessonCount?: number;
+  _id:              string;
+  title:            string;
+  description:      string;
+  thumbnailUrl?:    string;
+  coverImage?:      string;
+  tags:             string[];
+  level:            CourseLevel;
+  language?:        string;
+  category?:        string;
+  price?:           number;
+  durationMinutes?: number;
+  isPublished:      boolean;
+  isDeleted?:       boolean;
+  totalLessons?:     number;
+  totalEnrollments?: number;
+  /** @deprecated use totalLessons */
+  lessonCount?:     number;
+  /** @deprecated use totalEnrollments */
   enrollmentCount?: number;
-  createdAt: string;
-  updatedAt: string;
+  instructorId?:    { _id: string; firstName?: string; lastName?: string; avatarUrl?: string } | string;
+  createdAt:        string;
+  updatedAt:        string;
 }
 
 export interface CourseCreatePayload {

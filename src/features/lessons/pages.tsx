@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
@@ -7,9 +8,11 @@ import {
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { quizService, lessonsService } from '../../services';
+import { quizService } from '../../services';
+import { lessonService } from '../../services/course.service';
 import { useExercise } from '../../hooks/useCodeExecution';
 import { useNotes } from '../../hooks/useNotes';
+import { useCompleteLesson } from '../../hooks/useCourses';
 import { Card, Button, Badge } from '../../components/shared';
 import { CommentPanel } from '../comment/CommentPanel';
 import { NotePanel } from '../note/NotePanel';
@@ -144,11 +147,14 @@ export const LessonPage: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [currentCode, setCurrentCode] = useState('');
 
-  const { data: lesson, isLoading } = useQuery({
+  const { mutate: completeLesson, isPending: isCompleting } = useCompleteLesson();
+
+  const { data: lessonResp, isLoading } = useQuery({
     queryKey: ['lesson', id],
-    queryFn: () => lessonsService.getById(id!),
+    queryFn: () => lessonService.detail(id!),
     enabled: !!id,
   });
+  const lesson = lessonResp?.data;
 
   const { data: exerciseResp } = useExercise(id!);
   const exercise = exerciseResp?.data;
@@ -181,6 +187,13 @@ export const LessonPage: React.FC = () => {
               targetId={id!}
               title={lesson.title}
             />
+            <button
+              onClick={() => completeLesson(id!)}
+              disabled={isCompleting}
+              className="btn-outline text-sm disabled:opacity-50"
+            >
+              <CheckCircle size={13}/> {isCompleting ? 'Đang lưu...' : 'Đánh dấu hoàn thành'}
+            </button>
             <button onClick={() => navigate(`/quiz/${id}`)} className="btn-outline text-sm"><Zap size={13}/> Take quiz</button>
           </div>
         )}
@@ -247,13 +260,35 @@ export const LessonPage: React.FC = () => {
 export const NotFoundPage: React.FC = () => {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-      <div className="text-center">
-        <p className="font-mono font-bold text-[96px] text-white/5 leading-none">404</p>
-        <h1 className="font-mono font-bold text-2xl text-gray-300 -mt-4">Page not found</h1>
-        <p className="text-gray-600 font-mono text-sm mt-2">The page you are looking for does not exist.</p>
-        <button onClick={() => navigate('/')} className="btn-primary mt-6 mx-auto">Go home</button>
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/3 w-72 h-72 rounded-full bg-violet-600/10 blur-[120px]"/>
       </div>
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="relative text-center"
+      >
+        <motion.p
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+          className="font-mono font-bold text-[120px] leading-none text-gradient"
+        >
+          404
+        </motion.p>
+        <h1 className="font-mono font-bold text-2xl text-gray-100 -mt-4">Không tìm thấy trang</h1>
+        <p className="text-gray-500 font-mono text-sm mt-2 max-w-sm mx-auto">
+          Trang bạn đang tìm có thể đã bị di chuyển, đổi tên, hoặc không tồn tại.
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="btn-primary mt-6 mx-auto"
+        >
+          Về trang chủ
+        </button>
+      </motion.div>
     </div>
   );
 };

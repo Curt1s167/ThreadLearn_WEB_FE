@@ -132,11 +132,11 @@ export const quizService = {
   },
 };
 
-// ─── Comments (UC34–UC37) ─────────────────────────────────────────────────────
+// ─── Comments (UC29–UC32) ─────────────────────────────────────────────────────
 export const commentsService = {
   getByLesson: async (lessonId: string) => {
     const { data } = await apiClient.get<ApiResponse<Comment[]>>(
-      `/comments?lessonId=${lessonId}`
+      `/comments?targetType=LESSON&targetId=${lessonId}`
     );
     return data.data;
   },
@@ -207,17 +207,17 @@ export const gamificationService = {
   },
 };
 
-// ─── AI (UC47–UC48) ───────────────────────────────────────────────────────────
+// ─── AI (UC47–UC48) — legacy alias, points to /ai-analysis ─────────────────
 export const aiService = {
-  requestRecommendation: async (courseId: string) => {
+  requestRecommendation: async (inputCode: string, language = 'javascript') => {
     const { data } = await apiClient.post<ApiResponse<AIHistoryLog>>(
-      '/ai/recommendation',
-      { courseId }
+      '/ai-analysis/recommend',
+      { inputCode, language }
     );
     return data.data;
   },
   getHistory: async () => {
-    const { data } = await apiClient.get<ApiResponse<AIHistoryLog[]>>('/ai/history');
+    const { data } = await apiClient.get<ApiResponse<AIHistoryLog[]>>('/ai-analysis/history');
     return data.data;
   },
 };
@@ -230,42 +230,32 @@ export const adminService = {
     );
     return data.data;
   },
-  listUsers: async (page = 1, limit = 20) => {
+  listUsers: async (page = 1, limit = 20, search = '') => {
     const { data } = await apiClient.get<PaginatedApiResponse<User>>(
-      `/admin/users?page=${page}&limit=${limit}`
+      `/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`
     );
     return data.data;
   },
   createStudent: async (payload: { name: string; email: string; password: string }) => {
-    const { data } = await apiClient.post<ApiResponse<User>>(
-      '/admin/users',
-      payload
-    );
+    const { data } = await apiClient.post<ApiResponse<User>>('/users', payload);
     return data.data;
   },
   updateUser: async (id: string, payload: Partial<User>) => {
-    const { data } = await apiClient.put<ApiResponse<User>>(
-      `/admin/users/${id}`,
-      payload
-    );
+    const { data } = await apiClient.put<ApiResponse<User>>(`/users/${id}`, payload);
     return data.data;
   },
   toggleUserLock: async (id: string) => {
-    const { data } = await apiClient.patch<ApiResponse<User>>(
-      `/admin/users/${id}/lock`
-    );
+    const { data } = await apiClient.patch<ApiResponse<User>>(`/users/${id}/lock`);
     return data.data;
   },
-  toggleCoursePublish: async (id: string) => {
+  toggleCoursePublish: async (id: string, isPublished: boolean) => {
     const { data } = await apiClient.patch<ApiResponse<Course>>(
-      `/admin/courses/${id}/publish`
+      `/courses/${id}/publish`, { isPublished }
     );
     return data.data;
   },
   deleteCourse: async (id: string) => {
-    const { data } = await apiClient.delete<ApiResponse<null>>(
-      `/admin/courses/${id}`
-    );
+    const { data } = await apiClient.delete<ApiResponse<null>>(`/courses/${id}`);
     return data;
   },
 };

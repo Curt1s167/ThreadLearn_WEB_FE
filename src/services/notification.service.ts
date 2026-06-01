@@ -18,7 +18,7 @@ export const notificationService = {
     apiClient.get('/notifications/unread-count').then((r) => r.data),
 
   markAsRead: (id: string): Promise<SingleV2Response<NotificationV2>> =>
-    apiClient.patch(`/notifications/${id}`).then((r) => r.data),
+    apiClient.patch(`/notifications/${id}/read`).then((r) => r.data),
 
   markAllAsRead: (): Promise<SingleV2Response<{ updated: number }>> =>
     apiClient.patch('/notifications/read-all').then((r) => r.data),

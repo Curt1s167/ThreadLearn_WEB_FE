@@ -1,5 +1,14 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
+
+export { Modal, ConfirmModal }   from './Modal';
+export { Dropdown, DropdownItem, DropdownDivider } from './Dropdown';
+export {
+  LoadingState, EmptyView, ErrorView, UnauthorizedView, NotFoundView,
+} from './StateView';
+export { DataTable } from './DataTable';
+export type { Column } from './DataTable';
 
 // ─── Button ───────────────────────────────────────────────────────────────────
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -29,16 +38,25 @@ export const Button: React.FC<ButtonProps> = ({
   children,
   className = '',
   disabled,
-  ...props
+  onClick,
+  type = 'button',
+  ...rest
 }) => (
-  <button
-    className={`inline-flex items-center justify-center font-mono font-medium rounded-lg border transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+  <motion.button
+    type={type}
+    onClick={onClick as any}
+    whileHover={disabled || loading ? undefined : { y: -1 }}
+    whileTap={disabled   || loading ? undefined : { scale: 0.98 }}
+    transition={{ type: 'spring', stiffness: 600, damping: 30 }}
+    className={`inline-flex items-center justify-center font-mono font-medium rounded-lg border
+                transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed
+                ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
     disabled={disabled || loading}
-    {...props}
+    {...(rest as any)}
   >
     {loading && <Loader2 className="animate-spin" size={14} />}
     {children}
-  </button>
+  </motion.button>
 );
 
 // ─── Input ────────────────────────────────────────────────────────────────────
