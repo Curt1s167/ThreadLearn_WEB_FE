@@ -185,8 +185,45 @@ export interface Lesson {
 }
 
 export interface LessonCompleteResult {
-  xpAwarded?: number;
   enrollment: Enrollment | null;
+  totalLessons: number;
+  completedLessons: number;
+  progressPercent: number;
+  courseCompleted: boolean;
+  xpRewarded: number;
+  stats?: unknown;
+}
+
+// ─── Certificates ─────────────────────────────────────────────────────────────
+
+export type CertificateStatus = 'valid' | 'expired';
+
+export interface CertificateCourse {
+  id?: string;
+  title: string;
+  slug: string;
+  level: string;
+  language: string;
+  description: string;
+  tags: string[];
+  category: string;
+  estimatedDuration: number | null;
+  totalLessons: number | null;
+}
+
+export interface Certificate {
+  id?: string;
+  certificateCode: string;
+  recipientName: string;
+  course: CertificateCourse;
+  issuedAt: string;
+  completedAt: string;
+  expiresAt: string | null;
+  status: CertificateStatus;
+  templateVersion: string;
+  verificationPath: string;
+  verificationUrl: string;
+  pdfPath: string;
 }
 
 // ─── Enrollments ─────────────────────────────────────────────────────────────
@@ -202,6 +239,7 @@ export interface Enrollment {
   totalLessons?: number;
   lastLessonId?: string;
   completed: boolean;
+  completedAt?: string;
   enrolledAt?: string;
   lastAccessedAt?: string;
   createdAt?: string;
