@@ -2,15 +2,23 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  CheckCircle, XCircle, Clock, Zap, ChevronRight, ArrowLeft, Bookmark,
+  CheckCircle, XCircle, Clock, Zap, ChevronRight, ChevronLeft, ArrowLeft, Bookmark, Play, Bot,
+  Paperclip, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { quizService, lessonsService, bookmarksService, enrollmentsService } from '../../services';
-import { Card, Button, Badge } from '../../components/shared';
+import {
+  aiService,
+  codeExecutionService,
+  quizService,
+  lessonsService,
+  bookmarksService,
+} from '../../services';
+import { Card, Button, Badge, CodeEditor } from '../../components/shared';
 import { CommentsSection } from './CommentsSection';
 import { NotesPanel } from './NotesPanel';
+import { ExercisePanel } from './ExercisePanel';
 
 // ─── Quiz Page ────────────────────────────────────────────────────────────────
 export const QuizPage: React.FC = () => {
@@ -162,7 +170,11 @@ export const LessonPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'content' | 'comments' | 'notes'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'comments' | 'notes' | 'ide' | 'exercise'>('content');
+  const [sourceCode, setSourceCode] = useState('console.log("Hello, ThreadLearn!");');
+  const [stdin, setStdin] = useState('');
+  const [language, setLanguage] = useState('javascript');
+  const [runResult, setRunResult] = useState<any>(null);
 
   const { data: lesson, isLoading } = useQuery({
     queryKey: ['lesson', id],
@@ -170,12 +182,75 @@ export const LessonPage: React.FC = () => {
     enabled: !!id,
   });
 
+  // Sibling lessons for prev/next navigation. Loaded only after the active
+  // lesson is in so we know its courseId.
+  const { data: siblingLessons } = useQuery({
+    queryKey: ['lessons-by-course', lesson?.courseId],
+    queryFn: () => lessonsService.getByCourse(lesson!.courseId!),
+    enabled: !!lesson?.courseId,
+  });
+
+  const navigation = React.useMemo(() => {
+    if (!lesson || !siblingLessons?.length) return { prev: null as null | { _id: string; title: string }, next: null as null | { _id: string; title: string } };
+    const sorted = [...siblingLessons].sort(
+      (a, b) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0)
+    );
+    const idx = sorted.findIndex((l) => l._id === lesson._id);
+    return {
+      prev: idx > 0 ? sorted[idx - 1] : null,
+      next: idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null,
+    };
+  }, [lesson, siblingLessons]);
+
   const { mutate: toggleBookmark } = useMutation({
     mutationFn: () => bookmarksService.toggle(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
       toast.success('Bookmark toggled');
     },
+  });
+
+  const { data: executionHistory } = useQuery({
+    queryKey: ['code-execution-history', id],
+    queryFn: () => codeExecutionService.history(id!),
+    enabled: !!id && activeTab === 'ide',
+  });
+
+  const { mutate: completeLesson, isPending: completing } = useMutation({
+    mutationFn: () => lessonsService.complete(id!),
+    onSuccess: () => {
+      toast.success('Lesson completed');
+      queryClient.invalidateQueries({ queryKey: ['my-enrollments'] });
+    },
+    onError: () => toast.error('Could not complete lesson'),
+  });
+
+  const { mutate: runCode, isPending: runningCode } = useMutation({
+    mutationFn: () =>
+      codeExecutionService.run({
+        lessonId: id!,
+        sourceCode,
+        stdin,
+        language,
+      }),
+    onSuccess: (result) => {
+      setRunResult(result);
+      queryClient.invalidateQueries({ queryKey: ['code-execution-history', id] });
+      toast.success('Code executed');
+    },
+    onError: () => toast.error('Code execution failed'),
+  });
+
+  const { mutate: requestAi, isPending: aiPending } = useMutation({
+    mutationFn: () =>
+      aiService.recommendCode({
+        lessonId: id!,
+        inputCode: sourceCode,
+        language,
+        codeExecutionId: runResult?._id,
+      }),
+    onSuccess: () => toast.success('AI recommendation saved'),
+    onError: () => toast.error('AI recommendation failed'),
   });
 
   return (
@@ -196,6 +271,10 @@ export const LessonPage: React.FC = () => {
             <button onClick={() => toggleBookmark()} className="btn-ghost" title="Bookmark">
               <Bookmark size={14} />
             </button>
+            <Button variant="outline" size="sm" onClick={() => completeLesson()} loading={completing}>
+              <CheckCircle size={13} />
+              Complete
+            </Button>
             <button onClick={() => router.push(`/quiz/${id}`)} className="btn-outline text-sm">
               <Zap size={13} />
               Take quiz
@@ -213,22 +292,56 @@ export const LessonPage: React.FC = () => {
       ) : lesson ? (
         <>
           <Card className="px-4 py-2.5 flex items-center gap-4 flex-wrap">
-            {lesson.duration > 0 && (
+            {((lesson.duration ?? lesson.estimatedTime ?? 0) > 0) && (
               <span className="flex items-center gap-1 text-xs text-gray-600 font-mono">
-                <Clock size={11} />{lesson.duration} min
+                <Clock size={11} />{lesson.duration ?? lesson.estimatedTime} min
               </span>
             )}
             {lesson.videoUrl && <Badge color="purple">Video</Badge>}
-            {lesson.attachmentUrl && (
-              <a href={lesson.attachmentUrl} target="_blank" rel="noreferrer" className="text-xs text-violet-400 hover:text-violet-300 font-mono">
-                Attachment
-              </a>
+            {(lesson.attachments?.length ?? 0) > 0 && (
+              <Badge color="amber">{lesson.attachments!.length} files</Badge>
             )}
-            <span className="text-xs text-gray-700 font-mono">Order: #{lesson.order}</span>
+            <span className="text-xs text-gray-700 font-mono">
+              Order: #{lesson.orderIndex ?? lesson.order ?? 0}
+            </span>
           </Card>
 
+          {/* Lesson attachments: zips, PDFs, sample code etc. */}
+          {(lesson.attachments?.length || lesson.attachmentUrl) && (
+            <Card className="p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Paperclip size={12} className="text-amber-400" />
+                <span className="text-xs font-mono uppercase tracking-wide text-gray-500">
+                  Attachments
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(lesson.attachments ?? (lesson.attachmentUrl ? [lesson.attachmentUrl] : [])).map(
+                  (url, idx) => {
+                    const name = decodeURIComponent(url.split('/').pop() || `attachment-${idx + 1}`);
+                    const resolved = url.startsWith('/uploads/')
+                      ? `${process.env.NEXT_PUBLIC_BACKEND_BASE_URL ?? 'http://localhost:5000'}${url}`
+                      : url;
+                    return (
+                      <a
+                        key={`${url}-${idx}`}
+                        href={resolved}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/[0.06] bg-black/30 text-xs font-mono text-gray-300 hover:border-amber-500/30 hover:bg-amber-500/5 transition-colors"
+                      >
+                        <Download size={11} className="text-amber-400" />
+                        <span className="truncate max-w-[16rem]">{name}</span>
+                      </a>
+                    );
+                  }
+                )}
+              </div>
+            </Card>
+          )}
+
           <div className="flex gap-1 border-b border-white/[0.06] pb-0.5">
-            {(['content', 'comments', 'notes'] as const).map((tab) => (
+            {(['content', 'comments', 'notes', 'ide', 'exercise'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -252,9 +365,33 @@ export const LessonPage: React.FC = () => {
               )}
               <div className="prose prose-invert prose-sm max-w-none font-mono text-gray-300 leading-relaxed [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-white/[0.06] [&_pre]:p-4 [&_code]:text-violet-300 [&_a]:text-violet-400 [&_h1]:text-gray-100 [&_h2]:text-gray-200 [&_h3]:text-gray-200 [&_blockquote]:border-violet-500/30 [&_blockquote]:text-gray-500">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {lesson.content}
+                  {lesson.contentMarkdown || lesson.content || ''}
                 </ReactMarkdown>
               </div>
+              {lesson.codeSnippets && lesson.codeSnippets.length > 0 && (
+                <div className="mt-6 flex flex-col gap-4">
+                  <h3 className="font-mono text-sm font-semibold text-gray-200 uppercase tracking-wide flex items-center gap-2">
+                    <span className="w-1 h-4 bg-violet-500 rounded-full" />
+                    Code samples
+                  </h3>
+                  {lesson.codeSnippets.map((snippet, idx) => (
+                    <div key={idx} className="flex flex-col gap-1.5">
+                      {(snippet.description || snippet.language) && (
+                        <div className="flex items-center justify-between text-[11px] font-mono">
+                          <span className="text-gray-400">{snippet.description ?? `Snippet ${idx + 1}`}</span>
+                          <Badge color="purple">{snippet.language}</Badge>
+                        </div>
+                      )}
+                      <CodeEditor
+                        value={snippet.code}
+                        language={snippet.language}
+                        readOnly
+                        height={Math.max(120, Math.min(360, snippet.code.split('\n').length * 22 + 30))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           )}
           {activeTab === 'comments' && (
@@ -263,6 +400,123 @@ export const LessonPage: React.FC = () => {
             </Card>
           )}
           {activeTab === 'notes' && <NotesPanel lessonId={id!} />}
+          {activeTab === 'exercise' && <ExercisePanel lessonId={id!} />}
+          {activeTab === 'ide' && (
+            <Card className="p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <select
+                    value={language}
+                    onChange={(event) => setLanguage(event.target.value)}
+                    className="input-field max-w-44 text-xs"
+                  >
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="c">C</option>
+                  </select>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => runCode()} loading={runningCode}>
+                      <Play size={12} />
+                      Run
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => requestAi()} loading={aiPending} disabled={!sourceCode.trim()}>
+                      <Bot size={12} />
+                      AI
+                    </Button>
+                  </div>
+                </div>
+                <CodeEditor
+                  value={sourceCode}
+                  onChange={setSourceCode}
+                  language={language}
+                  height={300}
+                />
+                <textarea
+                  value={stdin}
+                  onChange={(event) => setStdin(event.target.value)}
+                  rows={3}
+                  className="input-field resize-y text-xs font-mono bg-black/30"
+                  placeholder="stdin (optional)"
+                />
+                <div className="rounded-lg border border-white/[0.06] bg-black/30 p-3 min-h-28">
+                  <div className="flex flex-wrap gap-3 text-[11px] text-gray-600 font-mono mb-2">
+                    <span>Status: {runResult?.status?.description ?? runResult?.status ?? 'Idle'}</span>
+                    <span>Runtime: {runResult?.runtime ?? '-'}</span>
+                    <span>Memory: {runResult?.memory ?? '-'}</span>
+                  </div>
+                  <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap">
+                    {runResult?.stdout || runResult?.stderr || runResult?.compileOutput || 'Run code to see output.'}
+                  </pre>
+                </div>
+                {executionHistory && executionHistory.length > 0 && (
+                  <div className="rounded-lg border border-white/[0.06] overflow-hidden">
+                    <div className="px-3 py-2 text-xs text-gray-500 font-mono border-b border-white/[0.06]">
+                      Execution history
+                    </div>
+                    <div className="max-h-44 overflow-auto divide-y divide-white/[0.04]">
+                      {executionHistory.slice(0, 5).map((item) => (
+                        <button
+                          key={item._id}
+                          onClick={() => setRunResult(item)}
+                          className="w-full px-3 py-2 text-left hover:bg-white/[0.03] transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-2 text-[11px] font-mono">
+                            <span className="text-gray-400">{item.language}</span>
+                            <span className="text-gray-600">{item.status}</span>
+                          </div>
+                          <p className="text-[11px] text-gray-700 font-mono mt-0.5">
+                            {new Date(item.createdAt).toLocaleString()}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Prev / Complete & next nav bar */}
+          {(navigation.prev || navigation.next) && (
+            <Card className="p-3 flex items-center justify-between gap-3">
+              <button
+                onClick={() => navigation.prev && router.push(`/lessons/${navigation.prev._id}`)}
+                disabled={!navigation.prev}
+                className="flex items-center gap-1.5 text-xs font-mono text-gray-500 hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={14} />
+                <span className="truncate max-w-[10rem]">
+                  {navigation.prev?.title ?? 'No previous lesson'}
+                </span>
+              </button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  completeLesson(undefined, {
+                    onSuccess: () => {
+                      if (navigation.next) router.push(`/lessons/${navigation.next._id}`);
+                    },
+                  });
+                }}
+                loading={completing}
+              >
+                <CheckCircle size={12} />
+                {navigation.next ? 'Complete & continue' : 'Complete lesson'}
+              </Button>
+              <button
+                onClick={() => navigation.next && router.push(`/lessons/${navigation.next._id}`)}
+                disabled={!navigation.next}
+                className="flex items-center gap-1.5 text-xs font-mono text-gray-500 hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <span className="truncate max-w-[10rem]">
+                  {navigation.next?.title ?? 'No next lesson'}
+                </span>
+                <ChevronRight size={14} />
+              </button>
+            </Card>
+          )}
         </>
       ) : (
         <Card className="p-8 text-center">

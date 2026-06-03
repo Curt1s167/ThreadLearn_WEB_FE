@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store';
 import { gamificationService, enrollmentsService, leaderboardService } from '../../services';
 import { Card, Badge, Skeleton, Button } from '../../components/shared';
 import type { AuthUser } from '../../types';
+import type { Course } from '../../types';
 
 const StatCard: React.FC<{
   icon: React.ReactNode;
@@ -43,6 +44,12 @@ const getDashboardName = (user?: AuthUser | null) => {
 
   return fullName || firstName || user?.email?.split('@')[0] || 'there';
 };
+
+const getEnrollmentCourse = (courseId: string | Course) =>
+  typeof courseId === 'string' ? null : courseId;
+
+const getCourseRouteId = (courseId: string | Course) =>
+  typeof courseId === 'string' ? courseId : courseId._id;
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -184,23 +191,27 @@ export const DashboardPage: React.FC = () => {
         ) : enrollments && enrollments.length > 0 ? (
           <div className="flex flex-col gap-2">
             {enrollments.slice(0, 4).map((enrollment) => (
-              <Card key={enrollment._id} className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all cursor-pointer" onClick={() => router.push(`/courses/${enrollment.courseId}`)}>
+              <Card
+                key={enrollment._id}
+                className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all cursor-pointer"
+                onClick={() => router.push(enrollment.lastLessonId ? `/lessons/${enrollment.lastLessonId}` : `/courses/${getCourseRouteId(enrollment.courseId)}`)}
+              >
                 <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
                   <BookOpen size={14} className="text-violet-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm text-gray-200 font-mono truncate">
-                      Course #{enrollment.courseId.slice(-6)}
+                      {getEnrollmentCourse(enrollment.courseId)?.title || `Course #${getCourseRouteId(enrollment.courseId).slice(-6)}`}
                     </p>
                     <span className="text-xs text-gray-600 font-mono shrink-0">
-                      {enrollment.progress}%
+                      {enrollment.progressPercent ?? enrollment.progress}%
                     </span>
                   </div>
                   <div className="h-1 bg-white/5 rounded-full mt-1.5 overflow-hidden">
                     <div
                       className="h-full bg-violet-600 rounded-full"
-                      style={{ width: `${enrollment.progress}%` }}
+                      style={{ width: `${enrollment.progressPercent ?? enrollment.progress}%` }}
                     />
                   </div>
                 </div>

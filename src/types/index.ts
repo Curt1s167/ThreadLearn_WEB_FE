@@ -123,14 +123,32 @@ export interface UserStats {
 
 export type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 
+export type CourseStatus = 'draft' | 'published' | 'hidden' | 'archived' | 'deleted';
+export type CourseLanguage = 'javascript' | 'java' | 'python';
+
 export interface Course {
   _id: string;
   title: string;
+  slug?: string;
   description: string;
+  shortDescription?: string;
   thumbnailUrl?: string;
   tags: string[];
   level: CourseLevel;
-  language: string;
+  language: CourseLanguage | string;
+  category?: string;
+  isPremium?: boolean;
+  price?: number;
+  status?: CourseStatus;
+  prerequisites?: string[];
+  prerequisiteThreshold?: number;
+  estimatedDuration?: number;
+  totalLessons?: number;
+  totalEnrollments?: number;
+  averageRating?: number;
+  totalReviews?: number;
+  publishedAt?: string;
+  deletedAt?: string;
   isPublished: boolean;
   isDeleted?: boolean;
   lessonCount?: number;
@@ -142,26 +160,93 @@ export interface Course {
 export interface CourseCreatePayload {
   title: string;
   description: string;
+  shortDescription?: string;
   tags?: string[];
   level?: CourseLevel;
-  language?: string;
+  language?: CourseLanguage | string;
+  category?: string;
   thumbnailUrl?: string;
+  isPremium?: boolean;
+  price?: number;
+  status?: CourseStatus;
+  prerequisites?: string[];
+  prerequisiteThreshold?: number;
+  estimatedDuration?: number;
+}
+
+export interface CourseDetail {
+  course: Course;
+  sections: Section[];
+  lessons: Lesson[];
+}
+
+export interface CourseReview {
+  _id: string;
+  userId: string | Pick<User, '_id' | 'name' | 'avatarUrl' | 'firstName' | 'lastName'>;
+  courseId: string;
+  rating: number;
+  content?: string;
+  helpfulCount?: number;
+  status?: 'active' | 'hidden' | 'deleted';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Certificate {
+  _id: string;
+  userId: string;
+  courseId: string | Course;
+  certificateCode: string;
+  pdfUrl?: string;
+  issuedAt: string;
+}
+
+// ─── Sections (UC54) ─────────────────────────────────────────────────────────
+
+export interface Section {
+  _id: string;
+  courseId: string;
+  title: string;
+  orderIndex: number;
+  description?: string;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ─── Lessons ─────────────────────────────────────────────────────────────────
 
+export type LessonType = 'article' | 'video' | 'coding' | 'quiz' | 'assignment' | 'mixed';
+export type LessonStatus = 'active' | 'locked' | 'hidden' | 'deleted';
+
 export interface Lesson {
   _id: string;
   courseId: string;
+  sectionId?: string;
   title: string;
-  content: string; // Markdown
-  attachmentUrl?: string;
+  slug?: string;
+  description?: string;
+  contentMarkdown?: string;
+  content?: string;
+  lessonType?: LessonType;
   videoUrl?: string;
-  duration: number; // minutes
-  order: number;
+  attachments?: string[];
+  attachmentUrl?: string;
+  codeSnippets?: { language: string; code: string; description?: string }[];
+  orderIndex?: number;
+  order?: number;
+  estimatedTime?: number;
+  duration?: number;
+  isPreview?: boolean;
   isLocked?: boolean;
+  status?: LessonStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LessonAccessCheck {
+  canView: boolean;
+  reason: 'ADMIN' | 'PREVIEW' | 'ENROLLED' | 'NOT_ENROLLED' | 'LESSON_LOCKED' | 'LESSON_NOT_FOUND' | 'PREMIUM_REQUIRED';
 }
 
 // ─── Enrollments ─────────────────────────────────────────────────────────────
@@ -169,10 +254,14 @@ export interface Lesson {
 export interface Enrollment {
   _id: string;
   userId: string;
-  courseId: string;
+  courseId: string | Course;
   progress: number; // 0-100
+  progressPercent?: number;
   completedLessons: string[];
+  totalLessons?: number;
+  lastLessonId?: string;
   completed: boolean;
+  lastAccessedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -237,7 +326,17 @@ export interface Comment {
 export interface Bookmark {
   _id: string;
   userId: string;
-  lessonId: string;
+  lessonId?: string;
+  targetType?: 'COURSE' | 'LESSON';
+  targetId?: string;
+  title?: string;
+  thumbnailUrl?: string;
+  anchorText?: string;
+  position?: number;
+  note?: string;
+  folder?: string;
+  tags?: string[];
+  status?: 'active' | 'deleted';
   lesson?: Pick<Lesson, '_id' | 'title' | 'courseId'>;
   createdAt: string;
 }
@@ -286,9 +385,21 @@ export interface LeaderboardEntry {
 export interface AIHistoryLog {
   _id: string;
   userId: string;
-  courseId: string;
+  courseId?: string;
+  lessonId?: string;
+  codeExecutionId?: string;
+  inputCode?: string;
+  language?: string;
   prompt: string;
   response: string;
+  suggestions?: string[];
+  raceConditions?: string[];
+  optimizedCode?: string;
+  explanation?: string;
+  tokenUsage?: number;
+  modelName?: string;
+  feedbackRating?: number;
+  status?: string;
   createdAt: string;
 }
 
@@ -353,6 +464,10 @@ export interface CourseFilters {
   search?: string;
   level?: CourseLevel;
   language?: string;
+  tag?: string;
+  isPremium?: boolean;
+  status?: CourseStatus;
+  includeAll?: boolean;
   tags?: string[];
   page?: number;
   limit?: number;

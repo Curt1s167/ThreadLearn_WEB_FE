@@ -1,16 +1,29 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Search, Bell, Sun, Moon, LogOut, Command } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
 import { authService } from '../services/auth.service';
+import { notificationsService } from '../services';
 
 export const Topbar: React.FC = () => {
-  const { user, refreshToken, logout } = useAuthStore();
+  const { user, refreshToken, logout, accessToken } = useAuthStore();
   const { theme, toggleTheme, sidebarCollapsed } = useUIStore();
   const [searchValue, setSearchValue] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
+
+  // Unread badge — kept in sync by both the WS hook (instant on push) and a
+  // 60s safety poll for missed events.
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: notificationsService.unreadCount,
+    enabled: !!accessToken,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+  });
 
   const handleLogout = async () => {
     try {
@@ -78,9 +91,14 @@ export const Topbar: React.FC = () => {
         <button
           onClick={() => router.push('/notifications')}
           className="relative p-2 rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
+          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
         >
           <Bell size={15} />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-violet-500 rounded-full" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-violet-500 text-[10px] font-mono font-semibold text-white flex items-center justify-center animate-pulse">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </button>
 
         {/* User menu */}

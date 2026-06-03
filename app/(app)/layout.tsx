@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { authService } from '@/services/auth.service';
+import { useNotificationsSocket } from '@/hooks/useNotificationsSocket';
 
 const FullPageSpinner = () => (
   <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
@@ -85,5 +86,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return (
+    <DashboardLayout>
+      <NotificationsSocketBridge />
+      {children}
+    </DashboardLayout>
+  );
+}
+
+/**
+ * Tiny bridge component so the realtime hook only mounts once the user is
+ * fully authenticated. Keeps the WS connection out of the unauthenticated
+ * spinner path.
+ */
+function NotificationsSocketBridge() {
+  useNotificationsSocket();
+  return null;
 }

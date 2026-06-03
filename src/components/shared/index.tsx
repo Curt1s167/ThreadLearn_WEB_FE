@@ -186,3 +186,5 @@ export const EmptyState: React.FC<{
     {action}
   </div>
 );
+
+export { CodeEditor } from './CodeEditor';

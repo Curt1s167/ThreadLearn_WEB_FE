@@ -15,6 +15,7 @@ import {
   Shield,
   BarChart2,
   Users,
+  FlaskConical,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar } from '../components/shared';
@@ -41,6 +42,7 @@ const adminItems: NavItem[] = [
   { to: '/admin', icon: <BarChart2 size={16} />, label: 'Analytics', adminOnly: true },
   { to: '/admin/users', icon: <Users size={16} />, label: 'Users', adminOnly: true },
   { to: '/admin/courses', icon: <BookOpen size={16} />, label: 'Manage Courses', adminOnly: true },
+  { to: '/admin/exercises', icon: <FlaskConical size={16} />, label: 'Exercises', adminOnly: true },
 ];
 
 export const Sidebar: React.FC = () => {
