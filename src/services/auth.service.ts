@@ -28,7 +28,7 @@ export const authService = {
 
   // UC05 — Google OAuth (redirects to BE NextAuth)
   loginWithGoogle: () => {
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '')}/api/auth/signin/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '')}/api/auth/signin/google`;
   },
 
   // UC07 — Forgot password

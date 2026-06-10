@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Bell, Sun, Moon, LogOut, Command } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
 
@@ -9,11 +9,11 @@ export const Topbar: React.FC = () => {
   const { theme, toggleTheme, sidebarCollapsed } = useUIStore();
   const [searchValue, setSearchValue] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    router.replace('/login');
   };
 
   return (
@@ -35,7 +35,7 @@ export const Topbar: React.FC = () => {
             onChange={(e) => setSearchValue(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && searchValue.trim()) {
-                navigate(`/courses?search=${encodeURIComponent(searchValue)}`);
+                router.push(`/courses?search=${encodeURIComponent(searchValue)}`);
               }
             }}
             placeholder="Search courses..."
@@ -69,7 +69,7 @@ export const Topbar: React.FC = () => {
 
         {/* Notifications */}
         <button
-          onClick={() => navigate('/notifications')}
+          onClick={() => router.push('/notifications')}
           className="relative p-2 rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
         >
           <Bell size={15} />
@@ -106,7 +106,7 @@ export const Topbar: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => { navigate('/profile'); setShowUserMenu(false); }}
+                  onClick={() => { router.push('/profile'); setShowUserMenu(false); }}
                   className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 font-mono transition-colors"
                 >
                   Profile settings

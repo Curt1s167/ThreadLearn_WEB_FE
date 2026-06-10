@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, BookOpen, Users, Filter, ChevronDown } from 'lucide-react';
 import { coursesService } from '../../services';
 import { Card, Badge, Skeleton, EmptyState } from '../../components/shared';
@@ -14,8 +14,8 @@ const levelColors: Record<CourseLevel, 'green' | 'amber' | 'red'> = {
 };
 
 export const CoursesPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [level, setLevel] = useState<CourseLevel | ''>('');
   const [showFilters, setShowFilters] = useState(false);
@@ -109,7 +109,7 @@ export const CoursesPage: React.FC = () => {
             <Card
               key={course._id}
               className="overflow-hidden hover:border-violet-500/20 transition-all duration-200 cursor-pointer group"
-              onClick={() => navigate(`/courses/${course._id}`)}
+              onClick={() => router.push(`/courses/${course._id}`)}
             >
               {/* Thumbnail */}
               <div className="h-28 bg-gradient-to-br from-violet-900/30 to-violet-600/10 flex items-center justify-center border-b border-white/[0.05] relative overflow-hidden">
