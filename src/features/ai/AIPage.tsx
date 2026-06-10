@@ -20,7 +20,7 @@ export const AIPage: React.FC = () => {
   });
 
   const { mutate: requestRec, isPending } = useMutation({
-    mutationFn: () => aiService.requestRecommendation(selectedCourse),
+    mutationFn: () => aiService.requestCourseRecommendation({ courseId: selectedCourse }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-history'] });
       setSelectedCourse('');

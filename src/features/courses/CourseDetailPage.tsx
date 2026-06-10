@@ -7,12 +7,15 @@ import { ArrowLeft, BookOpen, CheckCircle2, Clock, Lock, Play, Star, Users } fro
 import { toast } from 'sonner';
 import { coursesService, enrollmentsService } from '../../services';
 import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/shared';
+import { Modal } from '../../components/shared/Modal';
+import { useUIStore } from '../../store';
 
 export const CourseDetailPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'reviews'>('overview');
+  const { openModal, closeModal } = useUIStore();
+  const [activeTab, setActiveTab] = useState<'overview' | 'reviews'>('overview');
   const [rating, setRating] = useState(5);
   const [reviewContent, setReviewContent] = useState('');
 
@@ -37,7 +40,12 @@ export const CourseDetailPage: React.FC = () => {
       toast.success('Enrolled successfully');
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Could not enroll in this course');
+      const message = err?.response?.data?.message;
+      if (message === 'COURSE_PREMIUM_REQUIRED') {
+        openModal('premium-course-required');
+        return;
+      }
+      toast.error(message || 'Could not enroll in this course');
     },
   });
 
@@ -81,8 +89,19 @@ export const CourseDetailPage: React.FC = () => {
   const { course, lessons } = data;
   const availableLessons = lessons ?? [];
   const firstLesson = availableLessons.find((lesson) => lesson.isPreview) ?? availableLessons[0];
-  const resumeLessonId = (enrollment as any)?.lastLessonId ?? firstLesson?._id;
-  const progress = (enrollment as any)?.progressPercent ?? enrollment?.progress ?? 0;
+  const completedLessonIds = new Set(enrollment?.completedLessons ?? []);
+  const completedCount = completedLessonIds.size;
+  const totalLessons = availableLessons.length || enrollment?.totalLessons || 0;
+  const lastLessonId = enrollment?.lastLessonId;
+  const nextIncompleteLesson = availableLessons.find(
+    (lesson) => !completedLessonIds.has(lesson._id) && !lesson.isLocked && lesson.status !== 'locked'
+  );
+  const currentLessonId =
+    lastLessonId && !completedLessonIds.has(lastLessonId)
+      ? lastLessonId
+      : nextIncompleteLesson?._id;
+  const resumeLessonId = currentLessonId ?? lastLessonId ?? firstLesson?._id;
+  const progress = enrollment?.progressPercent ?? enrollment?.progress ?? 0;
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
@@ -158,8 +177,84 @@ export const CourseDetailPage: React.FC = () => {
         </Card>
       </section>
 
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 className="font-mono text-sm font-semibold text-gray-200">Learning path</h2>
+            <p className="text-xs text-gray-600 font-mono mt-1">
+              {enrollment
+                ? `${completedCount} of ${totalLessons} lessons completed`
+                : `${availableLessons.length} lessons in this course`}
+            </p>
+          </div>
+          {enrollment && (
+            <Badge color={progress >= 100 ? 'green' : 'purple'}>{progress}% complete</Badge>
+          )}
+        </div>
+
+        {enrollment && (
+          <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mb-3">
+            <div
+              className="h-full bg-violet-500 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        )}
+
+        <div className="divide-y divide-white/[0.04]">
+          {availableLessons.length > 0 ? (
+            availableLessons.map((lesson, index) => {
+              const isCompleted = completedLessonIds.has(lesson._id);
+              const isCurrent = currentLessonId === lesson._id;
+              const isLocked = lesson.isLocked || lesson.status === 'locked';
+              const canOpen = !isLocked && Boolean(enrollment || lesson.isPreview);
+
+              return (
+                <button
+                  key={lesson._id}
+                  onClick={() => canOpen && router.push(`/lessons/${lesson._id}`)}
+                  disabled={!canOpen}
+                  className="w-full flex items-center justify-between gap-3 py-3 px-2 text-left rounded-lg hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-55 transition-colors"
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <span
+                      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border ${
+                        isCompleted
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                          : isCurrent
+                          ? 'bg-violet-500/10 border-violet-500/30 text-violet-400'
+                          : 'border-white/[0.08] text-gray-600'
+                      }`}
+                    >
+                      {isCompleted ? <CheckCircle2 size={14} /> : isCurrent ? <Play size={12} /> : index + 1}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm text-gray-300 font-mono truncate">{lesson.title}</span>
+                      <span className="block text-[10px] text-gray-700 font-mono mt-0.5">
+                        Lesson {index + 1} of {availableLessons.length}
+                        {(lesson.duration ?? lesson.estimatedTime)
+                          ? ` · ${lesson.duration ?? lesson.estimatedTime} min`
+                          : ''}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    {isCompleted && <Badge color="green">Completed</Badge>}
+                    {!isCompleted && isCurrent && <Badge color="purple">Current</Badge>}
+                    {!enrollment && lesson.isPreview && <Badge color="green">Preview</Badge>}
+                    {isLocked && <Lock size={13} className="text-gray-600" />}
+                  </span>
+                </button>
+              );
+            })
+          ) : (
+            <EmptyState title="No lessons yet" description="This course has no published lessons." />
+          )}
+        </div>
+      </Card>
+
       <div className="flex gap-1 border-b border-white/[0.06]">
-        {(['overview', 'curriculum', 'reviews'] as const).map((tab) => (
+        {(['overview', 'reviews'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -181,34 +276,6 @@ export const CourseDetailPage: React.FC = () => {
             {course.description}
           </p>
         </Card>
-      )}
-
-      {activeTab === 'curriculum' && (
-      <Card className="p-4">
-        <h2 className="font-mono text-sm font-semibold text-gray-300 mb-3">Curriculum</h2>
-        <div className="divide-y divide-white/[0.04]">
-          {availableLessons.length > 0 ? (
-            availableLessons.map((lesson, index) => (
-              <button
-                key={lesson._id}
-                onClick={() => router.push(`/lessons/${lesson._id}`)}
-                className="w-full flex items-center justify-between gap-3 py-3 text-left hover:bg-white/[0.03] rounded-lg px-2 transition-colors"
-              >
-                <span className="flex items-center gap-3 min-w-0">
-                  <span className="text-xs text-gray-700 font-mono w-6">{index + 1}</span>
-                  <span className="text-sm text-gray-300 font-mono truncate">{lesson.title}</span>
-                </span>
-                <span className="flex items-center gap-2 shrink-0">
-                  {lesson.isPreview && <Badge color="green">Preview</Badge>}
-                  {(lesson.isLocked || lesson.status === 'locked') && <Lock size={13} className="text-gray-600" />}
-                </span>
-              </button>
-            ))
-          ) : (
-            <EmptyState title="No lessons yet" description="This course has no published lessons." />
-          )}
-        </div>
-      </Card>
       )}
 
       {activeTab === 'reviews' && (
@@ -261,6 +328,23 @@ export const CourseDetailPage: React.FC = () => {
           )}
         </Card>
       )}
+
+      <Modal
+        name="premium-course-required"
+        title="Premium course"
+        description="This course requires an active Premium plan."
+        size="sm"
+      >
+        <p className="text-sm text-gray-400 font-mono leading-relaxed">
+          Your current account can browse this course, but enrollment is available only to
+          Premium students. The payment flow is not included in this project version.
+        </p>
+        <div className="mt-4 flex justify-end">
+          <Button variant="outline" onClick={closeModal}>
+            Close
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

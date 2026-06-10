@@ -11,8 +11,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses = {
   primary: 'bg-violet-600 hover:bg-violet-500 text-white border-transparent',
-  ghost: 'bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 border-transparent',
-  outline: 'bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 border-white/10 hover:border-violet-500/40',
+  ghost: 'bg-transparent hover:bg-white/10 text-gray-300 hover:text-white border-transparent',
+  outline: 'bg-transparent hover:bg-white/10 text-gray-200 hover:text-white border-white/20 hover:border-violet-400/60',
   danger: 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20',
 };
 
@@ -57,7 +57,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       )}
       <div className="relative flex items-center">
         {prefix && (
-          <span className="absolute left-3 text-gray-600">{prefix}</span>
+          <span className="absolute left-3 text-gray-500">{prefix}</span>
         )}
         <input
           ref={ref}
@@ -65,7 +65,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {suffix && (
-          <span className="absolute right-3 text-gray-600">{suffix}</span>
+          <span className="absolute right-3 text-gray-500">{suffix}</span>
         )}
       </div>
       {error && <p className="text-xs text-rose-400 font-mono">{error}</p>}
@@ -111,7 +111,7 @@ const badgeColorClasses: Record<BadgeColor, string> = {
   green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   red: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-  gray: 'bg-white/5 text-gray-400 border-white/10',
+  gray: 'bg-white/[0.08] text-gray-300 border-white/20',
 };
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -176,11 +176,11 @@ export const EmptyState: React.FC<{
   action?: React.ReactNode;
 }> = ({ icon, title, description, action }) => (
   <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-    {icon && <div className="text-gray-600">{icon}</div>}
+    {icon && <div className="text-gray-500">{icon}</div>}
     <div>
       <p className="text-gray-300 font-mono font-medium">{title}</p>
       {description && (
-        <p className="text-gray-600 text-sm font-mono mt-1">{description}</p>
+        <p className="text-gray-500 text-sm font-mono mt-1">{description}</p>
       )}
     </div>
     {action}

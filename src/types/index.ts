@@ -268,10 +268,7 @@ export interface Enrollment {
 
 // ─── Quiz ─────────────────────────────────────────────────────────────────────
 
-export interface QuizOption {
-  text: string;
-  isCorrect: boolean;
-}
+export type QuizOption = string | { text: string; isCorrect?: boolean };
 
 export interface QuizQuestion {
   _id: string;
@@ -294,7 +291,7 @@ export interface QuizAttempt {
   _id: string;
   userId: string;
   quizId: string;
-  answers: { questionId: string; selectedOption: number }[];
+  answers: Record<string, number>;
   score: number;
   passed: boolean;
   timeTaken: number; // seconds
@@ -303,8 +300,7 @@ export interface QuizAttempt {
 
 export interface SubmitAttemptPayload {
   quizId: string;
-  answers: { questionId: string; selectedOption: number }[];
-  startedAt: string;
+  answers: Record<string, number>;
 }
 
 // ─── Comments ─────────────────────────────────────────────────────────────────
@@ -375,6 +371,7 @@ export interface LeaderboardEntry {
   rank: number;
   userId: string;
   name: string;
+  displayName?: string;
   avatarUrl?: string;
   xp: number;
   level: number;

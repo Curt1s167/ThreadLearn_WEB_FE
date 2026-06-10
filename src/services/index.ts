@@ -216,7 +216,7 @@ export const enrollmentsService = {
     return data.data;
   },
   getMyCourse: async (courseId: string) => {
-    const { data } = await apiClient.get<ApiResponse<Enrollment>>(`/enrollments/me/${courseId}`);
+    const { data } = await apiClient.get<ApiResponse<Enrollment | null>>(`/enrollments/me/${courseId}`);
     return data.data;
   },
   updateProgress: async (enrollmentId: string, lessonId: string) => {
@@ -354,10 +354,20 @@ export const notificationsService = {
 // ─── Leaderboard (UC46) ───────────────────────────────────────────────────────
 export const leaderboardService = {
   getTop: async (limit = 50) => {
-    const { data } = await apiClient.get<ApiResponse<LeaderboardEntry[]>>(
+    const { data } = await apiClient.get<ApiResponse<Array<Partial<LeaderboardEntry>>>>(
       `/leaderboard?limit=${limit}`
     );
-    return data.data;
+    return (data.data ?? []).map((entry, index): LeaderboardEntry => {
+      const xp = Number(entry.xp) || 0;
+      return {
+        rank: Number(entry.rank) || index + 1,
+        userId: String(entry.userId ?? ''),
+        name: entry.name?.trim() || entry.displayName?.trim() || 'Student',
+        avatarUrl: entry.avatarUrl,
+        xp,
+        level: Number(entry.level) || Math.floor(xp / 1000) + 1,
+      };
+    });
   },
   getMyRank: async () => {
     const { data } = await apiClient.get<ApiResponse<{ rank: number; xp: number }>>(
@@ -370,8 +380,17 @@ export const leaderboardService = {
 // ─── Gamification (UC44–UC45) ─────────────────────────────────────────────────
 export const gamificationService = {
   getStats: async () => {
-    const { data } = await apiClient.get<ApiResponse<UserStats>>('/gamification/stats');
-    return data.data;
+    const { data } = await apiClient.get<ApiResponse<any>>('/gamification/stats');
+    const stats = data.data ?? {};
+    return {
+      userId: String(stats.userId ?? ''),
+      xp: Number(stats.xp) || 0,
+      level: Number(stats.level) || 1,
+      streak: Number(stats.streak ?? stats.currentStreak) || 0,
+      lastActivityAt: stats.lastActivityAt ?? stats.lastActiveDate,
+      totalQuizzesPassed: Number(stats.totalQuizzesPassed ?? stats.quizzesCompleted) || 0,
+      totalLessonsCompleted: Number(stats.totalLessonsCompleted) || 0,
+    } satisfies UserStats;
   },
 };
 
@@ -388,10 +407,10 @@ export const certificatesService = {
 
 // ─── AI (UC47–UC48) ───────────────────────────────────────────────────────────
 export const aiService = {
-  requestRecommendation: async (courseId: string) => {
+  requestCourseRecommendation: async (payload: { courseId: string }) => {
     const { data } = await apiClient.post<ApiResponse<AIHistoryLog>>(
       '/ai/recommendation',
-      { courseId }
+      payload
     );
     return data.data;
   },

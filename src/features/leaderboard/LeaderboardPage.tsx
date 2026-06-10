@@ -60,6 +60,7 @@ export const LeaderboardPage: React.FC = () => {
         <div className="grid grid-cols-3 gap-3">
           {[top3[1], top3[0], top3[2]].map((entry, i) => {
             if (!entry) return <div key={i} />;
+            const displayName = entry.name || 'Student';
             const sizes = ['h-24', 'h-32', 'h-24'];
             const crowns = [null, <Crown key="c" size={16} className="text-amber-400" />, null];
             return (
@@ -70,9 +71,9 @@ export const LeaderboardPage: React.FC = () => {
                 }`}
               >
                 {crowns[i]}
-                <Avatar src={entry.avatarUrl} name={entry.name} size="md" />
+                <Avatar src={entry.avatarUrl} name={displayName} size="md" />
                 <p className="text-xs text-gray-300 font-mono font-medium truncate max-w-full px-1">
-                  {entry.name.split(' ')[0]}
+                  {displayName.split(/\s+/)[0]}
                 </p>
                 <p className="text-[10px] text-gray-600 font-mono">
                   {entry.xp.toLocaleString()} XP

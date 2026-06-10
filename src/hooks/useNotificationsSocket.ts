@@ -16,6 +16,9 @@ interface RealtimePayload {
   createdAt: string;
 }
 
+let notificationsSocket: Socket | null = null;
+let socketToken: string | null = null;
+
 /**
  * Connects to the backend `/notifications` Socket.IO namespace using the
  * authenticated user's access token. On every realtime `notification` event:
@@ -32,7 +35,9 @@ export function useNotificationsSocket() {
 
   useEffect(() => {
     if (!token) {
-      socketRef.current?.disconnect();
+      notificationsSocket?.disconnect();
+      notificationsSocket = null;
+      socketToken = null;
       socketRef.current = null;
       return;
     }
@@ -41,25 +46,31 @@ export function useNotificationsSocket() {
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5000/api/v1';
     const wsBase = apiBase.replace(/\/api\/v\d+\/?$/, '');
 
-    const socket = io(`${wsBase}/notifications`, {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      autoConnect: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    if (!notificationsSocket || socketToken !== token) {
+      notificationsSocket?.disconnect();
+      notificationsSocket = io(`${wsBase}/notifications`, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        autoConnect: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+      socketToken = token;
+    }
+
+    const socket = notificationsSocket;
     socketRef.current = socket;
 
-    socket.on('connect', () => {
+    const handleConnect = () => {
       // eslint-disable-next-line no-console
       console.debug('[ws] notifications connected', socket.id);
-    });
+    };
 
-    socket.on('auth_error', (data: { message: string }) => {
+    const handleAuthError = (data: { message: string }) => {
       console.warn('[ws] notifications auth error:', data.message);
-    });
+    };
 
-    socket.on('notification', (payload: RealtimePayload) => {
+    const handleNotification = (payload: RealtimePayload) => {
       toast(payload.title, {
         description: payload.message,
         action: payload.link
@@ -69,15 +80,44 @@ export function useNotificationsSocket() {
       // Refresh paginated list + badge.
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
-    });
+    };
 
-    socket.on('disconnect', (reason) => {
+    const handleLeaderboardUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      queryClient.invalidateQueries({ queryKey: ['my-rank'] });
+    };
+
+    const handleXpAwarded = () => {
+      queryClient.invalidateQueries({ queryKey: ['gamification-stats'] });
+    };
+
+    const handleDisconnect = (reason: string) => {
       // eslint-disable-next-line no-console
       console.debug('[ws] notifications disconnected:', reason);
-    });
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('auth_error', handleAuthError);
+    socket.on('notification', handleNotification);
+    socket.on('leaderboard:update', handleLeaderboardUpdate);
+    socket.on('xp:awarded', handleXpAwarded);
+    socket.on('disconnect', handleDisconnect);
 
     return () => {
-      socket.disconnect();
+      socket.off('connect', handleConnect);
+      socket.off('auth_error', handleAuthError);
+      socket.off('notification', handleNotification);
+      socket.off('leaderboard:update', handleLeaderboardUpdate);
+      socket.off('xp:awarded', handleXpAwarded);
+      socket.off('disconnect', handleDisconnect);
+
+      if (useAuthStore.getState().accessToken !== token) {
+        socket.disconnect();
+        if (notificationsSocket === socket) {
+          notificationsSocket = null;
+          socketToken = null;
+        }
+      }
     };
   }, [token, queryClient]);
 }

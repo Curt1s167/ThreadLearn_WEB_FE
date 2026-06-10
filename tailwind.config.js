@@ -13,6 +13,19 @@ module.exports = {
         mono: ['GeistMono', 'JetBrains Mono', 'Fira Code', 'monospace'],
       },
       colors: {
+        gray: {
+          50: '#ffffff',
+          100: '#f7f7fb',
+          200: '#ededf5',
+          300: '#d8d8e6',
+          400: '#bcbcd0',
+          500: '#a4a4ba',
+          600: '#8d8da5',
+          700: '#76768f',
+          800: '#262634',
+          900: '#171720',
+          950: '#0d0d13',
+        },
         canvas: {
           DEFAULT: '#0a0a0f',
           50: '#f0f0f5',
