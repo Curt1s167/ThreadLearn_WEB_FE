@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Send, BookOpen, Clock, Sparkles } from 'lucide-react';
+import { Bot, Send, BookOpen, Clock, Sparkles, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { aiService, coursesService } from '../../services';
 import { Card, Button, Skeleton } from '../../components/shared';
@@ -20,7 +20,7 @@ export const AIPage: React.FC = () => {
   });
 
   const { mutate: requestRec, isPending } = useMutation({
-    mutationFn: () => aiService.requestRecommendation(selectedCourse),
+    mutationFn: () => aiService.requestCourseRecommendation({ courseId: selectedCourse }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-history'] });
       setSelectedCourse('');
@@ -28,6 +28,19 @@ export const AIPage: React.FC = () => {
     },
     onError: () => toast.error('Failed to get recommendation'),
   });
+
+  const { mutate: sendFeedback } = useMutation({
+    mutationFn: ({ id, rating }: { id: string; rating: number }) => aiService.feedback(id, rating),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ai-history'] });
+      toast.success('Feedback saved');
+    },
+    onError: () => toast.error('Could not save feedback'),
+  });
+
+  const usedToday =
+    history?.filter((item) => new Date(item.createdAt).toDateString() === new Date().toDateString()).length ?? 0;
+  const remainingToday = Math.max(0, 10 - usedToday);
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in max-w-3xl mx-auto">
@@ -47,6 +60,7 @@ export const AIPage: React.FC = () => {
         <div className="flex items-center gap-2 mb-4">
           <Sparkles size={14} className="text-violet-400" />
           <h2 className="font-mono font-medium text-gray-200 text-sm">Get a recommendation</h2>
+          <span className="ml-auto text-xs text-gray-600 font-mono">{remainingToday}/10 left today</span>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -91,7 +105,7 @@ export const AIPage: React.FC = () => {
                 <div className="flex items-center gap-2 mb-3">
                   <BookOpen size={13} className="text-violet-400" />
                   <span className="text-xs font-mono text-gray-500">
-                    Course #{log.courseId.slice(-6)}
+                    {log.courseId ? `Course #${log.courseId.slice(-6)}` : log.lessonId ? `Lesson #${log.lessonId.slice(-6)}` : 'AI analysis'}
                   </span>
                   <span className="text-gray-700">·</span>
                   <span className="text-xs text-gray-600 font-mono flex items-center gap-1">
@@ -103,6 +117,18 @@ export const AIPage: React.FC = () => {
                   <p className="text-sm text-gray-400 font-mono leading-relaxed whitespace-pre-wrap">
                     {log.response}
                   </p>
+                </div>
+                <div className="flex items-center gap-1 mt-3">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      onClick={() => sendFeedback({ id: log._id, rating })}
+                      className="p-1 text-gray-700 hover:text-amber-400 transition-colors"
+                      title={`Rate ${rating}`}
+                    >
+                      <Star size={13} />
+                    </button>
+                  ))}
                 </div>
               </Card>
             ))}

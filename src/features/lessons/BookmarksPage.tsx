@@ -15,8 +15,8 @@ export const BookmarksPage: React.FC = () => {
     queryFn: bookmarksService.getAll,
   });
 
-  const { mutate: toggleBookmark } = useMutation({
-    mutationFn: (lessonId: string) => bookmarksService.toggle(lessonId),
+  const { mutate: removeBookmark } = useMutation({
+    mutationFn: (bookmarkId: string) => bookmarksService.remove(bookmarkId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
       toast.success('Bookmark removed');
@@ -38,7 +38,10 @@ export const BookmarksPage: React.FC = () => {
         </div>
       ) : bookmarks && bookmarks.length > 0 ? (
         <div className="flex flex-col gap-2">
-          {bookmarks.map((bm) => (
+          {bookmarks.map((bm) => {
+            const targetId = bm.lessonId ?? bm.targetId ?? '';
+            const targetHref = bm.targetType === 'COURSE' ? `/courses/${targetId}` : `/lessons/${targetId}`;
+            return (
             <Card
               key={bm._id}
               className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all"
@@ -48,24 +51,25 @@ export const BookmarksPage: React.FC = () => {
               </div>
               <div
                 className="flex-1 min-w-0 cursor-pointer"
-                onClick={() => router.push(`/lessons/${bm.lessonId}`)}
+                onClick={() => targetId && router.push(targetHref)}
               >
                 <p className="text-sm text-gray-200 font-mono truncate hover:text-violet-300 transition-colors">
-                  {bm.lesson?.title || `Lesson #${bm.lessonId.slice(-6)}`}
+                  {bm.lesson?.title || bm.title || `Lesson #${targetId.slice(-6)}`}
                 </p>
                 <p className="text-xs text-gray-600 font-mono">
                   Saved {new Date(bm.createdAt).toLocaleDateString()}
                 </p>
               </div>
               <button
-                onClick={() => toggleBookmark(bm.lessonId)}
+                onClick={() => removeBookmark(bm._id)}
                 className="p-2 text-gray-600 hover:text-rose-400 hover:bg-rose-500/5 rounded-lg transition-colors"
                 title="Remove bookmark"
               >
                 <Trash2 size={14} />
               </button>
             </Card>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <EmptyState

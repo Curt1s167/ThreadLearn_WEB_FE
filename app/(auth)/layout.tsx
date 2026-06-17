@@ -1,20 +1,28 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
 
+const authRoutesAlwaysAccessible = new Set([
+  '/verify-email',
+  '/forgot-password',
+  '/reset-password',
+]);
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const router = useRouter();
+  const pathname = usePathname();
+  const isAlwaysAccessible = authRoutesAlwaysAccessible.has(pathname);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/dashboard');
+    if (isAuthenticated && !isAlwaysAccessible) {
+      router.replace(user?.role === 'ADMIN' ? '/admin' : '/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isAlwaysAccessible, isAuthenticated, router, user]);
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !isAlwaysAccessible) {
     return null;
   }
 

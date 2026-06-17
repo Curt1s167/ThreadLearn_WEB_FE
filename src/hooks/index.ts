@@ -68,10 +68,16 @@ export function useAuthBootstrap() {
 
 // ─── Logout helper ────────────────────────────────────────────────────────────
 export function useLogout() {
-  const { logout } = useAuthStore();
+  const { logout, refreshToken } = useAuthStore();
   const router = useRouter();
-  return () => {
-    logout();
-    router.replace('/login');
+  return async () => {
+    try {
+      await authService.logout(refreshToken ?? undefined);
+    } catch {
+      // Local logout should still happen if the server session is already gone.
+    } finally {
+      logout();
+      router.replace('/login');
+    }
   };
 }

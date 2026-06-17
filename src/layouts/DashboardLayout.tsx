@@ -3,7 +3,6 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { useUIStore } from '../store';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
-import { useSocket } from '../hooks/useSocket';
 import { useAuthBootstrap } from '../hooks';
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
@@ -11,9 +10,6 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
 
   // Bootstrap: revalidate user session + load stats
   useAuthBootstrap();
-
-  // Socket.IO: listen for realtime events (UC32, UC45, UC46)
-  useSocket();
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
