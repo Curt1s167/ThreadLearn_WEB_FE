@@ -1,7 +1,5 @@
-'use client';
-
-import { QuizHistoryPage } from '@/features/quiz/QuizHistoryPage';
+import { DemoQuizHistoryPage } from '@/features/demo/pages';
 
 export default function QuizHistory() {
-  return <QuizHistoryPage />;
+  return <DemoQuizHistoryPage />;
 }

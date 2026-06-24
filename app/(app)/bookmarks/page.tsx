@@ -1,7 +1,5 @@
-'use client';
-
-import { BookmarksPage } from '@/features/lessons/BookmarksPage';
+import { DemoBookmarksPage } from '@/features/demo/pages';
 
 export default function Bookmarks() {
-  return <BookmarksPage />;
+  return <DemoBookmarksPage />;
 }

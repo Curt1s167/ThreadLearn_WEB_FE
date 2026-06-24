@@ -1,7 +1,5 @@
-'use client';
-
-import { DashboardPage } from '@/features/courses/DashboardPage';
+import { DemoDashboardPage } from '@/features/demo/pages';
 
 export default function Dashboard() {
-  return <DashboardPage />;
+  return <DemoDashboardPage />;
 }

@@ -1,7 +1,5 @@
-'use client';
-
-import { LeaderboardPage } from '@/features/leaderboard/LeaderboardPage';
+import { DemoLeaderboardPage } from '@/features/demo/pages';
 
 export default function Leaderboard() {
-  return <LeaderboardPage />;
+  return <DemoLeaderboardPage />;
 }

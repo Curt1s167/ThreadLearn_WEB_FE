@@ -1,7 +1,5 @@
-'use client';
-
-import { CoursesPage } from '@/features/courses/CoursesPage';
+import { DemoCourseDetailPage } from '@/features/demo/pages';
 
 export default function CourseDetails() {
-  return <CoursesPage />;
+  return <DemoCourseDetailPage />;
 }

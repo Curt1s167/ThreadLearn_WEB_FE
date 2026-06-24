@@ -1,7 +1,5 @@
-'use client';
-
-import { NotificationsPage } from '@/features/notifications/NotificationsPage';
+import { DemoNotificationsPage } from '@/features/demo/pages';
 
 export default function Notifications() {
-  return <NotificationsPage />;
+  return <DemoNotificationsPage />;
 }

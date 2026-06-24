@@ -1,7 +1,5 @@
-'use client';
-
-import { LessonPage } from '@/features/lessons/pages';
+import { DemoLessonPage } from '@/features/demo/pages';
 
 export default function Lesson() {
-  return <LessonPage />;
+  return <DemoLessonPage />;
 }
