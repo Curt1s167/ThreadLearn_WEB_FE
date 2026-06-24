@@ -1,7 +1,5 @@
-'use client';
-
-import { QuizPage } from '@/features/lessons/pages';
+import { DemoQuizPage } from '@/features/demo/pages';
 
 export default function Quiz() {
-  return <QuizPage />;
+  return <DemoQuizPage />;
 }

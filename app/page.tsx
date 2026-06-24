@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { DemoLandingPage } from '@/features/demo/pages';
 
 export default function RootPage() {
-  redirect('/dashboard');
+  return <DemoLandingPage />;
 }

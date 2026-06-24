@@ -1,12 +1,5 @@
-'use client';
-
-import { Suspense } from 'react';
-import { LoginPage } from '@/features/auth/LoginPage';
+import { DemoLoginPage } from '@/features/demo/pages';
 
 export default function Login() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center"><div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" /></div>}>
-      <LoginPage />
-    </Suspense>
-  );
+  return <DemoLoginPage />;
 }

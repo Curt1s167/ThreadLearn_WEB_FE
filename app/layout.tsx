@@ -4,7 +4,7 @@ import '@/styles/globals.css';
 
 export const metadata = {
   title: 'ThreadLearn',
-  description: 'ThreadLearn — Developer learning platform',
+  description: 'ThreadLearn - AI-powered concurrency learning platform',
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       </head>

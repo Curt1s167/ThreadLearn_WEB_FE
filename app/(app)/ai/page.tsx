@@ -1,7 +1,5 @@
-'use client';
-
-import { AIPage } from '@/features/ai/AIPage';
+import { DemoAIPage } from '@/features/demo/pages';
 
 export default function AI() {
-  return <AIPage />;
+  return <DemoAIPage />;
 }
