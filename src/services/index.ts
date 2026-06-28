@@ -208,16 +208,16 @@ export const notificationsService = {
 // ─── Leaderboard (UC46) ───────────────────────────────────────────────────────
 export const leaderboardService = {
   getTop: async (limit = 50) => {
-    const { data } = await apiClient.get<ApiResponse<LeaderboardEntry[]>>(
+    const { data } = await apiClient.get<LeaderboardEntry[]>(
       `/leaderboard?limit=${limit}`
     );
-    return data.data;
+    return data;
   },
   getMyRank: async () => {
-    const { data } = await apiClient.get<ApiResponse<{ rank: number; xp: number }>>(
+    const { data } = await apiClient.get<LeaderboardEntry>(
       '/leaderboard/me'
     );
-    return data.data;
+    return data;
   },
 };
 

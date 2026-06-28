@@ -210,9 +210,9 @@ export interface LeaderboardEntry {
   rank: number;
   userId: string;
   name: string;
-  avatarUrl?: string;
+  avatar?: string;
   xp: number;
-  level: number;
+  level?: number;
 }
 
 // ─── AI ───────────────────────────────────────────────────────────────────────

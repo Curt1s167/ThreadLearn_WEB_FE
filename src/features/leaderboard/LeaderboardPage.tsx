@@ -1,9 +1,11 @@
+'use client';
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Star, Crown, Medal } from 'lucide-react';
+import { Trophy, Star, Crown, Medal, AlertCircle } from 'lucide-react';
 import { leaderboardService } from '../../services';
 import { useAuthStore } from '../../store';
-import { Card, Avatar, Skeleton } from '../../components/shared';
+import { Card, Avatar, Skeleton, EmptyState } from '../../components/shared';
 
 const RankIcon: React.FC<{ rank: number }> = ({ rank }) => {
   if (rank === 1) return <Crown size={16} className="text-amber-400" />;
@@ -15,19 +17,27 @@ const RankIcon: React.FC<{ rank: number }> = ({ rank }) => {
 export const LeaderboardPage: React.FC = () => {
   const { user } = useAuthStore();
 
-  const { data: leaders, isLoading } = useQuery({
+  const {
+    data: leaders,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['leaderboard'],
     queryFn: () => leaderboardService.getTop(50),
   });
 
-  const { data: myRank } = useQuery({
+  const {
+    data: myRank,
+    isLoading: myRankLoading,
+    isError: myRankError,
+  } = useQuery({
     queryKey: ['my-rank'],
     queryFn: leaderboardService.getMyRank,
     enabled: !!user,
   });
 
-  const top3 = leaders?.slice(0, 3) ?? [];
-  const rest = leaders?.slice(3) ?? [];
+  const entries = leaders ?? [];
+  const top3 = entries.slice(0, 3);
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
@@ -41,22 +51,41 @@ export const LeaderboardPage: React.FC = () => {
       </div>
 
       {/* My rank */}
-      {myRank && (
+      {user && myRankLoading ? (
+        <Skeleton className="h-20 rounded-xl" />
+      ) : myRank ? (
         <Card className="p-3 border-violet-500/20 bg-violet-500/5 flex items-center gap-3">
           <div className="w-7 h-7 rounded-lg bg-violet-500/20 flex items-center justify-center">
             <Star size={14} className="text-violet-400" />
           </div>
+          <Avatar src={myRank.avatar} name={myRank.name} size="md" />
           <div className="flex-1">
-            <p className="text-xs text-gray-500 font-mono">Your rank</p>
+            <p className="text-xs text-gray-500 font-mono">Hạng của tôi</p>
             <p className="text-sm font-mono font-semibold text-violet-300">
-              #{myRank.rank} · {myRank.xp.toLocaleString()} XP
+              #{myRank.rank} · {myRank.name}
+            </p>
+            <p className="text-xs text-gray-600 font-mono">
+              {myRank.xp.toLocaleString()} XP
+              {myRank.level != null ? ` · Level ${myRank.level}` : ''}
             </p>
           </div>
         </Card>
-      )}
+      ) : myRankError ? (
+        <Card className="p-3 border-rose-500/20 bg-rose-500/5 flex items-center gap-3">
+          <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center">
+            <AlertCircle size={14} className="text-rose-400" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-mono">Hạng của tôi</p>
+            <p className="text-sm font-mono text-rose-300">
+              Không thể tải hạng hiện tại
+            </p>
+          </div>
+        </Card>
+      ) : null}
 
       {/* Top 3 podium */}
-      {!isLoading && top3.length > 0 && (
+      {!isLoading && !isError && top3.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           {[top3[1], top3[0], top3[2]].map((entry, i) => {
             if (!entry) return <div key={i} />;
@@ -70,7 +99,7 @@ export const LeaderboardPage: React.FC = () => {
                 }`}
               >
                 {crowns[i]}
-                <Avatar src={entry.avatarUrl} name={entry.name} size="md" />
+                <Avatar src={entry.avatar} name={entry.name} size="md" />
                 <p className="text-xs text-gray-300 font-mono font-medium truncate max-w-full px-1">
                   {entry.name.split(' ')[0]}
                 </p>
@@ -96,9 +125,21 @@ export const LeaderboardPage: React.FC = () => {
               <Skeleton key={i} className="h-12 rounded-lg" />
             ))}
           </div>
+        ) : isError ? (
+          <EmptyState
+            icon={<AlertCircle size={36} />}
+            title="Không thể tải leaderboard"
+            description="Vui lòng thử lại sau"
+          />
+        ) : entries.length === 0 ? (
+          <EmptyState
+            icon={<Trophy size={36} />}
+            title="Leaderboard chưa có dữ liệu"
+            description="Hoàn thành bài học hoặc quiz để xuất hiện tại đây"
+          />
         ) : (
           <div className="divide-y divide-white/[0.04]">
-            {rest.map((entry) => {
+            {entries.map((entry) => {
               const isMe = entry.userId === user?._id;
               return (
                 <div
@@ -110,13 +151,17 @@ export const LeaderboardPage: React.FC = () => {
                   <div className="w-5 flex justify-center shrink-0">
                     <RankIcon rank={entry.rank} />
                   </div>
-                  <Avatar src={entry.avatarUrl} name={entry.name} size="sm" />
+                  <Avatar src={entry.avatar} name={entry.name} size="sm" />
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-mono truncate ${isMe ? 'text-violet-300 font-medium' : 'text-gray-300'}`}>
                       {entry.name}
                       {isMe && <span className="text-xs text-violet-500 ml-1.5">(you)</span>}
                     </p>
-                    <p className="text-xs text-gray-600 font-mono">Level {entry.level}</p>
+                    {entry.level != null && (
+                      <p className="text-xs text-gray-600 font-mono">
+                        Level {entry.level}
+                      </p>
+                    )}
                   </div>
                   <p className="text-sm font-mono text-gray-400 shrink-0">
                     {entry.xp.toLocaleString()} <span className="text-gray-600 text-xs">XP</span>

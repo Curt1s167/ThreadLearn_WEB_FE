@@ -1,5 +1,5 @@
-import { DemoLeaderboardPage } from '@/features/demo/pages';
+import { LeaderboardPage } from '@/features/leaderboard/LeaderboardPage';
 
 export default function Leaderboard() {
-  return <DemoLeaderboardPage />;
+  return <LeaderboardPage />;
 }
