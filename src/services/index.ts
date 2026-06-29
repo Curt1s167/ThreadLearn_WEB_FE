@@ -17,6 +17,10 @@ import type {
   Note,
   Notification,
   LeaderboardEntry,
+  SubscriptionPlan,
+  UserSubscription,
+  SubscriptionPurchase,
+  PurchasePlanPayload,
   AIHistoryLog,
   PlatformStats,
   Enrollment,
@@ -266,6 +270,27 @@ export const leaderboardService = {
 export const gamificationService = {
   getStats: async () => {
     const { data } = await apiClient.get<ApiResponse<UserStats>>('/gamification/stats');
+    return data.data;
+  },
+};
+
+// ─── Subscription (UC51–UC52) ─────────────────────────────────────────────────
+export const subscriptionService = {
+  getPlans: async () => {
+    const { data } = await apiClient.get<ApiResponse<SubscriptionPlan[]>>('/subscription/plans');
+    return data.data;
+  },
+  getMyPlan: async () => {
+    const { data } = await apiClient.get<ApiResponse<UserSubscription | null>>(
+      '/subscription/my-subscription'
+    );
+    return data.data;
+  },
+  purchase: async (payload: PurchasePlanPayload) => {
+    const { data } = await apiClient.post<ApiResponse<SubscriptionPurchase>>(
+      '/subscription/purchase',
+      payload
+    );
     return data.data;
   },
 };
