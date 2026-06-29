@@ -217,16 +217,16 @@ export const notificationsService = {
 // ─── Leaderboard (UC46) ───────────────────────────────────────────────────────
 export const leaderboardService = {
   getTop: async (limit = 50) => {
-    const { data } = await apiClient.get<LeaderboardEntry[]>(
+    const { data } = await apiClient.get<ApiResponse<LeaderboardEntry[]>>(
       `/leaderboard?limit=${limit}`
     );
-    return data;
+    return data.data;
   },
   getMyRank: async () => {
-    const { data } = await apiClient.get<LeaderboardEntry>(
+    const { data } = await apiClient.get<ApiResponse<LeaderboardEntry>>(
       '/leaderboard/me'
     );
-    return data;
+    return data.data;
   },
 };
 
