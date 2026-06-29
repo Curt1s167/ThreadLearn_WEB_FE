@@ -59,16 +59,23 @@ export type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 
 export interface Course {
   _id: string;
+  id?: string;
   title: string;
   description: string;
+  shortDescription?: string;
   thumbnailUrl?: string;
   tags: string[];
   level: CourseLevel;
   language: string;
   isPublished: boolean;
+  status?: string;
   isDeleted?: boolean;
   lessonCount?: number;
   enrollmentCount?: number;
+  totalLessons?: number;
+  totalEnrollments?: number;
+  averageRating?: number;
+  estimatedDuration?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -240,6 +247,14 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+  meta?: PaginationMeta;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface PaginatedResponse<T> {

@@ -24,10 +24,23 @@ import type {
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
 export const coursesService = {
   list: async (filters: CourseFilters = {}) => {
-    const { data } = await apiClient.get<PaginatedApiResponse<Course>>('/courses', {
+    const { data } = await apiClient.get<ApiResponse<Course[]>>('/courses', {
       params: filters,
     });
-    return data.data;
+    const meta = data.meta ?? {
+      page: filters.page ?? 1,
+      limit: filters.limit ?? data.data.length,
+      total: data.data.length,
+      totalPages: 1,
+    };
+
+    return {
+      items: data.data,
+      total: meta.total,
+      page: meta.page,
+      limit: meta.limit,
+      totalPages: meta.totalPages,
+    };
   },
   getById: async (id: string) => {
     const { data } = await apiClient.get<ApiResponse<Course>>(`/courses/${id}`);

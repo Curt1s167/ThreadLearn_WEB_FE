@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, BookOpen, Users, Filter, ChevronDown } from 'lucide-react';
+import { Search, BookOpen, Users, Filter, ChevronDown, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { coursesService } from '../../services';
 import { Card, Badge, Skeleton, EmptyState } from '../../components/shared';
 import type { CourseLevel } from '../../types';
@@ -13,6 +14,11 @@ const levelColors: Record<CourseLevel, 'green' | 'amber' | 'red'> = {
   ADVANCED: 'red',
 };
 
+const getLevelColor = (level?: CourseLevel): 'green' | 'amber' | 'red' | 'gray' => {
+  if (!level) return 'gray';
+  return levelColors[level] ?? 'gray';
+};
+
 export const CoursesPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,12 +26,16 @@ export const CoursesPage: React.FC = () => {
   const [level, setLevel] = useState<CourseLevel | ''>('');
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['courses', search, level],
     queryFn: () => coursesService.list({ search: search || undefined, level: level || undefined }),
   });
 
   const courses = data?.items ?? [];
+
+  useEffect(() => {
+    if (isError) toast.error('Failed to load courses');
+  }, [isError]);
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
@@ -97,6 +107,12 @@ export const CoursesPage: React.FC = () => {
             <Skeleton key={i} className="h-44 rounded-xl" />
           ))}
         </div>
+      ) : isError ? (
+        <EmptyState
+          icon={<AlertCircle size={36} />}
+          title="Could not load courses"
+          description="Please try again in a moment"
+        />
       ) : courses.length === 0 ? (
         <EmptyState
           icon={<BookOpen size={36} />}
@@ -136,7 +152,7 @@ export const CoursesPage: React.FC = () => {
                   <h3 className="font-mono font-semibold text-gray-200 text-sm leading-tight line-clamp-2 group-hover:text-violet-300 transition-colors">
                     {course.title}
                   </h3>
-                  <Badge color={levelColors[course.level]}>{course.level.slice(0, 3)}</Badge>
+                  <Badge color={getLevelColor(course.level)}>{course.level?.slice(0, 3) ?? 'N/A'}</Badge>
                 </div>
 
                 {course.description && (
@@ -148,11 +164,11 @@ export const CoursesPage: React.FC = () => {
                 <div className="flex items-center gap-3 text-xs text-gray-600 font-mono">
                   <span className="flex items-center gap-1">
                     <BookOpen size={11} />
-                    {course.lessonCount ?? 0} lessons
+                    {course.totalLessons ?? course.lessonCount ?? 0} lessons
                   </span>
                   <span className="flex items-center gap-1">
                     <Users size={11} />
-                    {course.enrollmentCount ?? 0}
+                    {course.totalEnrollments ?? course.enrollmentCount ?? 0}
                   </span>
                   {course.language && (
                     <span className="tag">{course.language}</span>
