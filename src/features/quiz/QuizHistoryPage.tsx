@@ -2,7 +2,8 @@
 
 import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Clock, CheckCircle, XCircle, Zap, History } from 'lucide-react';
+import Link from 'next/link';
+import { Clock, CheckCircle, ChevronRight, XCircle, Zap, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { quizService } from '../../services';
 import { Card, Badge, Skeleton, EmptyState } from '../../components/shared';
@@ -52,8 +53,9 @@ export const QuizHistoryPage: React.FC = () => {
             );
 
             return (
-              <div
+              <Link
                 key={attempt._id}
+                href={`/quiz/attempts/${attempt._id}`}
                 className="flex items-center gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors"
               >
                 <div
@@ -101,7 +103,8 @@ export const QuizHistoryPage: React.FC = () => {
                     {attempt.score.toFixed(0)}%
                   </p>
                 </div>
-              </div>
+                <ChevronRight size={14} className="text-gray-700 shrink-0" />
+              </Link>
             );
           })}
         </Card>
