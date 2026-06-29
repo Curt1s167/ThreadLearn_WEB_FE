@@ -164,36 +164,56 @@ export interface EnrollmentCourseView {
 
 export interface QuizQuestion {
   _id: string;
+  id?: string;
   questionText: string;
   options: string[];
 }
 
 export interface Quiz {
   _id: string;
+  id?: string;
   lessonId: string;
   title: string;
+  description?: string;
   questions: QuizQuestion[];
   xpReward: number;
   timeLimit: number; // seconds
+  timeLimitSeconds?: number;
   passingScore: number; // percentage
+  passingScorePercent?: number;
   createdAt: string;
 }
 
 export interface QuizAttempt {
   _id: string;
+  id?: string;
   userId: string;
   quizId: string;
-  answers: { questionId: string; selectedOption: number }[];
+  answers: { questionId: string; selectedOption: number }[] | Record<string, number>;
   score: number;
   passed: boolean;
   timeTaken: number; // seconds
   createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+  xpRewarded?: number;
+  passingScorePercent?: number;
+  isTimeout?: boolean;
 }
 
 export interface SubmitAttemptPayload {
   quizId: string;
   answers: Record<string, number>;
   startTime?: string;
+}
+
+export interface QuizSubmitResult {
+  attempt: QuizAttempt;
+  score: number;
+  passed: boolean;
+  xpRewarded: number;
+  passingScorePercent: number;
+  isTimeout: boolean;
 }
 
 // ─── Comments ─────────────────────────────────────────────────────────────────
