@@ -68,6 +68,8 @@ export interface Course {
   level: CourseLevel;
   language: string;
   isPublished: boolean;
+  isPremium?: boolean;
+  price?: number;
   status?: string;
   isDeleted?: boolean;
   lessonCount?: number;
@@ -87,6 +89,12 @@ export interface CourseCreatePayload {
   level?: CourseLevel;
   language?: string;
   thumbnailUrl?: string;
+}
+
+export interface CourseDetail {
+  course: Course;
+  sections: unknown[];
+  lessons: Lesson[];
 }
 
 // ─── Lessons ─────────────────────────────────────────────────────────────────

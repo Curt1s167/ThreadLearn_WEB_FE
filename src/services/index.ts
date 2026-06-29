@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   PaginatedApiResponse,
   Course,
+  CourseDetail,
   CourseCreatePayload,
   CourseFilters,
   Lesson,
@@ -43,7 +44,7 @@ export const coursesService = {
     };
   },
   getById: async (id: string) => {
-    const { data } = await apiClient.get<ApiResponse<Course>>(`/courses/${id}`);
+    const { data } = await apiClient.get<ApiResponse<CourseDetail>>(`/courses/${id}`);
     return data.data;
   },
   create: async (payload: CourseCreatePayload) => {
