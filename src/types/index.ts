@@ -113,15 +113,10 @@ export interface Enrollment {
 
 // ─── Quiz ─────────────────────────────────────────────────────────────────────
 
-export interface QuizOption {
-  text: string;
-  isCorrect: boolean;
-}
-
 export interface QuizQuestion {
   _id: string;
   questionText: string;
-  options: QuizOption[];
+  options: string[];
 }
 
 export interface Quiz {
@@ -148,8 +143,8 @@ export interface QuizAttempt {
 
 export interface SubmitAttemptPayload {
   quizId: string;
-  answers: { questionId: string; selectedOption: number }[];
-  startedAt: string;
+  answers: Record<string, number>;
+  startTime?: string;
 }
 
 // ─── Comments ─────────────────────────────────────────────────────────────────
@@ -171,8 +166,10 @@ export interface Comment {
 export interface Bookmark {
   _id: string;
   userId: string;
-  lessonId: string;
-  lesson?: Pick<Lesson, '_id' | 'title' | 'courseId'>;
+  targetType: 'COURSE' | 'LESSON';
+  targetId: string;
+  title: string;
+  lessonId?: string;
   createdAt: string;
 }
 

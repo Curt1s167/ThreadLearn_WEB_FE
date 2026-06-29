@@ -26,9 +26,9 @@ export const authService = {
     return data.data;
   },
 
-  // UC05 — Google OAuth (redirects to BE NextAuth)
+  // UC05 — Google OAuth (redirects to BE auth endpoint)
   loginWithGoogle: () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '')}/api/auth/signin/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1'}/auth/google`;
   },
 
   // UC07 — Forgot password
@@ -51,8 +51,9 @@ export const authService = {
 
   // UC03 — Verify email
   verifyEmail: async (token: string) => {
-    const { data } = await apiClient.get<ApiResponse<null>>(
-      `/auth/verify?token=${token}`
+    const { data } = await apiClient.post<ApiResponse<null>>(
+      '/auth/verify-email',
+      { token }
     );
     return data;
   },
@@ -68,7 +69,7 @@ export const authService = {
 
   // Get current user profile
   getMe: async () => {
-    const { data } = await apiClient.get<ApiResponse<User>>('/users/me');
+    const { data } = await apiClient.get<ApiResponse<User>>('/users/profile');
     return data.data;
   },
 
@@ -85,8 +86,8 @@ export const authService = {
   },
 
   // Update profile
-  updateProfile: async (payload: Partial<Pick<User, 'name'>>) => {
-    const { data } = await apiClient.put<ApiResponse<User>>('/users/me', payload);
+  updateProfile: async (payload: { firstName?: string; lastName?: string; avatarUrl?: string }) => {
+    const { data } = await apiClient.patch<ApiResponse<User>>('/users/profile', payload);
     return data.data;
   },
 };

@@ -16,7 +16,10 @@ export const BookmarksPage: React.FC = () => {
   });
 
   const { mutate: toggleBookmark } = useMutation({
-    mutationFn: (lessonId: string) => bookmarksService.toggle(lessonId),
+    mutationFn: (lessonId: string) => {
+      const bookmark = bookmarks?.find((bm) => bm.targetId === lessonId);
+      return bookmarksService.toggle(lessonId, bookmark?.title);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
       toast.success('Bookmark removed');
@@ -48,17 +51,17 @@ export const BookmarksPage: React.FC = () => {
               </div>
               <div
                 className="flex-1 min-w-0 cursor-pointer"
-                onClick={() => router.push(`/lessons/${bm.lessonId}`)}
+                onClick={() => router.push(`/lessons/${bm.targetId}`)}
               >
                 <p className="text-sm text-gray-200 font-mono truncate hover:text-violet-300 transition-colors">
-                  {bm.lesson?.title || `Lesson #${bm.lessonId.slice(-6)}`}
+                  {bm.title || `Lesson #${bm.targetId.slice(-6)}`}
                 </p>
                 <p className="text-xs text-gray-600 font-mono">
                   Saved {new Date(bm.createdAt).toLocaleDateString()}
                 </p>
               </div>
               <button
-                onClick={() => toggleBookmark(bm.lessonId)}
+                onClick={() => toggleBookmark(bm.targetId)}
                 className="p-2 text-gray-600 hover:text-rose-400 hover:bg-rose-500/5 rounded-lg transition-colors"
                 title="Remove bookmark"
               >
