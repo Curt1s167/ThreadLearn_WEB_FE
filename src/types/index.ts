@@ -261,6 +261,57 @@ export interface LeaderboardEntry {
   level?: number;
 }
 
+// ─── Subscription ─────────────────────────────────────────────────────────────
+
+export interface SubscriptionPlan {
+  _id: string;
+  id?: string;
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  durationDays: number;
+  features: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type UserSubscriptionStatus = 'active' | 'expired' | 'cancelled';
+
+export interface UserSubscription {
+  _id: string;
+  id?: string;
+  userId: string;
+  planId: string;
+  status: UserSubscriptionStatus;
+  startedAt: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SubscriptionPurchaseStatus = 'pending' | 'succeeded' | 'failed';
+
+export interface SubscriptionPurchase {
+  _id: string;
+  id?: string;
+  userId: string;
+  planId: string;
+  amount: number;
+  currency: string;
+  status: SubscriptionPurchaseStatus;
+  transactionId?: string;
+  paymentUrl?: string;
+  paidAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PurchasePlanPayload {
+  planId: string;
+}
+
 // ─── AI ───────────────────────────────────────────────────────────────────────
 
 export interface AIHistoryLog {
