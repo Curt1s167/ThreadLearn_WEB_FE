@@ -7,6 +7,7 @@ import type {
   CourseCreatePayload,
   CourseFilters,
   Lesson,
+  LessonCompleteResult,
   Quiz,
   QuizAttempt,
   SubmitAttemptPayload,
@@ -90,6 +91,12 @@ export const lessonsService = {
   delete: async (id: string) => {
     const { data } = await apiClient.delete<ApiResponse<null>>(`/lessons/${id}`);
     return data;
+  },
+  complete: async (id: string) => {
+    const { data } = await apiClient.post<ApiResponse<LessonCompleteResult>>(
+      `/lessons/${id}/complete`
+    );
+    return data.data;
   },
 };
 

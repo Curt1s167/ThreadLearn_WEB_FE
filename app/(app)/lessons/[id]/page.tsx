@@ -1,5 +1,5 @@
-import { DemoLessonPage } from '@/features/demo/pages';
+import { LessonPage } from '@/features/lessons/pages';
 
 export default function Lesson() {
-  return <DemoLessonPage />;
+  return <LessonPage />;
 }

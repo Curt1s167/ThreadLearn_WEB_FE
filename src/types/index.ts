@@ -101,16 +101,26 @@ export interface CourseDetail {
 
 export interface Lesson {
   _id: string;
+  id?: string;
   courseId: string;
   title: string;
-  content: string; // Markdown
+  content?: string; // Markdown
+  contentMarkdown?: string;
   attachmentUrl?: string;
+  attachments?: string[];
   videoUrl?: string;
-  duration: number; // minutes
-  order: number;
+  duration?: number; // minutes
+  estimatedTime?: number;
+  order?: number;
+  orderIndex?: number;
   isLocked?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LessonCompleteResult {
+  xpAwarded?: number;
+  enrollment: Enrollment | null;
 }
 
 // ─── Enrollments ─────────────────────────────────────────────────────────────
