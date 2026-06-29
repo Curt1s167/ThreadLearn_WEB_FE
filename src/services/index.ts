@@ -41,11 +41,11 @@ export const coursesService = {
     const { data } = await apiClient.put<ApiResponse<Course>>(`/courses/${id}`, payload);
     return data.data;
   },
-  uploadThumbnail: async (file: File) => {
+  uploadThumbnail: async (courseId: string, file: File) => {
     const form = new FormData();
     form.append('thumbnail', file);
     const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string }>>(
-      '/courses/thumbnail',
+      `/courses/${courseId}/thumbnail`,
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
