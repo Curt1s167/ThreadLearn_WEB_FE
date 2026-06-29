@@ -121,6 +121,16 @@ export const enrollmentsService = {
   },
 };
 
+// ─── Students (progress/resume) ───────────────────────────────────────────────
+export const studentsService = {
+  getResume: async () => {
+    const { data } = await apiClient.get<ApiResponse<Enrollment | null>>(
+      '/students/me/resume'
+    );
+    return data.data;
+  },
+};
+
 // ─── Quiz (UC26–UC29, UC41–UC43, UC49) ───────────────────────────────────────
 export const quizService = {
   getByLesson: async (lessonId: string) => {

@@ -47,10 +47,15 @@ export interface UserStats {
   userId: string;
   xp: number;
   level: number;
-  streak: number;
+  streak?: number;
+  currentStreak?: number;
+  highestStreak?: number;
   lastActivityAt?: string;
-  totalQuizzesPassed: number;
+  lastActiveDate?: string;
+  totalQuizzesPassed?: number;
+  quizzesCompleted?: number;
   totalLessonsCompleted: number;
+  coursesCompleted?: number;
 }
 
 // ─── Courses ─────────────────────────────────────────────────────────────────
@@ -127,13 +132,32 @@ export interface LessonCompleteResult {
 
 export interface Enrollment {
   _id: string;
+  id?: string;
   userId: string;
-  courseId: string;
+  courseId: string | EnrollmentCourseView;
   progress: number; // 0-100
+  progressPercent?: number;
   completedLessons: string[];
+  totalLessons?: number;
+  lastLessonId?: string;
   completed: boolean;
-  createdAt: string;
-  updatedAt: string;
+  enrolledAt?: string;
+  lastAccessedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EnrollmentCourseView {
+  _id?: string;
+  id?: string;
+  title?: string;
+  slug?: string;
+  thumbnailUrl?: string;
+  level?: string;
+  language?: string;
+  status?: string;
+  isPremium?: boolean;
+  totalLessons?: number;
 }
 
 // ─── Quiz ─────────────────────────────────────────────────────────────────────
