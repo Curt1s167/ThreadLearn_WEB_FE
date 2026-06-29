@@ -47,10 +47,15 @@ export interface UserStats {
   userId: string;
   xp: number;
   level: number;
-  streak: number;
+  streak?: number;
+  currentStreak?: number;
+  highestStreak?: number;
   lastActivityAt?: string;
-  totalQuizzesPassed: number;
+  lastActiveDate?: string;
+  totalQuizzesPassed?: number;
+  quizzesCompleted?: number;
   totalLessonsCompleted: number;
+  coursesCompleted?: number;
 }
 
 // ─── Courses ─────────────────────────────────────────────────────────────────
@@ -59,16 +64,25 @@ export type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 
 export interface Course {
   _id: string;
+  id?: string;
   title: string;
   description: string;
+  shortDescription?: string;
   thumbnailUrl?: string;
   tags: string[];
   level: CourseLevel;
   language: string;
   isPublished: boolean;
+  isPremium?: boolean;
+  price?: number;
+  status?: string;
   isDeleted?: boolean;
   lessonCount?: number;
   enrollmentCount?: number;
+  totalLessons?: number;
+  totalEnrollments?: number;
+  averageRating?: number;
+  estimatedDuration?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -82,33 +96,68 @@ export interface CourseCreatePayload {
   thumbnailUrl?: string;
 }
 
+export interface CourseDetail {
+  course: Course;
+  sections: unknown[];
+  lessons: Lesson[];
+}
+
 // ─── Lessons ─────────────────────────────────────────────────────────────────
 
 export interface Lesson {
   _id: string;
+  id?: string;
   courseId: string;
   title: string;
-  content: string; // Markdown
+  content?: string; // Markdown
+  contentMarkdown?: string;
   attachmentUrl?: string;
+  attachments?: string[];
   videoUrl?: string;
-  duration: number; // minutes
-  order: number;
+  duration?: number; // minutes
+  estimatedTime?: number;
+  order?: number;
+  orderIndex?: number;
   isLocked?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LessonCompleteResult {
+  xpAwarded?: number;
+  enrollment: Enrollment | null;
 }
 
 // ─── Enrollments ─────────────────────────────────────────────────────────────
 
 export interface Enrollment {
   _id: string;
+  id?: string;
   userId: string;
-  courseId: string;
+  courseId: string | EnrollmentCourseView;
   progress: number; // 0-100
+  progressPercent?: number;
   completedLessons: string[];
+  totalLessons?: number;
+  lastLessonId?: string;
   completed: boolean;
-  createdAt: string;
-  updatedAt: string;
+  enrolledAt?: string;
+  lastAccessedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EnrollmentCourseView {
+  _id?: string;
+  id?: string;
+  title?: string;
+  slug?: string;
+  thumbnailUrl?: string;
+  level?: string;
+  language?: string;
+  status?: string;
+  isPremium?: boolean;
+  totalLessons?: number;
 }
 
 // ─── Quiz ─────────────────────────────────────────────────────────────────────
@@ -240,6 +289,14 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+  meta?: PaginationMeta;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface PaginatedResponse<T> {

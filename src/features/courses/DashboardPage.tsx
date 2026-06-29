@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
   BookOpen, Flame, Star, Trophy, ArrowRight,
   Zap, TrendingUp, Clock,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '../../store';
-import { gamificationService, enrollmentsService, leaderboardService } from '../../services';
+import { gamificationService, enrollmentsService, leaderboardService, studentsService } from '../../services';
 import { Card, Badge, Skeleton, Button } from '../../components/shared';
+import type { Enrollment } from '../../types';
 
 const StatCard: React.FC<{
   icon: React.ReactNode;
@@ -28,29 +30,62 @@ const StatCard: React.FC<{
   </Card>
 );
 
+const getCourseId = (enrollment?: Enrollment | null) => {
+  if (!enrollment) return '';
+  return typeof enrollment.courseId === 'string'
+    ? enrollment.courseId
+    : enrollment.courseId._id ?? enrollment.courseId.id ?? '';
+};
+
+const getCourseTitle = (enrollment: Enrollment) => (
+  typeof enrollment.courseId === 'string'
+    ? `Course #${enrollment.courseId.slice(-6)}`
+    : enrollment.courseId.title ?? `Course #${getCourseId(enrollment).slice(-6)}`
+);
+
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const router = useRouter();
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['gamification-stats'],
     queryFn: gamificationService.getStats,
     enabled: !!user,
   });
 
-  const { data: enrollments, isLoading: enrollLoading } = useQuery({
+  const { data: enrollments, isLoading: enrollLoading, isError: enrollError } = useQuery({
     queryKey: ['my-enrollments'],
     queryFn: enrollmentsService.getMyEnrollments,
     enabled: !!user,
   });
 
-  const { data: myRank } = useQuery({
+  const { data: resume, isLoading: resumeLoading, isError: resumeError } = useQuery({
+    queryKey: ['student-resume'],
+    queryFn: studentsService.getResume,
+    enabled: !!user,
+  });
+
+  const { data: myRank, isError: rankError } = useQuery({
     queryKey: ['my-rank'],
     queryFn: leaderboardService.getMyRank,
     enabled: !!user,
   });
 
   const levelProgress = stats ? (stats.xp % 1000) / 10 : 0;
+  const streak = stats?.currentStreak ?? stats?.streak ?? 0;
+  const resumeCourseId = getCourseId(resume);
+  const resumeTarget = resume?.lastLessonId
+    ? `/lessons/${resume.lastLessonId}`
+    : resumeCourseId
+      ? `/courses/${resumeCourseId}`
+      : '/courses';
+
+  useEffect(() => {
+    if (statsError) toast.error('Failed to load learning stats');
+    if (enrollError) toast.error('Failed to load enrollments');
+    if (resumeError) toast.error('Failed to load resume target');
+    if (rankError) toast.error('Failed to load leaderboard rank');
+  }, [enrollError, rankError, resumeError, statsError]);
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
@@ -104,6 +139,25 @@ export const DashboardPage: React.FC = () => {
         </div>
       </Card>
 
+      {resumeLoading ? (
+        <Skeleton className="h-24 rounded-xl" />
+      ) : resume ? (
+        <Card className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-violet-500/20 bg-violet-500/5">
+          <div className="min-w-0">
+            <p className="text-xs text-violet-400 font-mono mb-1">Continue learning</p>
+            <p className="text-sm font-mono text-gray-200 truncate">{getCourseTitle(resume)}</p>
+            <p className="text-xs text-gray-600 font-mono mt-1">
+              {resume.progressPercent ?? resume.progress ?? 0}% complete
+              {resume.totalLessons ? ` · ${resume.completedLessons.length}/${resume.totalLessons} lessons` : ''}
+            </p>
+          </div>
+          <Button onClick={() => router.push(resumeTarget)} className="shrink-0">
+            <ArrowRight size={14} />
+            Resume
+          </Button>
+        </Card>
+      ) : null}
+
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statsLoading ? (
@@ -117,7 +171,7 @@ export const DashboardPage: React.FC = () => {
             <StatCard
               icon={<Flame size={16} className="text-amber-400" />}
               label="Day streak"
-              value={stats?.streak ?? 0}
+              value={streak}
               sub="days in a row"
               color="bg-amber-500/10"
             />
@@ -166,23 +220,23 @@ export const DashboardPage: React.FC = () => {
         ) : enrollments && enrollments.length > 0 ? (
           <div className="flex flex-col gap-2">
             {enrollments.slice(0, 4).map((enrollment) => (
-              <Card key={enrollment._id} className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all cursor-pointer" onClick={() => router.push(`/courses/${enrollment.courseId}`)}>
+              <Card key={enrollment._id} className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all cursor-pointer" onClick={() => router.push(`/courses/${getCourseId(enrollment)}`)}>
                 <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
                   <BookOpen size={14} className="text-violet-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm text-gray-200 font-mono truncate">
-                      Course #{enrollment.courseId.slice(-6)}
+                      {getCourseTitle(enrollment)}
                     </p>
                     <span className="text-xs text-gray-600 font-mono shrink-0">
-                      {enrollment.progress}%
+                      {enrollment.progressPercent ?? enrollment.progress}%
                     </span>
                   </div>
                   <div className="h-1 bg-white/5 rounded-full mt-1.5 overflow-hidden">
                     <div
-                      className="h-full bg-violet-600 rounded-full"
-                      style={{ width: `${enrollment.progress}%` }}
+                        className="h-full bg-violet-600 rounded-full"
+                        style={{ width: `${enrollment.progressPercent ?? enrollment.progress}%` }}
                     />
                   </div>
                 </div>

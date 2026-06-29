@@ -1,5 +1,5 @@
-import { DemoDashboardPage } from '@/features/demo/pages';
+import { DashboardPage } from '@/features/courses/DashboardPage';
 
 export default function Dashboard() {
-  return <DemoDashboardPage />;
+  return <DashboardPage />;
 }

@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  CheckCircle, XCircle, Clock, Zap, ChevronRight, ArrowLeft, Bookmark,
+  AlertCircle, CheckCircle, XCircle, Clock, Zap, ChevronRight, ArrowLeft, Bookmark,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { quizService, lessonsService, bookmarksService, enrollmentsService } from '../../services';
-import { Card, Button, Badge } from '../../components/shared';
+import { quizService, lessonsService, bookmarksService } from '../../services';
+import { Card, Button, Badge, EmptyState } from '../../components/shared';
 import { CommentsSection } from './CommentsSection';
 import { NotesPanel } from './NotesPanel';
 
@@ -161,11 +161,15 @@ export const LessonPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'content' | 'comments' | 'notes'>('content');
 
-  const { data: lesson, isLoading } = useQuery({
+  const { data: lesson, isLoading, isError } = useQuery({
     queryKey: ['lesson', id],
     queryFn: () => lessonsService.getById(id!),
     enabled: !!id,
   });
+
+  useEffect(() => {
+    if (isError) toast.error('Failed to load lesson');
+  }, [isError]);
 
   const { mutate: toggleBookmark } = useMutation({
     mutationFn: () => bookmarksService.toggle(id!, lesson?.title),
@@ -173,7 +177,23 @@ export const LessonPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
       toast.success('Bookmark toggled');
     },
+    onError: () => toast.error('Failed to toggle bookmark'),
   });
+
+  const { mutate: completeLesson, isPending: completing } = useMutation({
+    mutationFn: () => lessonsService.complete(id!),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['lesson', id] });
+      queryClient.invalidateQueries({ queryKey: ['my-enrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['gamification-stats'] });
+      toast.success(data.xpAwarded ? `Lesson complete. +${data.xpAwarded} XP` : 'Lesson complete');
+    },
+    onError: () => toast.error('Failed to complete lesson'),
+  });
+
+  const duration = lesson?.estimatedTime ?? lesson?.duration ?? 0;
+  const order = lesson?.orderIndex ?? lesson?.order;
+  const content = lesson?.contentMarkdown ?? lesson?.content ?? '';
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in">
@@ -207,12 +227,18 @@ export const LessonPage: React.FC = () => {
           <div className="h-4 skeleton rounded" />
           <div className="h-4 skeleton rounded w-5/6" />
         </div>
+      ) : isError ? (
+        <EmptyState
+          icon={<AlertCircle size={36} />}
+          title="Could not load lesson"
+          description="Please try again in a moment"
+        />
       ) : lesson ? (
         <>
           <Card className="px-4 py-2.5 flex items-center gap-4 flex-wrap">
-            {lesson.duration > 0 && (
+            {duration > 0 && (
               <span className="flex items-center gap-1 text-xs text-gray-600 font-mono">
-                <Clock size={11} />{lesson.duration} min
+                <Clock size={11} />{duration} min
               </span>
             )}
             {lesson.videoUrl && <Badge color="purple">Video</Badge>}
@@ -221,7 +247,11 @@ export const LessonPage: React.FC = () => {
                 Attachment
               </a>
             )}
-            <span className="text-xs text-gray-700 font-mono">Order: #{lesson.order}</span>
+            {order != null && <span className="text-xs text-gray-700 font-mono">Order: #{order}</span>}
+            <Button size="sm" variant="outline" onClick={() => completeLesson()} loading={completing} className="ml-auto">
+              <CheckCircle size={12} />
+              Mark complete
+            </Button>
           </Card>
 
           <div className="flex gap-1 border-b border-white/[0.06] pb-0.5">
@@ -249,7 +279,7 @@ export const LessonPage: React.FC = () => {
               )}
               <div className="prose prose-invert prose-sm max-w-none font-mono text-gray-300 leading-relaxed [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-white/[0.06] [&_pre]:p-4 [&_code]:text-violet-300 [&_a]:text-violet-400 [&_h1]:text-gray-100 [&_h2]:text-gray-200 [&_h3]:text-gray-200 [&_blockquote]:border-violet-500/30 [&_blockquote]:text-gray-500">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {lesson.content}
+                  {content}
                 </ReactMarkdown>
               </div>
             </Card>

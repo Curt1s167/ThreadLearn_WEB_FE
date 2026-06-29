@@ -3,9 +3,11 @@ import type {
   ApiResponse,
   PaginatedApiResponse,
   Course,
+  CourseDetail,
   CourseCreatePayload,
   CourseFilters,
   Lesson,
+  LessonCompleteResult,
   Quiz,
   QuizAttempt,
   SubmitAttemptPayload,
@@ -24,13 +26,26 @@ import type {
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
 export const coursesService = {
   list: async (filters: CourseFilters = {}) => {
-    const { data } = await apiClient.get<PaginatedApiResponse<Course>>('/courses', {
+    const { data } = await apiClient.get<ApiResponse<Course[]>>('/courses', {
       params: filters,
     });
-    return data.data;
+    const meta = data.meta ?? {
+      page: filters.page ?? 1,
+      limit: filters.limit ?? data.data.length,
+      total: data.data.length,
+      totalPages: 1,
+    };
+
+    return {
+      items: data.data,
+      total: meta.total,
+      page: meta.page,
+      limit: meta.limit,
+      totalPages: meta.totalPages,
+    };
   },
   getById: async (id: string) => {
-    const { data } = await apiClient.get<ApiResponse<Course>>(`/courses/${id}`);
+    const { data } = await apiClient.get<ApiResponse<CourseDetail>>(`/courses/${id}`);
     return data.data;
   },
   create: async (payload: CourseCreatePayload) => {
@@ -41,11 +56,11 @@ export const coursesService = {
     const { data } = await apiClient.put<ApiResponse<Course>>(`/courses/${id}`, payload);
     return data.data;
   },
-  uploadThumbnail: async (file: File) => {
+  uploadThumbnail: async (courseId: string, file: File) => {
     const form = new FormData();
     form.append('thumbnail', file);
     const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string }>>(
-      '/courses/thumbnail',
+      `/courses/${courseId}/thumbnail`,
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
@@ -77,6 +92,12 @@ export const lessonsService = {
     const { data } = await apiClient.delete<ApiResponse<null>>(`/lessons/${id}`);
     return data;
   },
+  complete: async (id: string) => {
+    const { data } = await apiClient.post<ApiResponse<LessonCompleteResult>>(
+      `/lessons/${id}/complete`
+    );
+    return data.data;
+  },
 };
 
 // ─── Enrollments (UC33) ───────────────────────────────────────────────────────
@@ -95,6 +116,16 @@ export const enrollmentsService = {
     const { data } = await apiClient.post<ApiResponse<Enrollment>>(
       `/enrollments/${enrollmentId}/progress`,
       { lessonId }
+    );
+    return data.data;
+  },
+};
+
+// ─── Students (progress/resume) ───────────────────────────────────────────────
+export const studentsService = {
+  getResume: async () => {
+    const { data } = await apiClient.get<ApiResponse<Enrollment | null>>(
+      '/students/me/resume'
     );
     return data.data;
   },
