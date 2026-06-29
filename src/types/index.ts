@@ -192,8 +192,8 @@ export interface QuizAttempt {
   answers: { questionId: string; selectedOption: number }[] | Record<string, number>;
   score: number;
   passed: boolean;
-  timeTaken: number; // seconds
-  createdAt: string;
+  timeTaken?: number; // seconds
+  createdAt?: string;
   startedAt?: string;
   completedAt?: string;
   xpRewarded?: number;
