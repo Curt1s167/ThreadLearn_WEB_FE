@@ -10,6 +10,7 @@ import type {
   LessonCompleteResult,
   Quiz,
   QuizAttempt,
+  QuizSubmitResult,
   SubmitAttemptPayload,
   Comment,
   Bookmark,
@@ -150,7 +151,7 @@ export const quizService = {
     return data.data;
   },
   submit: async (payload: SubmitAttemptPayload) => {
-    const { data } = await apiClient.post<ApiResponse<QuizAttempt>>(
+    const { data } = await apiClient.post<ApiResponse<QuizSubmitResult>>(
       '/quiz/submit',
       payload
     );
