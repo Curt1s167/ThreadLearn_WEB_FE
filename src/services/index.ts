@@ -104,12 +104,14 @@ export const enrollmentsService = {
 export const quizService = {
   getByLesson: async (lessonId: string) => {
     const { data } = await apiClient.get<ApiResponse<Quiz>>(
-      `/quiz?lessonId=${lessonId}`
+      `/quiz/lesson/${lessonId}`
     );
     return data.data;
   },
-  getById: async (id: string) => {
-    const { data } = await apiClient.get<ApiResponse<Quiz>>(`/quiz/${id}`);
+  getAttemptById: async (attemptId: string) => {
+    const { data } = await apiClient.get<ApiResponse<QuizAttempt>>(
+      `/quiz/attempts/${attemptId}`
+    );
     return data.data;
   },
   create: async (payload: Partial<Quiz>) => {
@@ -135,17 +137,22 @@ export const quizService = {
 // ─── Comments (UC34–UC37) ─────────────────────────────────────────────────────
 export const commentsService = {
   getByLesson: async (lessonId: string) => {
-    const { data } = await apiClient.get<ApiResponse<Comment[]>>(
-      `/comments?lessonId=${lessonId}`
-    );
+    const { data } = await apiClient.get<ApiResponse<Comment[]>>('/comments', {
+      params: { targetType: 'LESSON', targetId: lessonId },
+    });
     return data.data;
   },
   create: async (payload: { lessonId: string; content: string; parentId?: string }) => {
-    const { data } = await apiClient.post<ApiResponse<Comment>>('/comments', payload);
+    const { data } = await apiClient.post<ApiResponse<Comment>>('/comments', {
+      targetType: 'LESSON',
+      targetId: payload.lessonId,
+      content: payload.content,
+      parentId: payload.parentId,
+    });
     return data.data;
   },
   update: async (id: string, content: string) => {
-    const { data } = await apiClient.put<ApiResponse<Comment>>(`/comments/${id}`, {
+    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${id}`, {
       content,
     });
     return data.data;
@@ -159,13 +166,15 @@ export const commentsService = {
 // ─── Bookmarks (UC38–UC39) ────────────────────────────────────────────────────
 export const bookmarksService = {
   getAll: async () => {
-    const { data } = await apiClient.get<ApiResponse<Bookmark[]>>('/bookmarks');
+    const { data } = await apiClient.get<ApiResponse<Bookmark[]>>('/bookmarks', {
+      params: { targetType: 'LESSON' },
+    });
     return data.data;
   },
-  toggle: async (lessonId: string) => {
+  toggle: async (lessonId: string, title = 'Lesson bookmark') => {
     const { data } = await apiClient.post<ApiResponse<{ bookmarked: boolean }>>(
-      '/bookmarks',
-      { lessonId }
+      '/bookmarks/toggle',
+      { targetType: 'LESSON', targetId: lessonId, title }
     );
     return data.data;
   },
@@ -174,10 +183,10 @@ export const bookmarksService = {
 // ─── Notes (UC40) ─────────────────────────────────────────────────────────────
 export const notesService = {
   getByLesson: async (lessonId: string) => {
-    const { data } = await apiClient.get<ApiResponse<Note>>(
+    const { data } = await apiClient.get<ApiResponse<Note[]>>(
       `/notes?lessonId=${lessonId}`
     );
-    return data.data;
+    return data.data[0] ?? null;
   },
   upsert: async (payload: { lessonId: string; noteText: string; codeSnippet?: string }) => {
     const { data } = await apiClient.post<ApiResponse<Note>>('/notes', payload);

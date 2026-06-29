@@ -30,11 +30,8 @@ export const QuizPage: React.FC = () => {
     mutationFn: () =>
       quizService.submit({
         quizId: quiz!._id,
-        answers: Object.entries(answers).map(([questionId, selectedOption]) => ({
-          questionId,
-          selectedOption,
-        })),
-        startedAt,
+        answers,
+        startTime: startedAt,
       }),
     onSuccess: (data) => {
       setResult({ score: data.score, passed: data.passed });
@@ -139,7 +136,7 @@ export const QuizPage: React.FC = () => {
                   }`}
                 >
                   <span className="text-gray-600 mr-2">{String.fromCharCode(65 + oi)}.</span>
-                  {opt.text}
+                  {opt}
                 </button>
               ))}
             </div>
@@ -171,7 +168,7 @@ export const LessonPage: React.FC = () => {
   });
 
   const { mutate: toggleBookmark } = useMutation({
-    mutationFn: () => bookmarksService.toggle(id!),
+    mutationFn: () => bookmarksService.toggle(id!, lesson?.title),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
       toast.success('Bookmark toggled');
