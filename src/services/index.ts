@@ -254,39 +254,41 @@ export const adminService = {
   },
   listUsers: async (page = 1, limit = 20) => {
     const { data } = await apiClient.get<PaginatedApiResponse<User>>(
-      `/admin/users?page=${page}&limit=${limit}`
+      `/admin/students?page=${page}&limit=${limit}`
     );
     return data.data;
   },
-  createStudent: async (payload: { name: string; email: string; password: string }) => {
+  createStudent: async (payload: { firstName: string; lastName: string; email: string; password?: string }) => {
     const { data } = await apiClient.post<ApiResponse<User>>(
-      '/admin/users',
+      '/admin/students',
       payload
     );
     return data.data;
   },
   updateUser: async (id: string, payload: Partial<User>) => {
-    const { data } = await apiClient.put<ApiResponse<User>>(
-      `/admin/users/${id}`,
+    const { data } = await apiClient.patch<ApiResponse<User>>(
+      `/admin/students/${id}`,
       payload
     );
     return data.data;
   },
-  toggleUserLock: async (id: string) => {
+  toggleUserLock: async (id: string, isLocked: boolean, lockedReason?: string) => {
     const { data } = await apiClient.patch<ApiResponse<User>>(
-      `/admin/users/${id}/lock`
+      `/admin/students/${id}/${isLocked ? 'unlock' : 'lock'}`,
+      isLocked ? undefined : { lockedReason }
     );
     return data.data;
   },
-  toggleCoursePublish: async (id: string) => {
+  toggleCoursePublish: async (id: string, status: 'published' | 'hidden' | 'draft' = 'published') => {
     const { data } = await apiClient.patch<ApiResponse<Course>>(
-      `/admin/courses/${id}/publish`
+      `/courses/${id}/publish`,
+      { status }
     );
     return data.data;
   },
   deleteCourse: async (id: string) => {
     const { data } = await apiClient.delete<ApiResponse<null>>(
-      `/admin/courses/${id}`
+      `/courses/${id}`
     );
     return data;
   },
