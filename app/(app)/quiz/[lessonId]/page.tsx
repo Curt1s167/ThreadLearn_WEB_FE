@@ -1,5 +1,5 @@
-import { DemoQuizPage } from '@/features/demo/pages';
+import { QuizPage } from '@/features/quiz/QuizPage';
 
 export default function Quiz() {
-  return <DemoQuizPage />;
+  return <QuizPage />;
 }

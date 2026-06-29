@@ -1,5 +1,5 @@
-import { DemoQuizHistoryPage } from '@/features/demo/pages';
+import { QuizHistoryPage } from '@/features/quiz/QuizHistoryPage';
 
 export default function QuizHistory() {
-  return <DemoQuizHistoryPage />;
+  return <QuizHistoryPage />;
 }
