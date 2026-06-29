@@ -1,5 +1,5 @@
-import { DemoProfilePage } from '@/features/demo/pages';
+import { ProfileGamificationPage } from '@/features/profile/ProfileGamificationPage';
 
 export default function Profile() {
-  return <DemoProfilePage />;
+  return <ProfileGamificationPage />;
 }
