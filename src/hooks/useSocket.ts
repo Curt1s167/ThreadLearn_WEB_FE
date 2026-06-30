@@ -5,7 +5,17 @@ import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store';
-import type { Notification } from '../types';
+import type { Notification, NotificationType } from '../types';
+
+type RealtimeNotification = {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  metadata?: Record<string, unknown>;
+  link?: string;
+  createdAt: string;
+};
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
 
@@ -20,12 +30,14 @@ export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
   const { user, accessToken, isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
+  const userId = user?._id ?? user?.id;
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (!isAuthenticated || !accessToken || !userId) return;
 
     const socket = io(SOCKET_URL, {
-      auth: { token: accessToken },
+      auth: { token: accessToken, userId },
+      query: { userId },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 3000,
@@ -38,7 +50,26 @@ export function useSocket() {
     });
 
     // ─── UC32, UC45: Realtime notifications (level-up, quiz pass, etc.) ─────
-    socket.on('notification', (notif: Notification) => {
+    socket.on('notification', (notif: RealtimeNotification) => {
+      const nextNotification: Notification = {
+        _id: notif.id,
+        userId,
+        title: notif.title,
+        message: notif.message,
+        type: notif.type,
+        metadata: notif.metadata,
+        link: notif.link,
+        isRead: false,
+        createdAt: notif.createdAt,
+      };
+
+      queryClient.setQueryData<Notification[]>(['notifications'], (current = []) => {
+        if (current.some((item) => item._id === nextNotification._id)) {
+          return current;
+        }
+        return [nextNotification, ...current];
+      });
+
       // Invalidate cache so notification list refreshes
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
@@ -47,8 +78,11 @@ export function useSocket() {
         LEVEL_UP: '⚡',
         QUIZ_PASSED: '✅',
         COURSE_COMPLETED: '📚',
-        STREAK_MILESTONE: '🔥',
-        RANK_CHANGE: '🏆',
+        ACHIEVEMENT: '🏆',
+        LEADERBOARD: '🏆',
+        COURSE_ENROLLED: '📚',
+        LESSON_COMPLETED: '📚',
+        QUIZ_FAILED: '🔁',
       };
       toast(notif.title, {
         description: notif.message,
@@ -79,7 +113,7 @@ export function useSocket() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [isAuthenticated, accessToken, queryClient]);
+  }, [isAuthenticated, accessToken, queryClient, userId]);
 
   const emit = useCallback(
     (event: string, data?: unknown) => {
