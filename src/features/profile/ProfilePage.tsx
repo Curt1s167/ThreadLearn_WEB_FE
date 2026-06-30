@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { User, Upload, Flame, Star, BookOpen, Trophy } from 'lucide-react';

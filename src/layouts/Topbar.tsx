@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Search, Bell, Sun, Moon, LogOut, Command } from 'lucide-react';
 import { useRouter } from 'next/navigation';

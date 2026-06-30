@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Users, BookOpen, BarChart2, CheckCircle, Activity, TrendingUp } from 'lucide-react';
