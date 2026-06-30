@@ -67,12 +67,18 @@ module.exports = {
         'slide-in': 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
         'shimmer': 'shimmer 1.5s infinite',
+        'level-pop': 'levelPop 0.26s ease-out',
       },
       keyframes: {
         fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
         slideIn: { from: { opacity: '0', transform: 'translateY(8px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
         pulseGlow: { '0%, 100%': { boxShadow: '0 0 0 0 rgba(124,106,247,0)' }, '50%': { boxShadow: '0 0 20px 4px rgba(124,106,247,0.3)' } },
         shimmer: { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
+        levelPop: {
+          '0%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(124,106,247,0)' },
+          '55%': { transform: 'scale(1.012)', boxShadow: '0 0 20px 2px rgba(124,106,247,0.28)' },
+          '100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(124,106,247,0)' },
+        },
       },
       borderRadius: { xl: '0.75rem', '2xl': '1rem', '3xl': '1.5rem' },
       boxShadow: {

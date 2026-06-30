@@ -25,9 +25,9 @@ const StatCard: React.FC<{
       {icon}
     </div>
     <div>
-      <p className="text-xs text-gray-600 font-mono">{label}</p>
+      <p className="text-xs text-gray-500 font-mono">{label}</p>
       <p className="text-xl font-mono font-bold text-gray-100 mt-0.5">{value}</p>
-      {sub && <p className="text-xs text-gray-600 font-mono mt-0.5">{sub}</p>}
+      {sub && <p className="text-xs text-gray-500 font-mono mt-0.5">{sub}</p>}
     </div>
   </Card>
 );
@@ -92,12 +92,12 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-mono font-bold text-2xl text-gray-100">
-            gm, {user?.name?.split(' ')[0]} 👋
+            gm, {user?.name?.split(' ')[0] ?? 'learner'}
           </h1>
-          <p className="text-gray-600 font-mono text-sm mt-1">
+          <p className="text-gray-500 font-mono text-sm mt-1">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
@@ -108,34 +108,34 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* XP Progress bar */}
-      <Card className="p-4">
+      <Card className="p-4 border-accent-500/10">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-violet-500/20 flex items-center justify-center">
-              <Zap size={14} className="text-violet-400" />
+            <div className="w-7 h-7 rounded-lg bg-accent-500/20 flex items-center justify-center">
+              <Zap size={14} className="text-accent-400" />
             </div>
             <div>
               <span className="text-sm font-mono font-semibold text-gray-200">
                 Level {stats?.level ?? 1}
               </span>
-              <span className="text-gray-600 font-mono text-xs ml-2">
+              <span className="text-gray-500 font-mono text-xs ml-2">
                 → Level {(stats?.level ?? 1) + 1}
               </span>
             </div>
           </div>
-          <span className="text-xs font-mono text-gray-500">
+          <span className="text-xs font-mono text-gray-400">
             {stats?.xp ?? 0} XP
           </span>
         </div>
         <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-violet-600 to-violet-400 rounded-full transition-all duration-700"
+            className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-200"
             style={{ width: `${levelProgress}%` }}
           />
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[10px] text-gray-700 font-mono">{levelProgress.toFixed(0)}%</span>
-          <span className="text-[10px] text-gray-700 font-mono">
+          <span className="text-[10px] text-gray-500 font-mono">{levelProgress.toFixed(0)}%</span>
+          <span className="text-[10px] text-gray-500 font-mono">
             {1000 - (stats?.xp ?? 0) % 1000} XP to next level
           </span>
         </div>
@@ -144,21 +144,41 @@ export const DashboardPage: React.FC = () => {
       {resumeLoading ? (
         <Skeleton className="h-24 rounded-xl" />
       ) : resume ? (
-        <Card className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-violet-500/20 bg-violet-500/5">
-          <div className="min-w-0">
-            <p className="text-xs text-violet-400 font-mono mb-1">Continue learning</p>
-            <p className="text-sm font-mono text-gray-200 truncate">{getCourseTitle(resume)}</p>
-            <p className="text-xs text-gray-600 font-mono mt-1">
+        <Card className="relative overflow-hidden p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-accent-500/30 bg-accent-500/10 shadow-glow-sm">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-400/60 to-transparent" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-accent-300 font-mono mb-1">Continue learning</p>
+            <p className="text-base font-mono text-gray-100 truncate">{getCourseTitle(resume)}</p>
+            <p className="text-xs text-gray-400 font-mono mt-1">
               {resume.progressPercent ?? resume.progress ?? 0}% complete
-              {resume.totalLessons ? ` · ${resume.completedLessons.length}/${resume.totalLessons} lessons` : ''}
+              {resume.totalLessons ? ` - ${resume.completedLessons.length}/${resume.totalLessons} lessons` : ''}
             </p>
+            <div className="h-1.5 bg-white/5 rounded-full mt-3 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-200"
+                style={{ width: `${resume.progressPercent ?? resume.progress ?? 0}%` }}
+              />
+            </div>
           </div>
           <Button onClick={() => router.push(resumeTarget)} className="shrink-0">
             <ArrowRight size={14} />
             Resume
           </Button>
         </Card>
-      ) : null}
+      ) : (
+        <Card className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-white/10 bg-white/[0.03]">
+          <div className="min-w-0">
+            <p className="text-sm font-mono font-semibold text-gray-200">Ready for your first run?</p>
+            <p className="text-xs text-gray-500 font-mono mt-1">
+              Pick a course and your resume card will track the next lesson.
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => router.push('/courses')} className="shrink-0">
+            <BookOpen size={14} />
+            Find a course
+          </Button>
+        </Card>
+      )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -178,11 +198,11 @@ export const DashboardPage: React.FC = () => {
               color="bg-amber-500/10"
             />
             <StatCard
-              icon={<Star size={16} className="text-violet-400" />}
+              icon={<Star size={16} className="text-accent-400" />}
               label="Total XP"
               value={(stats?.xp ?? 0).toLocaleString()}
               sub="experience points"
-              color="bg-violet-500/10"
+              color="bg-accent-500/10"
             />
             <StatCard
               icon={<BookOpen size={16} className="text-emerald-400" />}
@@ -208,7 +228,7 @@ export const DashboardPage: React.FC = () => {
           <h2 className="font-mono font-semibold text-gray-200 text-sm">Active courses</h2>
           <button
             onClick={() => router.push('/courses')}
-            className="text-xs text-violet-400 hover:text-violet-300 font-mono flex items-center gap-1 transition-colors"
+            className="text-xs text-accent-400 hover:text-accent-300 font-mono flex items-center gap-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas rounded"
           >
             View all <ArrowRight size={12} />
           </button>
@@ -222,22 +242,34 @@ export const DashboardPage: React.FC = () => {
         ) : enrollments && enrollments.length > 0 ? (
           <div className="flex flex-col gap-2">
             {enrollments.slice(0, 4).map((enrollment) => (
-              <Card key={enrollment._id} className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all cursor-pointer" onClick={() => router.push(`/courses/${getCourseId(enrollment)}`)}>
-                <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                  <BookOpen size={14} className="text-violet-400" />
+            <Card
+              key={enrollment._id}
+              role="button"
+              tabIndex={0}
+              className="p-3 flex items-center gap-3 hover:border-accent-500/20 transition-all duration-200 motion-safe:hover:-translate-y-0.5 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+              onClick={() => router.push(`/courses/${getCourseId(enrollment)}`)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  router.push(`/courses/${getCourseId(enrollment)}`);
+                }
+              }}
+            >
+                <div className="w-8 h-8 rounded-lg bg-accent-500/10 flex items-center justify-center shrink-0">
+                  <BookOpen size={14} className="text-accent-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm text-gray-200 font-mono truncate">
                       {getCourseTitle(enrollment)}
                     </p>
-                    <span className="text-xs text-gray-600 font-mono shrink-0">
+                    <span className="text-xs text-gray-500 font-mono shrink-0">
                       {enrollment.progressPercent ?? enrollment.progress}%
                     </span>
                   </div>
                   <div className="h-1 bg-white/5 rounded-full mt-1.5 overflow-hidden">
                     <div
-                        className="h-full bg-violet-600 rounded-full"
+                        className="h-full bg-accent-600 rounded-full transition-all duration-200"
                         style={{ width: `${enrollment.progressPercent ?? enrollment.progress}%` }}
                     />
                   </div>
@@ -277,7 +309,7 @@ export const DashboardPage: React.FC = () => {
             <button
               key={item.to}
               onClick={() => router.push(item.to)}
-              className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-violet-500/20 hover:bg-white/[0.05] transition-all font-mono text-sm text-gray-400 hover:text-gray-200"
+              className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-accent-500/20 hover:bg-white/[0.05] transition-all duration-200 motion-safe:hover:-translate-y-0.5 font-mono text-sm text-gray-400 hover:text-gray-200 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
             >
               <span className={item.color}>{item.icon}</span>
               {item.label}
