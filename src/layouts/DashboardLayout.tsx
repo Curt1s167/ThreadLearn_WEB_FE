@@ -1,21 +1,38 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
-import { useUIStore } from '../store';
+import { useAuthStore, useUIStore } from '../store';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useSocket } from '../hooks/useSocket';
 import { useAuthBootstrap } from '../hooks';
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { sidebarCollapsed } = useUIStore();
+  const { hasHydrated, isAuthenticated } = useAuthStore();
+  const router = useRouter();
 
   // Bootstrap: revalidate user session + load stats
   useAuthBootstrap();
 
   // Socket.IO: listen for realtime events (UC32, UC45, UC46)
   useSocket();
+
+  React.useEffect(() => {
+    if (hasHydrated && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [hasHydrated, isAuthenticated, router]);
+
+  if (!hasHydrated || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-7 h-7 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">

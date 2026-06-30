@@ -1,18 +1,28 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle, CheckCircle, XCircle, Clock, Zap, ChevronRight, ArrowLeft, Bookmark,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { quizService, lessonsService, bookmarksService } from '../../services';
 import { Card, Button, Badge, EmptyState } from '../../components/shared';
-import { CommentsSection } from './CommentsSection';
-import { NotesPanel } from './NotesPanel';
+
+const LessonMarkdown = dynamic(
+  () => import('./LessonMarkdown').then((module) => module.LessonMarkdown),
+  { loading: () => <div className="h-32 skeleton rounded-lg" /> }
+);
+const CommentsSection = dynamic(
+  () => import('./CommentsSection').then((module) => module.CommentsSection),
+  { loading: () => <div className="h-24 skeleton rounded-lg" /> }
+);
+const NotesPanel = dynamic(
+  () => import('./NotesPanel').then((module) => module.NotesPanel),
+  { loading: () => <div className="h-32 skeleton rounded-lg" /> }
+);
 
 // ─── Quiz Page ────────────────────────────────────────────────────────────────
 export const QuizPage: React.FC = () => {
@@ -280,9 +290,7 @@ export const LessonPage: React.FC = () => {
                 </div>
               )}
               <div className="prose prose-invert prose-sm max-w-none font-mono text-gray-300 leading-relaxed [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-white/[0.06] [&_pre]:p-4 [&_code]:text-violet-300 [&_a]:text-violet-400 [&_h1]:text-gray-100 [&_h2]:text-gray-200 [&_h3]:text-gray-200 [&_blockquote]:border-violet-500/30 [&_blockquote]:text-gray-500">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {content}
-                </ReactMarkdown>
+                <LessonMarkdown content={content} />
               </div>
             </Card>
           )}
