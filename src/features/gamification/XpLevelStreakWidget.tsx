@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, BookOpen, Flame, GraduationCap, Star, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { gamificationService } from '../../services';
-import { Card, EmptyState, Skeleton } from '../../components/shared';
+import { Card, CountUpNumber, EmptyState, Skeleton } from '../../components/shared';
 
 export const XpLevelStreakWidget: React.FC = () => {
+  const previousLevelRef = useRef<number | null>(null);
+  const [levelJustChanged, setLevelJustChanged] = useState(false);
   const {
     data: stats,
     isLoading,
@@ -22,6 +24,17 @@ export const XpLevelStreakWidget: React.FC = () => {
       toast.error('Failed to load gamification stats');
     }
   }, [isError]);
+
+  useEffect(() => {
+    if (!stats?.level) return;
+    if (previousLevelRef.current !== null && stats.level > previousLevelRef.current) {
+      setLevelJustChanged(true);
+      const timeout = window.setTimeout(() => setLevelJustChanged(false), 260);
+      previousLevelRef.current = stats.level;
+      return () => window.clearTimeout(timeout);
+    }
+    previousLevelRef.current = stats.level;
+  }, [stats?.level]);
 
   if (isLoading) {
     return (
@@ -63,10 +76,10 @@ export const XpLevelStreakWidget: React.FC = () => {
 
   const statCards = [
     {
-      icon: <Star size={16} className="text-violet-400" />,
+      icon: <Star size={16} className="text-accent-400" />,
       label: 'Total XP',
       value: stats.xp.toLocaleString(),
-      bg: 'bg-violet-500/10',
+      bg: 'bg-accent-500/10',
     },
     {
       icon: <Flame size={16} className="text-amber-400" />,
@@ -90,36 +103,40 @@ export const XpLevelStreakWidget: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-5">
-      <Card className="p-5">
+      <Card className={`p-5 transition-shadow duration-200 ${levelJustChanged ? 'border-accent-500/40 shadow-glow motion-safe:animate-level-pop' : ''}`}>
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
-            <GraduationCap size={22} className="text-violet-300" />
+          <div className="w-12 h-12 rounded-xl bg-accent-500/10 flex items-center justify-center shrink-0">
+            <GraduationCap size={22} className="text-accent-300" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-3 mb-2">
               <span className="font-mono font-semibold text-gray-200 text-sm">Level {stats.level}</span>
-              <span className="text-xs text-gray-600 font-mono">{stats.xp.toLocaleString()} / {nextLevelXp.toLocaleString()} XP</span>
+              <span className="text-xs text-gray-500 font-mono">
+                <CountUpNumber value={stats.xp} /> / {nextLevelXp.toLocaleString()} XP
+              </span>
             </div>
             <div className="h-2 bg-white/5 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-violet-600 to-violet-400 rounded-full transition-all duration-500"
+                className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-200"
                 style={{ width: `${levelProgress}%` }}
               />
             </div>
-            <p className="text-xs text-gray-600 font-mono mt-2">Last active: {lastActiveDate}</p>
+            <p className="text-xs text-gray-500 font-mono mt-2">Last active: {lastActiveDate}</p>
           </div>
         </div>
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
         {statCards.map((item) => (
-          <Card key={item.label} className="p-4 flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.bg}`}>
+          <Card key={item.label} className="p-4 flex items-center gap-3 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-accent-500/20">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.bg} ${item.label === 'Current streak' ? 'shadow-sm shadow-amber-400/20' : ''}`}>
               {item.icon}
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-gray-600 font-mono">{item.label}</p>
-              <p className="text-lg font-mono font-bold text-gray-100 truncate">{item.value}</p>
+              <p className="text-xs text-gray-500 font-mono">{item.label}</p>
+              <p className="text-lg font-mono font-bold text-gray-100 truncate">
+                {item.label === 'Total XP' ? <CountUpNumber value={stats.xp} /> : item.value}
+              </p>
             </div>
           </Card>
         ))}
@@ -127,11 +144,11 @@ export const XpLevelStreakWidget: React.FC = () => {
 
       <Card className="p-4 flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs text-gray-600 font-mono">Highest streak</p>
+          <p className="text-xs text-gray-500 font-mono">Highest streak</p>
           <p className="text-lg font-mono font-bold text-gray-100">{stats.highestStreak ?? currentStreak} days</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-600 font-mono">Courses completed</p>
+          <p className="text-xs text-gray-500 font-mono">Courses completed</p>
           <p className="text-lg font-mono font-bold text-gray-100">{stats.coursesCompleted ?? 0}</p>
         </div>
       </Card>

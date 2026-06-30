@@ -103,16 +103,16 @@ export const CourseDetailPage: React.FC = () => {
         Back
       </button>
 
-      <Card className="overflow-hidden">
-        <div className="h-52 bg-gradient-to-br from-violet-950/60 to-black border-b border-white/[0.06] relative">
+      <Card className="overflow-hidden border-accent-500/10">
+        <div className="h-52 bg-gradient-to-br from-accent-900/40 to-surface-muted border-b border-white/[0.06] relative">
           {course.thumbnailUrl ? (
             <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <BookOpen size={44} className="text-violet-500/50" />
+              <BookOpen size={44} className="text-accent-500/50" />
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#111118] via-[#111118]/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/30 to-transparent" />
         </div>
 
         <div className="p-5 flex flex-col gap-4">
@@ -124,7 +124,7 @@ export const CourseDetailPage: React.FC = () => {
                 {course.isPremium && <Badge color="amber">Premium</Badge>}
               </div>
               <h1 className="font-mono font-bold text-2xl text-gray-100">{course.title}</h1>
-              <p className="text-sm text-gray-500 font-mono mt-2 leading-relaxed">
+              <p className="text-sm text-gray-400 font-mono mt-2 leading-relaxed">
                 {course.shortDescription || course.description}
               </p>
             </div>
@@ -136,24 +136,24 @@ export const CourseDetailPage: React.FC = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3">
-              <BookOpen size={14} className="text-violet-400 mb-2" />
+              <BookOpen size={14} className="text-accent-400 mb-2" />
               <p className="text-lg font-mono font-bold text-gray-100">{course.totalLessons ?? courseLessons.length}</p>
-              <p className="text-xs text-gray-600 font-mono">lessons</p>
+              <p className="text-xs text-gray-500 font-mono">lessons</p>
             </div>
             <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3">
               <Users size={14} className="text-emerald-400 mb-2" />
               <p className="text-lg font-mono font-bold text-gray-100">{course.totalEnrollments ?? 0}</p>
-              <p className="text-xs text-gray-600 font-mono">learners</p>
+              <p className="text-xs text-gray-500 font-mono">learners</p>
             </div>
             <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3">
               <Clock size={14} className="text-amber-400 mb-2" />
               <p className="text-lg font-mono font-bold text-gray-100">{course.estimatedDuration ?? 0}</p>
-              <p className="text-xs text-gray-600 font-mono">minutes</p>
+              <p className="text-xs text-gray-500 font-mono">minutes</p>
             </div>
             <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3">
               <CheckCircle size={14} className="text-blue-400 mb-2" />
               <p className="text-lg font-mono font-bold text-gray-100">{course.status ?? 'published'}</p>
-              <p className="text-xs text-gray-600 font-mono">status</p>
+              <p className="text-xs text-gray-500 font-mono">status</p>
             </div>
           </div>
         </div>
@@ -172,19 +172,27 @@ export const CourseDetailPage: React.FC = () => {
             description="This course does not have published lessons"
           />
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4">
             {courseLessons.map((lesson, index) => (
               <Card
                 key={lesson._id}
-                className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all cursor-pointer"
+                role="button"
+                tabIndex={0}
+                className="p-3 flex items-center gap-3 hover:border-accent-500/20 transition-all duration-200 motion-safe:hover:-translate-y-0.5 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                 onClick={() => router.push(`/lessons/${lesson._id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    router.push(`/lessons/${lesson._id}`);
+                  }
+                }}
               >
-                <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                  {lesson.isLocked ? <Lock size={14} className="text-gray-600" /> : <PlayCircle size={14} className="text-violet-400" />}
+                <div className="w-8 h-8 rounded-lg bg-accent-500/10 flex items-center justify-center shrink-0">
+                  {lesson.isLocked ? <Lock size={14} className="text-gray-500" /> : <PlayCircle size={14} className="text-accent-400" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-200 font-mono truncate">{lesson.title}</p>
-                  <p className="text-xs text-gray-600 font-mono">
+                  <p className="text-sm text-gray-300 font-mono truncate">{lesson.title}</p>
+                  <p className="text-xs text-gray-500 font-mono">
                     Lesson {lesson.order ?? index + 1}
                     {lesson.duration ? ` - ${lesson.duration} min` : ''}
                   </p>
