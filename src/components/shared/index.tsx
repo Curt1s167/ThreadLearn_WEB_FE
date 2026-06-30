@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { BookOpen, Loader2, Users } from 'lucide-react';
 import type { Course, CourseLevel } from '../../types';
 
@@ -213,9 +214,11 @@ export const CourseCard: React.FC<{
   >
     <div className={`${compact ? 'h-24' : 'h-28'} bg-gradient-to-br from-accent-900/30 to-surface-muted flex items-center justify-center border-b border-white/[0.05] relative overflow-hidden`}>
       {course.thumbnailUrl ? (
-        <img
+        <Image
           src={course.thumbnailUrl}
           alt={course.title}
+          fill
+          unoptimized
           className="w-full h-full object-cover transition-transform duration-200 motion-safe:group-hover:scale-[1.03]"
         />
       ) : (
@@ -274,13 +277,17 @@ export const Avatar: React.FC<{
   className?: string;
 }> = ({ src, name = '?', size = 'md', className = '' }) => {
   const sizeMap = { sm: 'w-6 h-6 text-xs', md: 'w-8 h-8 text-sm', lg: 'w-10 h-10 text-base', xl: 'w-14 h-14 text-xl' };
+  const widthHeightMap = { sm: 24, md: 32, lg: 40, xl: 56 };
   const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
 
   return src ? (
-    <img
+    <Image
       src={src}
       alt={name}
-      className={`rounded-full object-cover ${sizeMap[size]} ${className}`}
+      width={widthHeightMap[size]}
+      height={widthHeightMap[size]}
+      className={`rounded-full object-cover ${className}`}
+      unoptimized
     />
   ) : (
     <div
