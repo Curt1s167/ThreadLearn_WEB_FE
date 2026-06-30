@@ -1,5 +1,5 @@
-import { DemoBookmarksPage } from '@/features/demo/pages';
+import { BookmarksPage } from '@/features/lessons/BookmarksPage';
 
 export default function Bookmarks() {
-  return <DemoBookmarksPage />;
+  return <BookmarksPage />;
 }
