@@ -1,5 +1,5 @@
-import { DemoAIPage } from '@/features/demo/pages';
+import { AIPage } from '@/features/ai/AIPage';
 
 export default function AI() {
-  return <DemoAIPage />;
+  return <AIPage />;
 }

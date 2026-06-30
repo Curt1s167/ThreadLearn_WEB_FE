@@ -1,25 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bot, Send, BookOpen, Clock, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { aiService, coursesService } from '../../services';
-import { Card, Button, Skeleton } from '../../components/shared';
+import { Card, Button, EmptyState, Skeleton } from '../../components/shared';
 
 export const AIPage: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: courses } = useQuery({
+  const {
+    data: courses,
+    isLoading: coursesLoading,
+    isError: coursesError,
+  } = useQuery({
     queryKey: ['courses-simple'],
     queryFn: () => coursesService.list({ limit: 100 }),
   });
 
-  const { data: history, isLoading: historyLoading } = useQuery({
+  const {
+    data: history,
+    isLoading: historyLoading,
+    isError: historyError,
+  } = useQuery({
     queryKey: ['ai-history'],
     queryFn: aiService.getHistory,
   });
+
+  useEffect(() => {
+    if (coursesError) toast.error('Failed to load courses');
+  }, [coursesError]);
+
+  useEffect(() => {
+    if (historyError) toast.error('Failed to load AI history');
+  }, [historyError]);
 
   const { mutate: requestRec, isPending } = useMutation({
     mutationFn: () => aiService.requestRecommendation(selectedCourse),
@@ -58,8 +74,11 @@ export const AIPage: React.FC = () => {
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
               className="input-field"
+              disabled={coursesLoading || coursesError}
             >
-              <option value="">-- Choose a course --</option>
+              <option value="">
+                {coursesLoading ? 'Loading courses...' : '-- Choose a course --'}
+              </option>
               {courses?.items.map((c) => (
                 <option key={c._id} value={c._id}>{c.title}</option>
               ))}
@@ -68,7 +87,7 @@ export const AIPage: React.FC = () => {
 
           <Button
             onClick={() => requestRec()}
-            disabled={!selectedCourse}
+            disabled={!selectedCourse || coursesLoading || coursesError}
             loading={isPending}
             className="self-start"
           >
@@ -93,7 +112,7 @@ export const AIPage: React.FC = () => {
                 <div className="flex items-center gap-2 mb-3">
                   <BookOpen size={13} className="text-violet-400" />
                   <span className="text-xs font-mono text-gray-500">
-                    Course #{log.courseId.slice(-6)}
+                    {log.courseId ? `Course #${log.courseId.slice(-6)}` : 'Lesson recommendation'}
                   </span>
                   <span className="text-gray-700">·</span>
                   <span className="text-xs text-gray-600 font-mono flex items-center gap-1">
@@ -110,11 +129,11 @@ export const AIPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <Card className="p-8 text-center">
-            <Bot size={28} className="text-gray-700 mx-auto mb-3" />
-            <p className="text-gray-500 font-mono text-sm">No recommendations yet</p>
-            <p className="text-gray-700 font-mono text-xs mt-1">Select a course to get your personalized roadmap</p>
-          </Card>
+          <EmptyState
+            icon={<Bot size={36} />}
+            title="No recommendations yet"
+            description="Select a course to get your personalized roadmap"
+          />
         )}
       </div>
     </div>
