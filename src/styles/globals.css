@@ -32,13 +32,13 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 bg-accent-600 hover:bg-accent-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-2 bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150;
+    @apply inline-flex items-center gap-2 bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
   .btn-outline {
-    @apply inline-flex items-center gap-2 border border-white/10 hover:border-violet-500/50 text-gray-400 hover:text-gray-100 bg-transparent hover:bg-white/5 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150;
+    @apply inline-flex items-center gap-2 border border-white/10 hover:border-accent-500/50 text-gray-400 hover:text-gray-100 bg-transparent hover:bg-white/5 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
   .input-field {
     @apply w-full bg-surface-muted border border-white/10 focus:border-accent-500/50 text-gray-100 placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-150 focus:ring-1 focus:ring-accent-500/20 font-mono;
@@ -47,7 +47,7 @@
     @apply bg-surface border border-white/[0.07] rounded-xl;
   }
   .badge-purple {
-    @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/20;
+    @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-accent-500/10 text-accent-300 border border-accent-500/20;
   }
   .badge-green {
     @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
@@ -68,13 +68,13 @@
     @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-gray-200 hover:bg-white/5 transition-all duration-150 cursor-pointer font-mono;
   }
   .sidebar-item-active {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-violet-300 bg-violet-500/10 border border-violet-500/20 font-mono;
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-accent-300 bg-accent-500/10 border border-accent-500/20 font-mono;
   }
 }
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, #a78bfa, #34d399);
+    background: linear-gradient(135deg, theme('colors.accent.300'), theme('colors.emerald.400'));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

@@ -82,7 +82,7 @@ export const Spinner: React.FC<{ size?: number; className?: string }> = ({
 }) => (
   <Loader2
     size={size}
-    className={`animate-spin text-violet-400 ${className}`}
+    className={`animate-spin text-accent-400 ${className}`}
   />
 );
 
@@ -108,7 +108,7 @@ interface BadgeProps {
 }
 
 const badgeColorClasses: Record<BadgeColor, string> = {
-  purple: 'bg-violet-500/10 text-violet-300 border-violet-500/20',
+  purple: 'bg-accent-500/10 text-accent-300 border-accent-500/20',
   green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   red: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
@@ -132,7 +132,7 @@ export const Card: React.FC<
   React.HTMLAttributes<HTMLDivElement> & { hover?: boolean }
 > = ({ children, className = '', hover = false, ...props }) => (
   <div
-    className={`card ${hover ? 'hover:border-violet-500/20 hover:shadow-glow transition-all duration-200 cursor-pointer' : ''} ${className}`}
+    className={`card ${hover ? 'hover:border-accent-500/20 hover:shadow-glow transition-all duration-200 cursor-pointer' : ''} ${className}`}
     {...props}
   >
     {children}
@@ -284,7 +284,7 @@ export const Avatar: React.FC<{
     />
   ) : (
     <div
-      className={`rounded-full bg-gradient-to-br from-violet-600 to-violet-800 flex items-center justify-center font-mono font-medium text-white ${sizeMap[size]} ${className}`}
+      className={`rounded-full bg-gradient-to-br from-accent-600 to-accent-800 flex items-center justify-center font-mono font-medium text-white ${sizeMap[size]} ${className}`}
     >
       {initials}
     </div>
@@ -304,11 +304,11 @@ export const EmptyState: React.FC<{
   action?: React.ReactNode;
 }> = ({ icon, title, description, action }) => (
   <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-    {icon && <div className="text-gray-600">{icon}</div>}
+    {icon && <div className="text-gray-500">{icon}</div>}
     <div>
       <p className="text-gray-300 font-mono font-medium">{title}</p>
       {description && (
-        <p className="text-gray-600 text-sm font-mono mt-1">{description}</p>
+        <p className="text-gray-500 text-sm font-mono mt-1">{description}</p>
       )}
     </div>
     {action}
