@@ -1,5 +1,6 @@
-import React from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { BookOpen, Loader2, Users } from 'lucide-react';
+import type { Course, CourseLevel } from '../../types';
 
 // ─── Button ───────────────────────────────────────────────────────────────────
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -10,9 +11,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses = {
-  primary: 'bg-violet-600 hover:bg-violet-500 text-white border-transparent',
+  primary: 'bg-accent-600 hover:bg-accent-500 text-white border-transparent',
   ghost: 'bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 border-transparent',
-  outline: 'bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 border-white/10 hover:border-violet-500/40',
+  outline: 'bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 border-white/10 hover:border-accent-500/40',
   danger: 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20',
 };
 
@@ -32,7 +33,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => (
   <button
-    className={`inline-flex items-center justify-center font-mono font-medium rounded-lg border transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+    className={`inline-flex items-center justify-center font-mono font-medium rounded-lg border transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
     disabled={disabled || loading}
     {...props}
   >
@@ -136,6 +137,133 @@ export const Card: React.FC<
   >
     {children}
   </div>
+);
+
+// ─── Count Up Number ──────────────────────────────────────────────────────────
+export const CountUpNumber: React.FC<{
+  value: number;
+  suffix?: string;
+  className?: string;
+  durationMs?: number;
+}> = ({ value, suffix = '', className = '', durationMs = 260 }) => {
+  const [displayValue, setDisplayValue] = useState(value);
+  const displayValueRef = useRef(value);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDisplayValue(value);
+      displayValueRef.current = value;
+      return;
+    }
+
+    let frameId = 0;
+    const start = performance.now();
+    const from = displayValueRef.current;
+    const delta = value - from;
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const nextValue = Math.round(from + delta * eased);
+      displayValueRef.current = nextValue;
+      setDisplayValue(nextValue);
+      if (progress < 1) frameId = requestAnimationFrame(tick);
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [durationMs, value]);
+
+  return (
+    <span className={className}>
+      {displayValue.toLocaleString()}{suffix}
+    </span>
+  );
+};
+
+// ─── Course Card ──────────────────────────────────────────────────────────────
+const courseLevelColors: Record<CourseLevel, 'green' | 'amber' | 'red'> = {
+  BEGINNER: 'green',
+  INTERMEDIATE: 'amber',
+  ADVANCED: 'red',
+};
+
+const getCourseLevelColor = (level?: CourseLevel): 'green' | 'amber' | 'red' | 'gray' => {
+  if (!level) return 'gray';
+  return courseLevelColors[level] ?? 'gray';
+};
+
+export const CourseCard: React.FC<{
+  course: Course;
+  onClick?: () => void;
+  compact?: boolean;
+  className?: string;
+}> = ({ course, onClick, compact = false, className = '' }) => (
+  <Card
+    role={onClick ? 'button' : undefined}
+    tabIndex={onClick ? 0 : undefined}
+    onClick={onClick}
+    onKeyDown={(event) => {
+      if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault();
+        onClick();
+      }
+    }}
+    className={`group overflow-hidden transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-accent-500/30 hover:shadow-glow-sm outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${onClick ? 'cursor-pointer' : ''} ${className}`}
+  >
+    <div className={`${compact ? 'h-24' : 'h-28'} bg-gradient-to-br from-accent-900/30 to-surface-muted flex items-center justify-center border-b border-white/[0.05] relative overflow-hidden`}>
+      {course.thumbnailUrl ? (
+        <img
+          src={course.thumbnailUrl}
+          alt={course.title}
+          className="w-full h-full object-cover transition-transform duration-200 motion-safe:group-hover:scale-[1.03]"
+        />
+      ) : (
+        <BookOpen size={compact ? 24 : 28} className="text-accent-500/60" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-surface/70 to-transparent" />
+      <div className="absolute top-2 left-2 flex gap-1.5">
+        <Badge color={getCourseLevelColor(course.level)}>{course.level?.slice(0, 3) ?? 'N/A'}</Badge>
+        {course.isPremium && <Badge color="amber">Premium</Badge>}
+      </div>
+      {!course.isPublished && (
+        <div className="absolute top-2 right-2">
+          <Badge color="gray">Draft</Badge>
+        </div>
+      )}
+    </div>
+
+    <div className={compact ? 'p-3' : 'p-4'}>
+      <h3 className="font-mono font-semibold text-gray-300 text-sm leading-tight line-clamp-2 transition-colors group-hover:text-accent-300">
+        {course.title}
+      </h3>
+      {course.description && (
+        <p className="text-xs text-gray-500 font-mono line-clamp-2 mt-2">
+          {course.shortDescription || course.description}
+        </p>
+      )}
+
+      <div className="flex items-center gap-3 text-xs text-gray-500 font-mono mt-3">
+        <span className="flex items-center gap-1">
+          <BookOpen size={11} />
+          {course.totalLessons ?? course.lessonCount ?? 0} lessons
+        </span>
+        <span className="flex items-center gap-1">
+          <Users size={11} />
+          {course.totalEnrollments ?? course.enrollmentCount ?? 0}
+        </span>
+        {course.language && <span className="tag">{course.language}</span>}
+      </div>
+
+      {course.tags && course.tags.length > 0 && (
+        <div className="flex gap-1 mt-2 flex-wrap">
+          {course.tags.slice(0, 3).map((tag) => (
+            <span key={tag} className="tag">{tag}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  </Card>
 );
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────

@@ -5,21 +5,29 @@
 @layer base {
   * { box-sizing: border-box; }
   html {
-    background-color: #f7f4ee;
-    color: #111111;
+    background-color: theme('colors.canvas.DEFAULT');
+    color: theme('colors.gray.100');
     font-family: var(--font-jetbrains-mono), monospace;
     -webkit-font-smoothing: antialiased;
   }
   body {
-    background-color: #f7f4ee;
+    background-color: theme('colors.canvas.DEFAULT');
     min-height: 100vh;
     overflow-x: hidden;
   }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: #f7f4ee; }
-  ::-webkit-scrollbar-thumb { background: #d6d0c4; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #111111; }
-  ::selection { background: rgba(217, 249, 157, 0.8); color: #111111; }
+  ::-webkit-scrollbar-track { background: theme('colors.canvas.DEFAULT'); }
+  ::-webkit-scrollbar-thumb { background: theme('colors.surface.border'); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: theme('colors.accent.500'); }
+  ::selection { background: theme('colors.accent.500'); color: theme('colors.white'); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
@@ -33,10 +41,10 @@
     @apply inline-flex items-center gap-2 border border-white/10 hover:border-violet-500/50 text-gray-400 hover:text-gray-100 bg-transparent hover:bg-white/5 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150;
   }
   .input-field {
-    @apply w-full bg-black/30 border border-white/10 focus:border-violet-500/50 text-gray-100 placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-150 focus:ring-1 focus:ring-violet-500/20 font-mono;
+    @apply w-full bg-surface-muted border border-white/10 focus:border-accent-500/50 text-gray-100 placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-150 focus:ring-1 focus:ring-accent-500/20 font-mono;
   }
   .card {
-    @apply bg-[#111118] border border-white/[0.07] rounded-xl;
+    @apply bg-surface border border-white/[0.07] rounded-xl;
   }
   .badge-purple {
     @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/20;
@@ -51,7 +59,7 @@
     @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20;
   }
   .tag {
-    @apply inline-flex items-center text-xs px-2 py-0.5 rounded font-mono bg-violet-500/10 text-violet-400 border border-violet-500/20;
+    @apply inline-flex items-center text-xs px-2 py-0.5 rounded font-mono bg-accent-500/10 text-accent-400 border border-accent-500/20;
   }
   .skeleton {
     @apply rounded animate-pulse bg-white/5;
