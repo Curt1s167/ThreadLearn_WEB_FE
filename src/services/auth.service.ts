@@ -5,7 +5,40 @@ import type {
   LoginPayload,
   RegisterPayload,
   User,
+  UserStats,
 } from '../types';
+
+type BackendUser = Partial<User> & {
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  isVerified?: boolean;
+};
+
+const normalizeUser = (user: BackendUser): User => {
+  const id = user._id ?? user.id ?? '';
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+  const email = user.email ?? '';
+  const name = (user.name ?? fullName) || email || 'ThreadLearn user';
+
+  return {
+    ...user,
+    _id: id,
+    id,
+    email,
+    name,
+    role: user.role ?? 'STUDENT',
+    planType: user.planType ?? 'FREE',
+    isEmailVerified: user.isEmailVerified ?? user.isVerified,
+    createdAt: user.createdAt ?? '',
+    updatedAt: user.updatedAt ?? '',
+  };
+};
+
+const normalizeAuthResponse = (auth: AuthResponse): AuthResponse => ({
+  ...auth,
+  user: normalizeUser(auth.user),
+});
 
 export const authService = {
   // UC01 — Register
@@ -14,7 +47,7 @@ export const authService = {
       '/auth/register',
       payload
     );
-    return data.data;
+    return normalizeAuthResponse(data.data);
   },
 
   // UC04, UC06 — Login with email/password
@@ -23,7 +56,7 @@ export const authService = {
       '/auth/login',
       payload
     );
-    return data.data;
+    return normalizeAuthResponse(data.data);
   },
 
   // UC05 — Google OAuth (redirects to BE auth endpoint)
@@ -69,8 +102,10 @@ export const authService = {
 
   // Get current user profile
   getMe: async () => {
-    const { data } = await apiClient.get<ApiResponse<User>>('/users/profile');
-    return data.data;
+    const { data } = await apiClient.get<ApiResponse<{ user: User; stats: UserStats }>>(
+      '/users/profile'
+    );
+    return normalizeUser(data.data.user);
   },
 
   // UC09 — Update avatar
