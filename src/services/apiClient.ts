@@ -7,6 +7,35 @@ import axios, {
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 const UNAUTHORIZED_EVENT = 'threadlearn:unauthorized';
 
+const isBrowser = typeof window !== 'undefined';
+
+const getLocalStorageItem = (key: string): string | null => {
+  if (!isBrowser) return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const setLocalStorageItem = (key: string, value: string): void => {
+  if (!isBrowser) return;
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Ignored
+  }
+};
+
+const removeLocalStorageItem = (key: string): void => {
+  if (!isBrowser) return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Ignored
+  }
+};
+
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
@@ -16,7 +45,7 @@ export const apiClient = axios.create({
 // ─── Request Interceptor — attach Bearer token ────────────────────────────────
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
+    const token = getLocalStorageItem('accessToken');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -41,9 +70,11 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 const notifyUnauthorized = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+  removeLocalStorageItem('accessToken');
+  removeLocalStorageItem('refreshToken');
+  if (isBrowser) {
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+  }
 };
 
 apiClient.interceptors.response.use(
@@ -66,7 +97,7 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = getLocalStorageItem('refreshToken');
       if (!refreshToken) {
         isRefreshing = false;
         notifyUnauthorized();
@@ -78,7 +109,7 @@ apiClient.interceptors.response.use(
           refreshToken,
         });
         const { accessToken } = response.data.data;
-        localStorage.setItem('accessToken', accessToken);
+        setLocalStorageItem('accessToken', accessToken);
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
