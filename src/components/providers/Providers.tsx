@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { useAuthStore } from '@/store';
 
 const queryClient = new QueryClient({
@@ -26,6 +26,7 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
       logout();
       queryClient.clear();
       router.replace('/login');
+      toast.error('Session expired. Please sign in again.');
     };
 
     window.addEventListener('threadlearn:unauthorized', handleUnauthorized);
