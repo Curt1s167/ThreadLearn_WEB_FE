@@ -6,6 +6,7 @@ export type PlanType = 'FREE' | 'PREMIUM';
 
 export interface User {
   _id: string;
+  id?: string;
   email: string;
   name: string;
   avatarUrl?: string;
@@ -239,7 +240,18 @@ export interface Bookmark {
   targetId: string;
   title: string;
   lessonId?: string;
+  anchorText?: string;
+  position?: number;
+  note?: string;
+  tags?: string[];
+  status?: string;
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface BookmarkToggleResult {
+  bookmarked: boolean;
+  bookmark?: Bookmark;
 }
 
 export interface Note {
@@ -254,11 +266,23 @@ export interface Note {
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export type NotificationType =
-  | 'LEVEL_UP'
-  | 'QUIZ_PASSED'
+  | 'SYSTEM'
+  | 'ACHIEVEMENT'
+  | 'LEADERBOARD'
+  | 'ENROLLMENT'
+  | 'LESSON_COMPLETED'
   | 'COURSE_COMPLETED'
-  | 'STREAK_MILESTONE'
-  | 'RANK_CHANGE';
+  | 'COURSE_ENROLLED'
+  | 'QUIZ_PASSED'
+  | 'QUIZ_FAILED'
+  | 'LEVEL_UP'
+  | 'BOOKMARK_COURSE_UPDATED'
+  | 'PAYMENT_SUCCESS'
+  | 'NEW_USER_REGISTERED'
+  | 'STUDENT_COMMENT_REPORT'
+  | 'COMMENT_REPLY'
+  | 'AI_FEEDBACK'
+  | 'SYSTEM_ERROR';
 
 export interface Notification {
   _id: string;
@@ -266,7 +290,10 @@ export interface Notification {
   type: NotificationType;
   title: string;
   message: string;
-  read: boolean;
+  isRead: boolean;
+  readAt?: string;
+  link?: string;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -337,9 +364,22 @@ export interface PurchasePlanPayload {
 export interface AIHistoryLog {
   _id: string;
   userId: string;
-  courseId: string;
+  courseId?: string;
+  lessonId?: string;
+  codeExecutionId?: string;
+  inputCode?: string;
+  language?: string;
   prompt: string;
   response: string;
+  suggestions?: string[];
+  raceConditions?: string[];
+  optimizedCode?: string;
+  explanation?: string;
+  tokenUsage?: number;
+  modelName?: string;
+  feedbackRating?: number;
+  status?: string;
+  category?: string;
   createdAt: string;
 }
 
@@ -368,6 +408,7 @@ export interface PaginationMeta {
   page: number;
   limit: number;
   totalPages: number;
+  hasMore?: boolean;
 }
 
 export interface PaginatedResponse<T> {

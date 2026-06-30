@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Search, Bell, Sun, Moon, LogOut, Command } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
+import { notificationsService } from '../services';
 
 export const Topbar: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -12,6 +14,13 @@ export const Topbar: React.FC = () => {
   const [searchValue, setSearchValue] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
+  const { data: notifications } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: notificationsService.getAll,
+    enabled: Boolean(user),
+  });
+  const unreadNotifications =
+    notifications?.filter((notification) => !notification.isRead).length ?? 0;
 
   const handleLogout = () => {
     logout();
@@ -75,7 +84,11 @@ export const Topbar: React.FC = () => {
           className="relative p-2 rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
         >
           <Bell size={15} />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-violet-500 rounded-full" />
+          {unreadNotifications > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-violet-500 text-[10px] leading-4 text-white font-mono text-center">
+              {unreadNotifications > 9 ? '9+' : unreadNotifications}
+            </span>
+          )}
         </button>
 
         {/* User menu */}

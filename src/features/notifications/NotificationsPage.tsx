@@ -1,35 +1,57 @@
 // ─── Notifications Page ───────────────────────────────────────────────────────
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCheck, Zap, Trophy, BookOpen, Flame } from 'lucide-react';
+import { Bell, CheckCheck, Zap, Trophy, BookOpen } from 'lucide-react';
+import { toast } from 'sonner';
 import { notificationsService } from '../../services';
-import { Card, Button } from '../../components/shared';
+import { Card, Button, EmptyState, Skeleton } from '../../components/shared';
 import type { NotificationType } from '../../types';
 
-const notifIcons: Record<NotificationType, React.ReactNode> = {
+const notifIcons: Partial<Record<NotificationType, React.ReactNode>> = {
   LEVEL_UP: <Zap size={14} className="text-violet-400" />,
   QUIZ_PASSED: <CheckCheck size={14} className="text-emerald-400" />,
   COURSE_COMPLETED: <BookOpen size={14} className="text-blue-400" />,
-  STREAK_MILESTONE: <Flame size={14} className="text-amber-400" />,
-  RANK_CHANGE: <Trophy size={14} className="text-amber-400" />,
+  LESSON_COMPLETED: <BookOpen size={14} className="text-blue-400" />,
+  LEADERBOARD: <Trophy size={14} className="text-amber-400" />,
+  ACHIEVEMENT: <Trophy size={14} className="text-amber-400" />,
+  ENROLLMENT: <BookOpen size={14} className="text-blue-400" />,
+  COURSE_ENROLLED: <BookOpen size={14} className="text-blue-400" />,
 };
 
 export const NotificationsPage: React.FC = () => {
   const queryClient = useQueryClient();
 
-  const { data: notifications, isLoading } = useQuery({
+  const {
+    data: notifications,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['notifications'],
     queryFn: notificationsService.getAll,
   });
 
   const { mutate: markAll } = useMutation({
     mutationFn: notificationsService.markAllRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('All notifications marked as read');
+    },
+    onError: () => toast.error('Failed to mark notifications as read'),
   });
 
-  const unread = notifications?.filter((n) => !n.read).length ?? 0;
+  const { mutate: markRead } = useMutation({
+    mutationFn: notificationsService.markRead,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onError: () => toast.error('Failed to mark notification as read'),
+  });
+
+  const unread = notifications?.filter((n) => !n.isRead).length ?? 0;
+
+  useEffect(() => {
+    if (isError) toast.error('Failed to load notifications');
+  }, [isError]);
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in max-w-2xl mx-auto">
@@ -54,7 +76,7 @@ export const NotificationsPage: React.FC = () => {
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-14 skeleton rounded-xl" />
+            <Skeleton key={i} className="h-14 rounded-xl" />
           ))}
         </div>
       ) : notifications && notifications.length > 0 ? (
@@ -62,15 +84,24 @@ export const NotificationsPage: React.FC = () => {
           {notifications.map((notif) => (
             <div
               key={notif._id}
+              role={!notif.isRead ? 'button' : undefined}
+              tabIndex={!notif.isRead ? 0 : undefined}
+              onClick={() => !notif.isRead && markRead(notif._id)}
+              onKeyDown={(event) => {
+                if (!notif.isRead && (event.key === 'Enter' || event.key === ' ')) {
+                  event.preventDefault();
+                  markRead(notif._id);
+                }
+              }}
               className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-white/[0.02] ${
-                !notif.read ? 'bg-violet-500/[0.03]' : ''
+                !notif.isRead ? 'bg-violet-500/[0.03] cursor-pointer' : ''
               }`}
             >
               <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center shrink-0 mt-0.5">
-                {notifIcons[notif.type]}
+                {notifIcons[notif.type] ?? <Bell size={14} className="text-gray-400" />}
               </div>
               <div className="flex-1">
-                <p className={`text-sm font-mono ${notif.read ? 'text-gray-400' : 'text-gray-200 font-medium'}`}>
+                <p className={`text-sm font-mono ${notif.isRead ? 'text-gray-400' : 'text-gray-200 font-medium'}`}>
                   {notif.title}
                 </p>
                 <p className="text-xs text-gray-600 font-mono mt-0.5">{notif.message}</p>
@@ -78,17 +109,18 @@ export const NotificationsPage: React.FC = () => {
                   {new Date(notif.createdAt).toLocaleString()}
                 </p>
               </div>
-              {!notif.read && (
+              {!notif.isRead && (
                 <div className="w-2 h-2 rounded-full bg-violet-500 mt-1.5 shrink-0" />
               )}
             </div>
           ))}
         </Card>
       ) : (
-        <Card className="p-10 text-center">
-          <Bell size={28} className="text-gray-700 mx-auto mb-3" />
-          <p className="text-gray-500 font-mono text-sm">No notifications yet</p>
-        </Card>
+        <EmptyState
+          icon={<Bell size={36} />}
+          title="No notifications yet"
+          description="Learning activity updates will appear here"
+        />
       )}
     </div>
   );

@@ -1,5 +1,5 @@
-import { DemoNotificationsPage } from '@/features/demo/pages';
+import { NotificationsPage } from '@/features/notifications/NotificationsPage';
 
 export default function Notifications() {
-  return <DemoNotificationsPage />;
+  return <NotificationsPage />;
 }
