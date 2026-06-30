@@ -3,10 +3,10 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Star, AlertCircle } from 'lucide-react';
+import { Trophy, AlertCircle } from 'lucide-react';
 import { leaderboardService } from '../../services';
 import { useAuthStore } from '../../store';
-import { Card, Avatar, Skeleton, EmptyState } from '../../components/shared';
+import { Card, Skeleton, EmptyState } from '../../components/shared';
 
 const LeaderboardContent = dynamic(
   () => import('./LeaderboardContent').then((module) => module.LeaderboardContent),
@@ -61,26 +61,8 @@ export const LeaderboardPage: React.FC = () => {
         <p className="text-gray-600 font-mono text-sm">Top learners by XP — updated in real-time</p>
       </div>
 
-      {/* My rank */}
       {user && myRankLoading ? (
-        <Skeleton className="h-20 rounded-xl" />
-      ) : myRank ? (
-        <Card className="p-3 border-violet-500/20 bg-violet-500/5 flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-violet-500/20 flex items-center justify-center">
-            <Star size={14} className="text-violet-400" />
-          </div>
-          <Avatar src={myRank.avatar} name={myRank.name} size="md" />
-          <div className="flex-1">
-            <p className="text-xs text-gray-500 font-mono">Hạng của tôi</p>
-            <p className="text-sm font-mono font-semibold text-violet-300">
-              #{myRank.rank} · {myRank.name}
-            </p>
-            <p className="text-xs text-gray-600 font-mono">
-              {myRank.xp.toLocaleString()} XP
-              {myRank.level != null ? ` · Level ${myRank.level}` : ''}
-            </p>
-          </div>
-        </Card>
+        <Skeleton className="h-12 rounded-xl" />
       ) : myRankError ? (
         <Card className="p-3 border-rose-500/20 bg-rose-500/5 flex items-center gap-3">
           <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center">
@@ -116,7 +98,7 @@ export const LeaderboardPage: React.FC = () => {
           />
         </Card>
       ) : (
-        <LeaderboardContent entries={entries} user={user} />
+        <LeaderboardContent entries={entries} user={user} myRank={myRank} />
       )}
     </div>
   );
