@@ -5,41 +5,49 @@
 @layer base {
   * { box-sizing: border-box; }
   html {
-    background-color: #f7f4ee;
-    color: #111111;
+    background-color: theme('colors.canvas.DEFAULT');
+    color: theme('colors.gray.100');
     font-family: var(--font-jetbrains-mono), monospace;
     -webkit-font-smoothing: antialiased;
   }
   body {
-    background-color: #f7f4ee;
+    background-color: theme('colors.canvas.DEFAULT');
     min-height: 100vh;
     overflow-x: hidden;
   }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: #f7f4ee; }
-  ::-webkit-scrollbar-thumb { background: #d6d0c4; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #111111; }
-  ::selection { background: rgba(217, 249, 157, 0.8); color: #111111; }
+  ::-webkit-scrollbar-track { background: theme('colors.canvas.DEFAULT'); }
+  ::-webkit-scrollbar-thumb { background: theme('colors.surface.border'); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: theme('colors.accent.500'); }
+  ::selection { background: theme('colors.accent.500'); color: theme('colors.white'); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 bg-accent-600 hover:bg-accent-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-2 bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150;
+    @apply inline-flex items-center gap-2 bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
   .btn-outline {
-    @apply inline-flex items-center gap-2 border border-white/10 hover:border-violet-500/50 text-gray-400 hover:text-gray-100 bg-transparent hover:bg-white/5 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150;
+    @apply inline-flex items-center gap-2 border border-white/10 hover:border-accent-500/50 text-gray-400 hover:text-gray-100 bg-transparent hover:bg-white/5 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
   .input-field {
-    @apply w-full bg-black/30 border border-white/10 focus:border-violet-500/50 text-gray-100 placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-150 focus:ring-1 focus:ring-violet-500/20 font-mono;
+    @apply w-full bg-surface-muted border border-white/10 focus:border-accent-500/50 text-gray-100 placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-150 focus:ring-1 focus:ring-accent-500/20 font-mono;
   }
   .card {
-    @apply bg-[#111118] border border-white/[0.07] rounded-xl;
+    @apply bg-surface border border-white/[0.07] rounded-xl;
   }
   .badge-purple {
-    @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/20;
+    @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-accent-500/10 text-accent-300 border border-accent-500/20;
   }
   .badge-green {
     @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
@@ -51,7 +59,7 @@
     @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20;
   }
   .tag {
-    @apply inline-flex items-center text-xs px-2 py-0.5 rounded font-mono bg-violet-500/10 text-violet-400 border border-violet-500/20;
+    @apply inline-flex items-center text-xs px-2 py-0.5 rounded font-mono bg-accent-500/10 text-accent-400 border border-accent-500/20;
   }
   .skeleton {
     @apply rounded animate-pulse bg-white/5;
@@ -60,13 +68,13 @@
     @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-gray-200 hover:bg-white/5 transition-all duration-150 cursor-pointer font-mono;
   }
   .sidebar-item-active {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-violet-300 bg-violet-500/10 border border-violet-500/20 font-mono;
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-accent-300 bg-accent-500/10 border border-accent-500/20 font-mono;
   }
 }
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, #a78bfa, #34d399);
+    background: linear-gradient(135deg, theme('colors.accent.300'), theme('colors.emerald.400'));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
