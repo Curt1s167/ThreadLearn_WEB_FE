@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StickyNote, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { notesService } from '../../services';
-import { Button, Card } from '../../components/shared';
+import { Button, Card, Skeleton } from '../../components/shared';
 
 interface Props {
   lessonId: string;
@@ -16,7 +16,7 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
   const [noteText, setNoteText] = useState('');
   const [codeSnippet, setCodeSnippet] = useState('');
 
-  const { data: existingNote } = useQuery({
+  const { data: existingNote, isLoading } = useQuery({
     queryKey: ['notes', lessonId],
     queryFn: () => notesService.getByLesson(lessonId),
     enabled: !!lessonId,
@@ -53,42 +53,51 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
         </h3>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <textarea
-          value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          placeholder="Write notes about this lesson..."
-          rows={4}
-          className="input-field resize-none text-xs leading-relaxed"
-        />
-
-        <div>
-          <label className="text-[10px] text-gray-600 font-mono mb-1 block">
-            Code snippet (optional)
-          </label>
-          <textarea
-            value={codeSnippet}
-            onChange={(e) => setCodeSnippet(e.target.value)}
-            placeholder="// Paste a code snippet here..."
-            rows={3}
-            className="input-field resize-none text-xs font-mono bg-black/40"
-          />
+      {isLoading ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-24 rounded-lg" />
+          <Skeleton className="h-4 w-32 rounded mt-2" />
+          <Skeleton className="h-16 rounded-lg" />
+          <Skeleton className="h-8 w-24 rounded mt-1" />
         </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder="Write notes about this lesson..."
+            rows={4}
+            className="input-field resize-none text-xs leading-relaxed"
+          />
 
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => saveNote()}
-          loading={isPending}
-          disabled={!noteText.trim()}
-          className="self-start"
-        >
-          <Save size={12} />
-          Save notes
-        </Button>
-      </div>
+          <div>
+            <label className="text-[10px] text-gray-600 font-mono mb-1 block">
+              Code snippet (optional)
+            </label>
+            <textarea
+              value={codeSnippet}
+              onChange={(e) => setCodeSnippet(e.target.value)}
+              placeholder="// Paste a code snippet here..."
+              rows={3}
+              className="input-field resize-none text-xs font-mono bg-black/40"
+            />
+          </div>
 
-      {existingNote?.updatedAt && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => saveNote()}
+            loading={isPending}
+            disabled={!noteText.trim()}
+            className="self-start"
+          >
+            <Save size={12} />
+            Save notes
+          </Button>
+        </div>
+      )}
+
+      {!isLoading && existingNote?.updatedAt && (
         <p className="text-[10px] text-gray-700 font-mono mt-2">
           Last saved: {new Date(existingNote.updatedAt).toLocaleString()}
         </p>
