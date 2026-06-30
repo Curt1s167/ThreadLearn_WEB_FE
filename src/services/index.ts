@@ -14,6 +14,7 @@ import type {
   SubmitAttemptPayload,
   Comment,
   Bookmark,
+  BookmarkToggleResult,
   Note,
   Notification,
   LeaderboardEntry,
@@ -205,10 +206,13 @@ export const bookmarksService = {
     const { data } = await apiClient.get<ApiResponse<Bookmark[]>>('/bookmarks', {
       params: { targetType: 'LESSON' },
     });
-    return data.data;
+    return {
+      data: data.data,
+      meta: data.meta,
+    };
   },
   toggle: async (lessonId: string, title = 'Lesson bookmark') => {
-    const { data } = await apiClient.post<ApiResponse<{ bookmarked: boolean }>>(
+    const { data } = await apiClient.post<ApiResponse<BookmarkToggleResult>>(
       '/bookmarks/toggle',
       { targetType: 'LESSON', targetId: lessonId, title }
     );
@@ -243,10 +247,10 @@ export const notificationsService = {
     return data.data;
   },
   markAllRead: async () => {
-    const { data } = await apiClient.patch<ApiResponse<null>>(
+    const { data } = await apiClient.patch<ApiResponse<{ updated: boolean }>>(
       '/notifications/read-all'
     );
-    return data;
+    return data.data;
   },
 };
 
