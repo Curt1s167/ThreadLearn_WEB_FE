@@ -7,6 +7,7 @@ import { Search, BookOpen, Users, Filter, ChevronDown, AlertCircle } from 'lucid
 import { toast } from 'sonner';
 import { coursesService } from '../../services';
 import { Card, Badge, Skeleton, EmptyState } from '../../components/shared';
+import { useDebounce } from '../../hooks';
 import type { CourseLevel } from '../../types';
 
 const LEVELS: CourseLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
@@ -27,10 +28,11 @@ export const CoursesPage: React.FC = () => {
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [level, setLevel] = useState<CourseLevel | ''>('');
   const [showFilters, setShowFilters] = useState(false);
+  const debouncedSearch = useDebounce(search, 350);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['courses', search, level],
-    queryFn: () => coursesService.list({ search: search || undefined, level: level || undefined }),
+    queryKey: ['courses', debouncedSearch, level],
+    queryFn: () => coursesService.list({ search: debouncedSearch || undefined, level: level || undefined }),
   });
 
   const courses = data?.items ?? [];

@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import { useAuthStore } from '@/store';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,6 +18,22 @@ const queryClient = new QueryClient({
 });
 
 export const Providers = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
+
+  React.useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+      queryClient.clear();
+      router.replace('/login');
+    };
+
+    window.addEventListener('threadlearn:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('threadlearn:unauthorized', handleUnauthorized);
+    };
+  }, [logout, router]);
+
   return (
     <QueryClientProvider client={queryClient}>
       {children}

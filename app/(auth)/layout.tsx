@@ -5,16 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
+  const { hasHydrated, isAuthenticated } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (hasHydrated && isAuthenticated) {
       router.replace('/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router]);
 
-  if (isAuthenticated) {
+  if (!hasHydrated || isAuthenticated) {
     return null;
   }
 

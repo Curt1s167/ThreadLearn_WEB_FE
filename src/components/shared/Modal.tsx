@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useUIStore } from '../../store';
 
@@ -31,18 +31,18 @@ export const Modal: React.FC<ModalProps> = ({
   const { activeModal, closeModal } = useUIStore();
   const isOpen = activeModal === name;
 
+  const handleClose = useCallback(() => {
+    closeModal();
+    onClose?.();
+  }, [closeModal, onClose]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) handleClose();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isOpen]);
-
-  const handleClose = () => {
-    closeModal();
-    onClose?.();
-  };
+  }, [handleClose, isOpen]);
 
   if (!isOpen) return null;
 

@@ -5,6 +5,7 @@ import axios, {
 } from 'axios';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+const UNAUTHORIZED_EVENT = 'threadlearn:unauthorized';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -39,6 +40,12 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
+const notifyUnauthorized = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+};
+
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
@@ -62,8 +69,7 @@ apiClient.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) {
         isRefreshing = false;
-        localStorage.clear();
-        window.location.href = '/login';
+        notifyUnauthorized();
         return Promise.reject(error);
       }
 
@@ -78,8 +84,7 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.clear();
-        window.location.href = '/login';
+        notifyUnauthorized();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

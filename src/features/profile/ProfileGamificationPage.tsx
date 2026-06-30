@@ -1,7 +1,24 @@
 'use client';
 
 import React from 'react';
-import { XpLevelStreakWidget } from '../gamification';
+import dynamic from 'next/dynamic';
+
+const XpLevelStreakWidget = dynamic(
+  () => import('../gamification').then((module) => module.XpLevelStreakWidget),
+  {
+    loading: () => (
+      <div className="flex flex-col gap-5">
+        <div className="h-28 rounded-xl skeleton" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-24 rounded-xl skeleton" />
+          <div className="h-24 rounded-xl skeleton" />
+          <div className="h-24 rounded-xl skeleton" />
+          <div className="h-24 rounded-xl skeleton" />
+        </div>
+      </div>
+    ),
+  }
+);
 
 export const ProfileGamificationPage: React.FC = () => {
   return (
