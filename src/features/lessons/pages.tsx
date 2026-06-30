@@ -5,10 +5,10 @@ import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertCircle, CheckCircle, XCircle, Clock, Zap, ChevronRight, ArrowLeft, Bookmark,
+  AlertCircle, CheckCircle, Clock, Zap, ArrowLeft, Bookmark,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { quizService, lessonsService, bookmarksService } from '../../services';
+import { lessonsService, bookmarksService } from '../../services';
 import { Card, Button, Badge, EmptyState } from '../../components/shared';
 
 const LessonMarkdown = dynamic(
@@ -24,147 +24,7 @@ const NotesPanel = dynamic(
   { loading: () => <div className="h-32 skeleton rounded-lg" /> }
 );
 
-// ─── Quiz Page ────────────────────────────────────────────────────────────────
-export const QuizPage: React.FC = () => {
-  const { lessonId } = useParams<{ lessonId: string }>();
-  const router = useRouter();
-  const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [startedAt] = useState(new Date().toISOString());
-  const [result, setResult] = useState<{ score: number; passed: boolean } | null>(null);
 
-  const { data: quiz, isLoading } = useQuery({
-    queryKey: ['quiz', lessonId],
-    queryFn: () => quizService.getByLesson(lessonId!),
-    enabled: !!lessonId,
-  });
-
-  const { mutate: submit, isPending } = useMutation({
-    mutationFn: () =>
-      quizService.submit({
-        quizId: quiz!._id,
-        answers,
-        startTime: startedAt,
-      }),
-    onSuccess: (data) => {
-      setResult({ score: data.score, passed: data.passed });
-    },
-    onError: () => toast.error('Failed to submit quiz'),
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600 font-mono text-sm animate-pulse">Loading quiz...</div>
-      </div>
-    );
-  }
-
-  if (!quiz) {
-    return (
-      <Card className="p-8 text-center max-w-md mx-auto">
-        <p className="text-gray-400 font-mono">No quiz found for this lesson</p>
-        <Button variant="ghost" onClick={() => router.back()} className="mt-4 mx-auto">
-          <ArrowLeft size={14} />
-          Go back
-        </Button>
-      </Card>
-    );
-  }
-
-  if (result) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-5 max-w-md mx-auto animate-slide-in">
-        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
-          result.passed ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-rose-500/10 border border-rose-500/20'
-        }`}>
-          {result.passed
-            ? <CheckCircle size={36} className="text-emerald-400" />
-            : <XCircle size={36} className="text-rose-400" />}
-        </div>
-        <div className="text-center">
-          <h2 className="font-mono font-bold text-2xl text-gray-100">
-            {result.passed ? 'Quiz passed!' : 'Better luck next time'}
-          </h2>
-          <p className="text-gray-500 font-mono text-sm mt-1">
-            Score: <span className={result.passed ? 'text-emerald-400' : 'text-rose-400'}>
-              {result.score.toFixed(0)}%
-            </span>
-          </p>
-        </div>
-        {result.passed && (
-          <div className="flex items-center gap-2">
-            <Zap size={14} className="text-violet-400" />
-            <span className="text-sm font-mono text-violet-300">+{quiz.xpReward} XP earned!</span>
-          </div>
-        )}
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => router.back()}>
-            <ArrowLeft size={13} />
-            Back to lesson
-          </Button>
-          <Button onClick={() => { setResult(null); setAnswers({}); }}>
-            Retry quiz
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const allAnswered = quiz.questions.every((q) => answers[q._id] !== undefined);
-
-  return (
-    <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="btn-ghost">
-          <ArrowLeft size={14} />
-        </button>
-        <div className="flex-1">
-          <h1 className="font-mono font-bold text-xl text-gray-100">{quiz.title}</h1>
-          <div className="flex items-center gap-3 mt-1 text-xs text-gray-600 font-mono">
-            <span className="flex items-center gap-1"><Clock size={11} />{Math.floor(quiz.timeLimit / 60)} min</span>
-            <span className="flex items-center gap-1"><Zap size={11} />{quiz.xpReward} XP reward</span>
-            <span>{quiz.questions.length} questions</span>
-          </div>
-        </div>
-        <Badge color="purple">{Object.keys(answers).length}/{quiz.questions.length}</Badge>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        {quiz.questions.map((q, qi) => (
-          <Card key={q._id} className="p-4">
-            <p className="text-sm font-mono text-gray-200 mb-3">
-              <span className="text-gray-600 mr-2">{qi + 1}.</span>
-              {q.questionText}
-            </p>
-            <div className="flex flex-col gap-2">
-              {q.options.map((opt, oi) => (
-                <button
-                  key={oi}
-                  onClick={() => setAnswers((prev) => ({ ...prev, [q._id]: oi }))}
-                  className={`text-left p-3 rounded-lg border text-sm font-mono transition-all ${
-                    answers[q._id] === oi
-                      ? 'bg-violet-500/10 border-violet-500/40 text-violet-300'
-                      : 'border-white/[0.06] text-gray-400 hover:border-white/20 hover:text-gray-200 hover:bg-white/[0.03]'
-                  }`}
-                >
-                  <span className="text-gray-600 mr-2">{String.fromCharCode(65 + oi)}.</span>
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <div className="flex justify-end pb-6">
-        <Button onClick={() => submit()} disabled={!allAnswered} loading={isPending} size="lg">
-          Submit answers
-          <ChevronRight size={14} />
-        </Button>
-      </div>
-    </div>
-  );
-};
 
 // ─── Lesson Viewer Page ───────────────────────────────────────────────────────
 export const LessonPage: React.FC = () => {

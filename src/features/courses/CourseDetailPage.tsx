@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import Image from 'next/image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -106,7 +107,7 @@ export const CourseDetailPage: React.FC = () => {
       <Card className="overflow-hidden border-accent-500/10">
         <div className="h-52 bg-gradient-to-br from-accent-900/40 to-surface-muted border-b border-white/[0.06] relative">
           {course.thumbnailUrl ? (
-            <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+            <Image src={course.thumbnailUrl} alt={course.title} fill unoptimized className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <BookOpen size={44} className="text-accent-500/50" />

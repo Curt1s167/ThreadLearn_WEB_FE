@@ -120,7 +120,7 @@ export function LeaderboardContent({
                     {entry.name}
                     {isMe && (
                       <span className="text-[10px] text-accent-200 ml-2 rounded-full border border-accent-500/25 bg-accent-500/10 px-1.5 py-0.5">
-                        BẠN
+                        YOU
                       </span>
                     )}
                   </p>

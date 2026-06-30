@@ -69,9 +69,9 @@ export const LeaderboardPage: React.FC = () => {
             <AlertCircle size={14} className="text-rose-400" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-mono">Hạng của tôi</p>
+            <p className="text-xs text-gray-500 font-mono">My rank</p>
             <p className="text-sm font-mono text-rose-300">
-              Không thể tải hạng hiện tại
+              Could not load current rank
             </p>
           </div>
         </Card>
@@ -85,16 +85,16 @@ export const LeaderboardPage: React.FC = () => {
         <Card className="overflow-hidden">
           <EmptyState
             icon={<AlertCircle size={36} />}
-            title="Không thể tải leaderboard"
-            description="Vui lòng thử lại sau"
+            title="Could not load leaderboard"
+            description="Please try again later"
           />
         </Card>
       ) : entries.length === 0 ? (
         <Card className="overflow-hidden">
           <EmptyState
             icon={<Trophy size={36} />}
-            title="Leaderboard chưa có dữ liệu"
-            description="Hoàn thành bài học hoặc quiz để xuất hiện tại đây"
+            title="No leaderboard data"
+            description="Complete lessons or quizzes to appear here"
           />
         </Card>
       ) : (

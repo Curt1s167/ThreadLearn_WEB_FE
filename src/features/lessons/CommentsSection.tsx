@@ -24,7 +24,7 @@ const CommentItem: React.FC<{
   const [editContent, setEditContent] = useState(comment.content);
   const isOwner = user?._id === comment.userId;
 
-  const { mutate: updateComment } = useMutation({
+  const { mutate: updateComment, isPending: isUpdating } = useMutation({
     mutationFn: () => commentsService.update(comment._id, editContent),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', comment.lessonId] });
@@ -64,18 +64,29 @@ const CommentItem: React.FC<{
               <input
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="input-field flex-1 text-xs py-1.5"
+                className="input-field flex-1 text-xs py-1.5 disabled:opacity-50 disabled:pointer-events-none"
                 autoFocus
+                disabled={isUpdating}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && editContent.trim() && !isUpdating) {
+                    updateComment();
+                  } else if (e.key === 'Escape' && !isUpdating) {
+                    setIsEditing(false);
+                    setEditContent(comment.content);
+                  }
+                }}
               />
               <button
                 onClick={() => updateComment()}
-                className="text-xs text-violet-400 hover:text-violet-300 font-mono"
+                disabled={isUpdating || !editContent.trim()}
+                className="text-xs text-violet-400 hover:text-violet-300 font-mono disabled:opacity-50 disabled:pointer-events-none"
               >
-                Save
+                {isUpdating ? 'Saving...' : 'Save'}
               </button>
               <button
                 onClick={() => { setIsEditing(false); setEditContent(comment.content); }}
-                className="text-xs text-gray-600 hover:text-gray-400 font-mono"
+                disabled={isUpdating}
+                className="text-xs text-gray-600 hover:text-gray-400 font-mono disabled:opacity-50 disabled:pointer-events-none"
               >
                 Cancel
               </button>
@@ -162,7 +173,8 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
               Replying to comment
               <button
                 onClick={() => setReplyTo(undefined)}
-                className="text-gray-600 hover:text-gray-400 ml-1"
+                disabled={isPending}
+                className="text-gray-600 hover:text-gray-400 ml-1 disabled:opacity-50"
               >
                 ✕
               </button>
@@ -172,10 +184,11 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && newComment.trim()) postComment();
+              if (e.key === 'Enter' && newComment.trim() && !isPending) postComment();
             }}
+            disabled={isPending}
             placeholder="Add a comment..."
-            className="input-field text-xs"
+            className="input-field text-xs disabled:opacity-50 disabled:pointer-events-none"
           />
         </div>
         <Button
