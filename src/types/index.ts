@@ -359,6 +359,8 @@ export interface PurchasePlanPayload {
   planId: string;
 }
 
+export type PaymentConfirmationPayload = Record<string, string>;
+
 // ─── AI ───────────────────────────────────────────────────────────────────────
 
 export interface AIHistoryLog {
