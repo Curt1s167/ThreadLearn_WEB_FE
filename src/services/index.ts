@@ -22,6 +22,7 @@ import type {
   UserSubscription,
   SubscriptionPurchase,
   PurchasePlanPayload,
+  PaymentConfirmationPayload,
   AIHistoryLog,
   PlatformStats,
   Enrollment,
@@ -293,6 +294,13 @@ export const subscriptionService = {
   purchase: async (payload: PurchasePlanPayload) => {
     const { data } = await apiClient.post<ApiResponse<SubscriptionPurchase>>(
       '/subscription/purchase',
+      payload
+    );
+    return data.data;
+  },
+  confirmPayment: async (payload: PaymentConfirmationPayload) => {
+    const { data } = await apiClient.post<ApiResponse<SubscriptionPurchase>>(
+      '/subscription/webhook/payment',
       payload
     );
     return data.data;
