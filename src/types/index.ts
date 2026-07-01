@@ -168,6 +168,7 @@ export interface QuizQuestion {
   id?: string;
   questionText: string;
   options: string[];
+  correctAnswerIndex?: number;
 }
 
 export interface Quiz {
@@ -206,6 +207,31 @@ export interface SubmitAttemptPayload {
   quizId: string;
   answers: Record<string, number>;
   startTime?: string;
+}
+
+export interface QuestionPayload {
+  questionText: string;
+  options: string[];
+  correctAnswerIndex: number;
+}
+
+export interface QuizCreatePayload {
+  lessonId: string;
+  title: string;
+  description?: string;
+  passingScorePercent?: number;
+  timeLimitSeconds?: number;
+  xpReward?: number;
+  questions: QuestionPayload[];
+}
+
+export interface QuizUpdatePayload {
+  title?: string;
+  description?: string;
+  passingScorePercent?: number;
+  timeLimitSeconds?: number;
+  xpReward?: number;
+  questions?: QuestionPayload[];
 }
 
 export interface QuizSubmitResult {
