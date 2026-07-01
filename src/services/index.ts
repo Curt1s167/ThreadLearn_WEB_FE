@@ -11,6 +11,9 @@ import type {
   Quiz,
   QuizAttempt,
   QuizSubmitResult,
+  QuizCreatePayload,
+  QuizUpdatePayload,
+  QuestionPayload,
   SubmitAttemptPayload,
   Comment,
   Bookmark,
@@ -140,6 +143,14 @@ export const studentsService = {
 
 // ─── Quiz (UC26–UC29, UC41–UC43, UC49) ───────────────────────────────────────
 export const quizService = {
+  listAll: async () => {
+    const { data } = await apiClient.get<ApiResponse<Quiz[]>>('/quiz');
+    return data.data;
+  },
+  getByIdAdmin: async (id: string) => {
+    const { data } = await apiClient.get<ApiResponse<Quiz>>(`/quiz/${id}`);
+    return data.data;
+  },
   getByLesson: async (lessonId: string) => {
     const { data } = await apiClient.get<ApiResponse<Quiz>>(
       `/quiz/lesson/${lessonId}`
@@ -152,8 +163,40 @@ export const quizService = {
     );
     return data.data;
   },
-  create: async (payload: Partial<Quiz>) => {
+  create: async (payload: QuizCreatePayload) => {
     const { data } = await apiClient.post<ApiResponse<Quiz>>('/quiz', payload);
+    return data.data;
+  },
+  update: async (id: string, payload: QuizUpdatePayload) => {
+    const { data } = await apiClient.put<ApiResponse<Quiz>>(`/quiz/${id}`, payload);
+    return data.data;
+  },
+  remove: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<null>>(`/quiz/${id}`);
+    return data.data;
+  },
+  addQuestion: async (id: string, payload: QuestionPayload) => {
+    const { data } = await apiClient.post<ApiResponse<Quiz>>(
+      `/quiz/${id}/questions`,
+      payload
+    );
+    return data.data;
+  },
+  updateQuestion: async (
+    id: string,
+    questionId: string,
+    payload: Partial<QuestionPayload>
+  ) => {
+    const { data } = await apiClient.put<ApiResponse<Quiz>>(
+      `/quiz/${id}/questions/${questionId}`,
+      payload
+    );
+    return data.data;
+  },
+  deleteQuestion: async (id: string, questionId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<Quiz>>(
+      `/quiz/${id}/questions/${questionId}`
+    );
     return data.data;
   },
   submit: async (payload: SubmitAttemptPayload) => {
