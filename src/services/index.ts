@@ -24,6 +24,8 @@ import type {
   SubscriptionPlan,
   UserSubscription,
   SubscriptionPurchase,
+  PlanCreatePayload,
+  PlanUpdatePayload,
   PurchasePlanPayload,
   PaymentConfirmationPayload,
   AIHistoryLog,
@@ -326,6 +328,38 @@ export const gamificationService = {
 export const subscriptionService = {
   getPlans: async () => {
     const { data } = await apiClient.get<ApiResponse<SubscriptionPlan[]>>('/subscription/plans');
+    return data.data;
+  },
+  listPlans: async (includeInactive = false) => {
+    const { data } = await apiClient.get<ApiResponse<SubscriptionPlan[]>>('/subscription/plans', {
+      params: includeInactive ? { includeInactive: true } : undefined,
+    });
+    return data.data;
+  },
+  getPlanById: async (id: string) => {
+    const { data } = await apiClient.get<ApiResponse<SubscriptionPlan>>(
+      `/subscription/plans/${id}`
+    );
+    return data.data;
+  },
+  createPlan: async (payload: PlanCreatePayload) => {
+    const { data } = await apiClient.post<ApiResponse<SubscriptionPlan>>(
+      '/subscription/plans',
+      payload
+    );
+    return data.data;
+  },
+  updatePlan: async (id: string, payload: PlanUpdatePayload) => {
+    const { data } = await apiClient.put<ApiResponse<SubscriptionPlan>>(
+      `/subscription/plans/${id}`,
+      payload
+    );
+    return data.data;
+  },
+  deletePlan: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<SubscriptionPlan>>(
+      `/subscription/plans/${id}`
+    );
     return data.data;
   },
   getMyPlan: async () => {

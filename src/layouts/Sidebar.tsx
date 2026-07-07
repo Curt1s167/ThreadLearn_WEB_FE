@@ -17,6 +17,7 @@ import {
   Shield,
   BarChart2,
   Users,
+  CreditCard,
   CheckCircle,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
@@ -45,6 +46,7 @@ const adminItems: NavItem[] = [
   { to: '/admin/users', icon: <Users size={16} />, label: 'Users', adminOnly: true },
   { to: '/admin/courses', icon: <BookOpen size={16} />, label: 'Manage Courses', adminOnly: true },
   { to: '/admin/quizzes', icon: <CheckCircle size={16} />, label: 'Quizzes', adminOnly: true },
+  { to: '/admin/plans', icon: <CreditCard size={16} />, label: 'Plans', adminOnly: true },
 ];
 
 export const Sidebar: React.FC = () => {

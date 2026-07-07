@@ -350,6 +350,18 @@ export interface SubscriptionPlan {
   updatedAt: string;
 }
 
+export interface PlanCreatePayload {
+  name: string;
+  description?: string;
+  price: number;
+  currency?: string;
+  durationDays: number;
+  features?: string[];
+  isActive?: boolean;
+}
+
+export type PlanUpdatePayload = Partial<PlanCreatePayload>;
+
 export type UserSubscriptionStatus = 'active' | 'expired' | 'cancelled';
 
 export interface UserSubscription {
