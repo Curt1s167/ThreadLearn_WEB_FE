@@ -31,6 +31,10 @@ type PaymentResultMode = 'real' | 'mock';
 
 const MAX_POLL_ATTEMPTS = 5;
 
+// TEMP DIAGNOSTIC — module-level so they survive component remounts (detects a remount loop).
+// let prdbgMountCount = 0;
+// let prdbgFireCount = 0;
+
 export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode = 'real' }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -79,6 +83,8 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
 
   const {
     mutate: confirmPayment,
+    data: confirmResult,
+    error: confirmError,
     isPending: isConfirmingPayment,
     isError: isConfirmError,
   } = useMutation({
@@ -94,13 +100,28 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     queryClient.invalidateQueries({ queryKey: ['my-subscription'] });
   }, [queryClient]);
 
+  // useEffect(() => {
+  //   prdbgMountCount += 1;
+  //   // eslint-disable-next-line no-console
+  //   console.log('[PRDBG] PaymentResultPage mounted', prdbgMountCount);
+  // }, []);
+
   useEffect(() => {
     if (!shouldConfirmPayment || hasSubmittedConfirmation.current) return;
     hasSubmittedConfirmation.current = true;
+    // prdbgFireCount += 1;
+    // eslint-disable-next-line no-console
+    // console.log('[PRDBG] firing confirmPayment', prdbgFireCount, paymentPayload);
     confirmPayment(paymentPayload);
   }, [confirmPayment, paymentPayload, shouldConfirmPayment]);
 
   const hasActivePlan = isActiveSubscription(myPlan?.status);
+  // Mock: the webhook confirm response is authoritative — it synchronously activates the
+  // subscription and returns the purchase status. Key the verdict off it directly so success does
+  // not depend on the (slower) my-subscription refetch landing first, which briefly flashed a
+  // wrong result against the stale pre-webhook plan.
+  const mockPaymentSucceeded = isMockPayment && confirmResult?.status === 'succeeded';
+  const paymentSucceeded = hasActivePlan || mockPaymentSucceeded;
   const hasGatewayFailure = Boolean(
     (responseCode && responseCode !== '00') ||
     (rawStatus && !['success', 'succeeded', 'paid'].includes(rawStatus))
@@ -111,17 +132,27 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     && hasPaymentSignal
     && !hasActivePlan
     && pollAttempts.current < MAX_POLL_ATTEMPTS;
-  const isChecking = isLoadingPlan || isConfirmingPayment || isPolling;
+  // If the plan is already active (or the mock confirm returned 'succeeded') there is no reason
+  // to keep the user staring at a skeleton while a dangling webhook request finishes. Short-circuit.
+  const isChecking = !paymentSucceeded && (isLoadingPlan || isConfirmingPayment || isPolling);
+
+  // TEMP DIAGNOSTIC (dev only) — commented out after confirming the fix works.
+  // const debugLine =
+  //   process.env.NODE_ENV !== 'production'
+  //     ? `PRDBG mode=${mode} checking=${isChecking} loadPlan=${isLoadingPlan} confirming=${isConfirmingPayment} polling=${isPolling} confirmStatus=${confirmResult?.status ?? 'none'} planStatus=${myPlan?.status ?? 'none'} active=${hasActivePlan} succeeded=${paymentSucceeded} shouldConfirm=${shouldConfirmPayment} signal=${hasPaymentSignal} planErr=${isPlanError} confirmErr=${isConfirmError} mounts=${prdbgMountCount} fires=${prdbgFireCount} confirmErrMsg=${(confirmError as { message?: string } | null)?.message ?? 'none'}`
+  //     : null;
+  const debugLine = null;
 
   if (isChecking) {
     return (
       <div className="flex flex-col gap-4 max-w-xl mx-auto animate-fade-in">
+        {/* {debugLine ? <p data-testid="pr-debug" className="text-xs text-amber-400 font-mono break-all">{debugLine}</p> : null} */}
         <Skeleton className="h-64 rounded-xl" />
       </div>
     );
   }
 
-  if ((isPlanError || isConfirmError) && !hasActivePlan) {
+  if ((isPlanError || isConfirmError) && !paymentSucceeded) {
     return (
       <Card className="max-w-xl mx-auto p-6">
         <EmptyState
@@ -145,7 +176,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     );
   }
 
-  if (!hasPaymentSignal && !hasActivePlan) {
+  if (!hasPaymentSignal && !paymentSucceeded) {
     return (
       <Card className="max-w-xl mx-auto p-6">
         <EmptyState
@@ -163,7 +194,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     );
   }
 
-  if (hasActivePlan) {
+  if (paymentSucceeded) {
     return (
       <Card className="max-w-xl mx-auto p-6 border-emerald-500/25 bg-emerald-500/5">
         <EmptyState
