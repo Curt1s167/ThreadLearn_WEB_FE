@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { AlertCircle, ArrowLeft, CheckCircle, ChevronRight, Clock, XCircle, Zap } from 'lucide-react';
@@ -15,6 +15,8 @@ export const QuizPage: React.FC = () => {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [startTime] = useState(new Date().toISOString());
   const [result, setResult] = useState<{ score: number; passed: boolean; xpRewarded: number } | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const autoSubmittedRef = useRef(false);
 
   const {
     data: quiz,
@@ -43,6 +45,40 @@ export const QuizPage: React.FC = () => {
     },
     onError: () => toast.error('Failed to submit quiz'),
   });
+
+  const timeLimit = quiz?.timeLimitSeconds ?? quiz?.timeLimit;
+  const hasTimeLimit = typeof timeLimit === 'number' && Number.isFinite(timeLimit) && timeLimit > 0;
+
+  useEffect(() => {
+    if (!hasTimeLimit) {
+      setRemainingSeconds(null);
+      return;
+    }
+
+    setRemainingSeconds(timeLimit);
+    autoSubmittedRef.current = false;
+  }, [hasTimeLimit, timeLimit, quiz?._id]);
+
+  useEffect(() => {
+    if (!hasTimeLimit || result) return;
+
+    const startedAt = new Date(startTime).getTime();
+    const tick = () => {
+      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+      const nextRemaining = Math.max(0, timeLimit - elapsedSeconds);
+      setRemainingSeconds(nextRemaining);
+
+      if (nextRemaining === 0 && quiz && !autoSubmittedRef.current && !isPending) {
+        autoSubmittedRef.current = true;
+        toast.warning('Time is up. Submitting your quiz now.');
+        submit();
+      }
+    };
+
+    tick();
+    const intervalId = window.setInterval(tick, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [hasTimeLimit, isPending, quiz, result, startTime, submit, timeLimit]);
 
   if (isLoading) {
     return (
@@ -134,7 +170,14 @@ export const QuizPage: React.FC = () => {
   const answeredCount = Object.keys(answers).length;
   const answeredProgress = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
   const allAnswered = totalQuestions > 0 && quiz.questions.every((q) => answers[q._id] !== undefined);
-  const timeLimit = quiz.timeLimitSeconds ?? quiz.timeLimit;
+  const displayRemainingSeconds = remainingSeconds ?? timeLimit ?? null;
+  const isTimeWarning = typeof displayRemainingSeconds === 'number' && displayRemainingSeconds <= 60;
+  const isTimedOut = displayRemainingSeconds === 0;
+  const formatRemainingTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${String(secs).padStart(2, '0')}`;
+  };
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
@@ -153,6 +196,23 @@ export const QuizPage: React.FC = () => {
             <span>{totalQuestions} questions</span>
           </div>
         </div>
+        {hasTimeLimit && typeof displayRemainingSeconds === 'number' ? (
+          <div className={`shrink-0 rounded-lg border px-3 py-2 text-right ${
+            isTimeWarning
+              ? 'border-amber-500/30 bg-amber-500/10'
+              : 'border-white/[0.06] bg-white/[0.03]'
+          }`}>
+            <div className={`flex items-center gap-1.5 font-mono text-sm tabular-nums ${
+              isTimeWarning ? 'text-amber-300' : 'text-gray-300'
+            }`}>
+              <Clock size={14} />
+              {formatRemainingTime(displayRemainingSeconds)}
+            </div>
+            <p className="text-[10px] text-gray-600 font-mono mt-0.5">
+              remaining
+            </p>
+          </div>
+        ) : null}
         <Badge color="purple">{answeredCount}/{totalQuestions}</Badge>
       </div>
 
@@ -200,8 +260,8 @@ export const QuizPage: React.FC = () => {
       </div>
 
       <div className="flex justify-end pb-6">
-        <Button onClick={() => submit()} disabled={!allAnswered} loading={isPending} size="lg">
-          Submit answers
+        <Button onClick={() => submit()} disabled={!allAnswered || isTimedOut} loading={isPending} size="lg">
+          {isTimedOut ? 'Submitting...' : 'Submit answers'}
           <ChevronRight size={14} />
         </Button>
       </div>
