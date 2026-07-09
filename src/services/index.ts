@@ -2,6 +2,7 @@ import { apiClient } from './apiClient';
 import type {
   ApiResponse,
   PaginatedApiResponse,
+  PaginatedResponse,
   Course,
   CourseDetail,
   CourseCreatePayload,
@@ -408,10 +409,18 @@ export const adminService = {
     return data.data;
   },
   listUsers: async (page = 1, limit = 20) => {
-    const { data } = await apiClient.get<PaginatedApiResponse<User>>(
+    const { data } = await apiClient.get<ApiResponse<User[]>>(
       `/admin/students?page=${page}&limit=${limit}`
     );
-    return data.data;
+    const meta = data.meta;
+
+    return {
+      items: data.data ?? [],
+      total: meta?.total ?? data.data?.length ?? 0,
+      page: meta?.page ?? page,
+      limit: meta?.limit ?? limit,
+      totalPages: meta?.totalPages ?? 1,
+    } satisfies PaginatedResponse<User>;
   },
   createStudent: async (payload: { firstName: string; lastName: string; email: string; password?: string }) => {
     const { data } = await apiClient.post<ApiResponse<User>>(

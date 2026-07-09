@@ -33,6 +33,7 @@ export const AdminDashboardPage: React.FC = () => {
     queryKey: ['admin-users', 1],
     queryFn: () => adminService.listUsers(1, 10),
   });
+  const recentUsers = usersData?.items ?? [];
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
@@ -95,26 +96,39 @@ export const AdminDashboardPage: React.FC = () => {
                       <Skeleton className="h-4 rounded" count={5} />
                     </td>
                   </tr>
+                ) : recentUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-sm text-gray-600 font-mono text-center">
+                      No recent users found
+                    </td>
+                  </tr>
                 ) : (
-                  usersData?.items.map((u) => (
-                    <tr key={u._id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-2.5 text-sm text-gray-300 font-mono">{u.name}</td>
-                      <td className="px-4 py-2.5 text-sm text-gray-500 font-mono">{u.email}</td>
-                      <td className="px-4 py-2.5">
-                        <span className={`badge-${u.role === 'ADMIN' ? 'purple' : 'gray'} text-xs font-mono px-2 py-0.5 rounded-full border ${u.role === 'ADMIN' ? 'bg-violet-500/10 text-violet-300 border-violet-500/20' : 'bg-white/5 text-gray-500 border-white/10'}`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${u.planType === 'PREMIUM' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-white/5 text-gray-600 border-white/10'}`}>
-                          {u.planType}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-gray-600 font-mono">
-                        {new Date(u.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))
+                  recentUsers.map((u) => {
+                    const userId = u._id ?? u.id ?? u.email;
+                    const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ');
+                    const userName = u.name || fullName || u.email;
+                    const planType = u.planType ?? 'FREE';
+
+                    return (
+                      <tr key={userId} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                        <td className="px-4 py-2.5 text-sm text-gray-300 font-mono">{userName}</td>
+                        <td className="px-4 py-2.5 text-sm text-gray-500 font-mono">{u.email}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={`badge-${u.role === 'ADMIN' ? 'purple' : 'gray'} text-xs font-mono px-2 py-0.5 rounded-full border ${u.role === 'ADMIN' ? 'bg-violet-500/10 text-violet-300 border-violet-500/20' : 'bg-white/5 text-gray-500 border-white/10'}`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${planType === 'PREMIUM' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-white/5 text-gray-600 border-white/10'}`}>
+                            {planType}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-gray-600 font-mono">
+                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
