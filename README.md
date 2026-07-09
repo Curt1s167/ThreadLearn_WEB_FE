@@ -16,7 +16,7 @@ Nền tảng học lập trình đa luồng tích hợp AI (WDP301). Đây là *
 
 ```bash
 npm install         # cài dependencies
-npm run dev         # chạy dev server ở http://localhost:3000
+npm run dev         # chạy dev server ở http://localhost:3001
 npm run build       # build cho production (tạo thư mục .next/)
 npm run start       # chạy production server
 npm run lint        # chạy ESLint
