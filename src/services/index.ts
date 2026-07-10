@@ -387,10 +387,10 @@ export const subscriptionService = {
 
 // ─── AI (UC47–UC48) ───────────────────────────────────────────────────────────
 export const aiService = {
-  requestRecommendation: async (courseId: string) => {
+  analyzeCode: async (inputCode: string, language: string) => {
     const { data } = await apiClient.post<ApiResponse<AIHistoryLog>>(
       '/ai/recommendation',
-      { courseId }
+      { inputCode, language }
     );
     return data.data;
   },
