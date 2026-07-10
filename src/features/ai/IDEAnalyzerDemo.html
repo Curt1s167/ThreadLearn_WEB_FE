@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThreadLearn — Race Condition Analyzer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+  :root {
+    --ground:    #0a0a0f;
+    --surface:   #111118;
+    --surface-2: #17171f;
+    --border:    rgba(255,255,255,0.07);
+    --border-hi: rgba(124,106,247,0.4);
+    --text:      #e8e8f0;
+    --text-dim:  #6b6b8a;
+    --text-mid:  #9999b8;
+    --accent:    #7c6af7;
+    --accent-glow: rgba(124,106,247,0.15);
+    --high:      #f05a7e;
+    --high-bg:   rgba(240,90,126,0.08);
+    --high-border: rgba(240,90,126,0.25);
+    --med:       #f0a050;
+    --med-bg:    rgba(240,160,80,0.08);
+    --med-border: rgba(240,160,80,0.25);
+    --low:       #50d0a0;
+    --low-bg:    rgba(80,208,160,0.08);
+    --low-border: rgba(80,208,160,0.25);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--ground);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a2a40; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  /* ── LAYOUT ─────────────────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-rows: 48px 1fr 200px;
+    grid-template-columns: 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── TOPBAR ─────────────────────────────────────────── */
+  .topbar {
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .topbar-sep { width: 1px; height: 20px; background: var(--border); }
+
+  .case-select {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .case-select:focus { border-color: var(--border-hi); }
+
+  .case-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  .btn-analyze {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: opacity 0.15s, box-shadow 0.15s;
+  }
+  .btn-analyze:hover { opacity: 0.85; box-shadow: 0 0 16px var(--accent-glow); }
+  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-analyze svg { flex-shrink: 0; }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--low);
+    box-shadow: 0 0 6px var(--low);
+  }
+  .status-label { font-size: 11px; color: var(--text-dim); }
+
+  /* ── MAIN SPLIT ─────────────────────────────────────── */
+  .main {
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── EDITOR PANE ────────────────────────────────────── */
+  .editor-pane {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .pane-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .pane-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .lang-badge {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(124,106,247,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(124,106,247,0.2);
+    letter-spacing: 0.06em;
+  }
+
+  .editor-scroll {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+  }
+
+  .editor-inner {
+    display: flex;
+    min-height: 100%;
+  }
+
+  .line-numbers {
+    flex-shrink: 0;
+    width: 44px;
+    padding: 16px 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    user-select: none;
+  }
+
+  .line-num {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 10px;
+    height: 21px;
+    font-size: 11px;
+    color: var(--text-dim);
+    position: relative;
+    transition: color 0.1s;
+  }
+
+  .line-num.highlighted { color: var(--high); }
+  .line-num.highlighted-med { color: var(--med); }
+  .line-num.highlighted-low { color: var(--low); }
+
+  .gutter-dot {
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+  .gutter-dot.high { background: var(--high); box-shadow: 0 0 5px var(--high); }
+  .gutter-dot.med  { background: var(--med);  box-shadow: 0 0 5px var(--med); }
+  .gutter-dot.low  { background: var(--low);  box-shadow: 0 0 5px var(--low); }
+
+  .code-area {
+    flex: 1;
+    padding: 16px 16px 16px 12px;
+    overflow-x: auto;
+    white-space: pre;
+    font-size: 13px;
+    line-height: 21px;
+    color: var(--text);
+    outline: none;
+    caret-color: var(--accent);
+  }
+
+  .code-line { display: block; height: 21px; position: relative; }
+  .code-line.hl-high { background: var(--high-bg); border-left: 2px solid var(--high); padding-left: 6px; margin-left: -2px; }
+  .code-line.hl-med  { background: var(--med-bg);  border-left: 2px solid var(--med);  padding-left: 6px; margin-left: -2px; }
+  .code-line.hl-low  { background: var(--low-bg);  border-left: 2px solid var(--low);  padding-left: 6px; margin-left: -2px; }
+
+  /* syntax colors */
+  .kw  { color: #c792ea; }
+  .fn  { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .num { color: #f78c6c; }
+  .cmt { color: #546e7a; font-style: italic; }
+  .op  { color: #89ddff; }
+  .var { color: #eeffff; }
+  .prop{ color: #ffcb6b; }
+
+  /* ── ISSUES PANE ────────────────────────────────────── */
+  .issues-pane {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .issues-scroll { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .issue-card {
+    border-radius: 8px;
+    padding: 11px 13px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .issue-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .issue-card:hover { transform: translateX(2px); }
+  .issue-card:hover::before { opacity: 1; }
+
+  .issue-card.high {
+    background: var(--high-bg);
+    border-color: var(--high-border);
+  }
+  .issue-card.high::before { background: var(--high); }
+  .issue-card.med {
+    background: var(--med-bg);
+    border-color: var(--med-border);
+  }
+  .issue-card.med::before { background: var(--med); }
+  .issue-card.low {
+    background: var(--low-bg);
+    border-color: var(--low-border);
+  }
+  .issue-card.low::before { background: var(--low); }
+
+  .issue-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 5px;
+  }
+
+  .sev-pill {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .sev-pill.high { background: rgba(240,90,126,0.2); color: var(--high); }
+  .sev-pill.med  { background: rgba(240,160,80,0.2); color: var(--med); }
+  .sev-pill.low  { background: rgba(80,208,160,0.2); color: var(--low); }
+
+  .issue-line {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-left: auto;
+    letter-spacing: 0.04em;
+  }
+
+  .issue-pattern {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .issue-desc {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  .issue-fix-label {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .issue-fix {
+    font-size: 11px;
+    color: var(--text-mid);
+    background: rgba(0,0,0,0.3);
+    border-radius: 5px;
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+
+  .no-issues {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 10px;
+    color: var(--text-dim);
+    font-size: 12px;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .no-issues-icon { font-size: 28px; opacity: 0.4; }
+
+  /* ── LOADING OVERLAY ────────────────────────────────── */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,10,15,0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 10;
+    backdrop-filter: blur(2px);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .loading-overlay.visible { opacity: 1; pointer-events: all; }
+
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 12px;
+    color: var(--text-mid);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── AI EXPLANATION PANE ────────────────────────────── */
+  .explain-pane {
+    grid-row: 3;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border);
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .explain-scroll { flex: 1; overflow-y: auto; padding: 12px 18px; }
+
+  .explain-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 8px;
+  }
+
+  .rag-tag {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(124,106,247,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(124,106,247,0.2);
+    letter-spacing: 0.06em;
+  }
+
+  .explain-text {
+    font-size: 12px;
+    color: var(--text-mid);
+    line-height: 1.7;
+    max-width: 900px;
+  }
+
+  .explain-text strong { color: var(--text); font-weight: 600; }
+
+  .docs-used {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .doc-chip {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    background: rgba(124,106,247,0.07);
+    color: var(--accent);
+    border: 1px solid rgba(124,106,247,0.15);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── ISSUE COUNT BADGE ──────────────────────────────── */
+  .count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 0 5px;
+  }
+  .count-badge.has-issues { background: var(--high-bg); color: var(--high); border: 1px solid var(--high-border); }
+  .count-badge.no-issues  { background: rgba(80,208,160,0.1); color: var(--low); border: 1px solid rgba(80,208,160,0.2); }
+
+  /* ── SKELETON ───────────────────────────────────────── */
+  .skeleton {
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* ── EMPTY STATE ────────────────────────────────────── */
+  .empty-issues {
+    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+  .empty-icon { font-size: 24px; opacity: 0.25; }
+  .empty-text { font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; border-top-color: var(--accent); }
+    .skeleton { animation: none; }
+    .issue-card { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── TOPBAR ─────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      ThreadLearn
+    </div>
+    <div class="topbar-sep"></div>
+    <span class="case-label">Test case:</span>
+    <select class="case-select" id="caseSelect" onchange="loadCase(this.value)">
+      <option value="0">closure_loop_var — for+var+setTimeout</option>
+      <option value="1">double_callback — mysql query pattern</option>
+      <option value="2">unhandled_rejection — async route no catch</option>
+      <option value="3">sequential_awaits — dashboard 3 awaits</option>
+      <option value="4">context_loss_this — class method + express</option>
+    </select>
+    <div class="topbar-right">
+      <div class="status-dot"></div>
+      <span class="status-label">AI2 ready</span>
+      <div class="topbar-sep"></div>
+      <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M2 2l8 4-8 4V2z" fill="currentColor"/>
+        </svg>
+        Analyze
+      </button>
+    </div>
+  </header>
+
+  <!-- ── MAIN SPLIT ─────────────────────────────────── -->
+  <div class="main">
+
+    <!-- Editor -->
+    <div class="editor-pane">
+      <div class="pane-header">
+        <span class="pane-title">Editor</span>
+        <span class="lang-badge">JavaScript</span>
+      </div>
+      <div class="editor-scroll" id="editorScroll" style="position:relative;">
+        <div class="editor-inner">
+          <div class="line-numbers" id="lineNumbers"></div>
+          <div class="code-area" id="codeArea" contenteditable="true" spellcheck="false" autocorrect="off" autocapitalize="off"></div>
+        </div>
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="spinner"></div>
+          <div class="loading-text">Analyzing concurrency patterns…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issues -->
+    <div class="issues-pane">
+      <div class="pane-header">
+        <span class="pane-title">Issues</span>
+        <span class="count-badge no-issues" id="issueCount">0</span>
+      </div>
+      <div class="issues-scroll" id="issuesList">
+        <div class="empty-issues">
+          <div class="empty-icon">⏳</div>
+          <div class="empty-text">Click <strong>Analyze</strong> to detect<br>concurrency bugs in this code.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── EXPLAIN PANE ───────────────────────────────── -->
+  <div class="explain-pane">
+    <div class="explain-scroll" id="explainPane">
+      <div class="explain-label">
+        AI Explanation
+        <span class="rag-tag">RAG</span>
+      </div>
+      <div class="explain-text" id="explainText" style="color:var(--text-dim);font-style:italic;">
+        Run analysis to see an AI-generated explanation with knowledge-base references.
+      </div>
+      <div class="docs-used" id="docsUsed"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── MOCK DATA ──────────────────────────────────────────
+const CASES = [
+  {
+    id: "rw_closure",
+    title: "closure_loop_var",
+    code: `// Bug: for-loop với var + setTimeout callback
+// Source: classic JS closure pitfall (nhiều npm package bị lỗi này)
+
+function scheduleNotifications(users) {
+  for (var i = 0; i < users.length; i++) {
+    setTimeout(function() {
+      console.log("Sending to user:", users[i]);
+      sendEmail(users[i].email, "Hello!");
+    }, i * 100);
+  }
+}
+
+// users[i] lúc callback chạy: i đã = users.length
+// Tất cả callback nhận cùng giá trị i cuối cùng`,
+    issues: [
+      {
+        severity: "high",
+        pattern_id: "closure_loop_var",
+        line_range: "4-10",
+        description: "Biến var i trong for-loop bị share qua tất cả setTimeout callbacks. Khi callback chạy, vòng lặp đã xong, i = users.length, trỏ ra ngoài mảng.",
+        fix: "Thay var → let:\nfor (let i = 0; i < users.length; i++) {\n  // let tạo binding riêng mỗi iteration\n}",
+        highlight_lines: [4,5,6,7,8,9,10],
+        highlight_class: "hl-high"
+      }
+    ],
+    explanation: "Đây là <strong>Closure Loop Variable</strong> — một trong những bug JS phổ biến nhất. Khi dùng <strong>var</strong>, biến i tồn tại trong scope của hàm scheduleNotifications, không phải trong từng iteration. Tất cả setTimeout callbacks đều giữ reference đến cùng một biến i. Khi event loop thực thi các callbacks (sau khi for-loop hoàn tất), i đã bằng users.length — trỏ ra ngoài mảng, trả về undefined.\n\nFix đơn giản nhất: dùng <strong>let</strong> thay vì var — let có block scope nên mỗi iteration tạo ra một binding riêng biệt.",
+    docs: ["closure-semantics", "var-vs-let-scope", "event-loop-timing"]
+  },
+  {
+    id: "rw_double_cb",
+    title: "double_callback",
+    code: `// Bug: double callback — mysql pattern
+// Source: github.com/mysqljs/mysql/issues/1260
+
+function queryUser(userId, callback) {
+  connection.connect(function(err) {
+    if (err) callback(err);  // ← không return, tiếp tục chạy!
+
+    connection.query(
+      "SELECT * FROM users WHERE id = ?",
+      [userId],
+      function(err, results) {
+        callback(err, results);  // ← callback gọi lần 2!
+      }
+    );
+  });
+}
+
+// Khi connection.connect lỗi:
+// callback(err) gọi lần 1  →  rồi query tiếp tục chạy
+// callback(err, results) gọi lần 2  →  crash hoặc corrupt state`,
+    issues: [
+      {
+        severity: "high",
+        pattern_id: "double_callback",
+        line_range: "5-6",
+        description: "Thiếu return trước callback(err) ở dòng 6. Khi có lỗi kết nối, callback được gọi nhưng hàm tiếp tục thực thi, dẫn đến callback bị gọi lần 2.",
+        fix: "Thêm return:\nif (err) return callback(err);",
+        highlight_lines: [5,6],
+        highlight_class: "hl-high"
+      },
+      {
+        severity: "med",
+        pattern_id: "double_callback",
+        line_range: "8-14",
+        description: "Nếu callback đã được gọi với lỗi, đoạn query bên dưới vẫn chạy vì không có early return.",
+        fix: "Cấu trúc lại với early return ở mọi error path.",
+        highlight_lines: [8,9,10,11,12,13,14],
+        highlight_class: "hl-med"
+      }
+    ],
+    explanation: "Pattern <strong>Double Callback</strong> xảy ra khi một callback được gọi nhiều hơn một lần do thiếu <strong>return</strong> trong error path. Đây là lỗi rất phổ biến trong Node.js callback-style code. Trong Node.js convention, callback chỉ được gọi <em>đúng một lần</em> — hoặc với error hoặc với result, không bao giờ cả hai và không bao giờ 2 lần.\n\nFix chuẩn: <strong>return callback(err)</strong> để dừng execution ngay lập tức khi gặp lỗi.",
+    docs: ["callback-convention", "error-first-callbacks", "double-callback-pattern"]
+  },
+  {
+    id: "rw_unhandled",
+    title: "unhandled_rejection",
+    code: `// Bug: async route handler không có try/catch
+// Source: github.com/expressjs/express/issues/2700
+
+const express = require('express');
+const app = express();
+
+app.get('/user/:id', async function(req, res) {
+  const user = await db.findUser(req.params.id);
+  res.json(user);
+});
+
+app.get('/orders/:userId', async function(req, res) {
+  const orders = await db.getOrders(req.params.userId);
+  const totals = await paymentService.getTotals(orders);
+  res.json({ orders, totals });
+});
+
+// Khi db.findUser() throw → UnhandledPromiseRejection
+// Express 4 không bắt được async errors → server crash hoặc hang`,
+    issues: [
+      {
+        severity: "high",
+        pattern_id: "unhandled_rejection",
+        line_range: "7-9",
+        description: "Async route handler không có try/catch. Nếu db.findUser() throw, Promise rejection không được handle → Express 4 không catch được → server treo.",
+        fix: "Wrap trong try/catch:\ntry {\n  const user = await db.findUser(req.params.id);\n  res.json(user);\n} catch (err) {\n  next(err);\n}",
+        highlight_lines: [7,8,9],
+        highlight_class: "hl-high"
+      },
+      {
+        severity: "high",
+        pattern_id: "unhandled_rejection",
+        line_range: "12-15",
+        description: "Tương tự — route thứ hai có 2 await không được bảo vệ. Bất kỳ await nào fail đều dẫn đến unhandled rejection.",
+        fix: "Dùng express-async-errors package hoặc wrap mọi async handler.",
+        highlight_lines: [12,13,14,15],
+        highlight_class: "hl-high"
+      }
+    ],
+    explanation: "Express 4 không tự động catch async errors. Khi một <strong>async function</strong> được dùng làm route handler và throw (hoặc await một Promise bị reject), Express không nhận được error đó — nó trở thành <strong>UnhandledPromiseRejection</strong>.\n\nCó 3 cách fix: (1) wrap mọi async handler bằng try/catch + next(err), (2) dùng package <strong>express-async-errors</strong> để patch tự động, hoặc (3) upgrade lên Express 5 vốn đã hỗ trợ async natively.",
+    docs: ["express-error-handling", "unhandled-promise-rejection", "async-middleware"]
+  },
+  {
+    id: "rw_sequential",
+    title: "sequential_awaits",
+    code: `// Bug: sequential awaits — mỗi query chờ query trước xong
+// Source: nodebestpractices — serial await anti-pattern
+
+async function getDashboard(userId) {
+  // 3 queries chạy tuần tự, không cần thiết
+  const user          = await db.users.findById(userId);
+  const orders        = await db.orders.findByUser(userId);
+  const notifications = await db.notifications.findByUser(userId);
+
+  return { user, orders, notifications };
+}
+
+// Timeline thực tế:
+// t=0ms:  user query bắt đầu
+// t=120ms: user query xong → orders bắt đầu
+// t=240ms: orders xong → notifications bắt đầu
+// t=360ms: tất cả xong  →  tổng: ~360ms thay vì ~120ms`,
+    issues: [
+      {
+        severity: "low",
+        pattern_id: "sequential_awaits",
+        line_range: "5-7",
+        description: "Ba await độc lập chạy tuần tự. user, orders, và notifications không phụ thuộc nhau — có thể chạy song song để giảm latency ~3x.",
+        fix: "Dùng Promise.all:\nconst [user, orders, notifications] = await Promise.all([\n  db.users.findById(userId),\n  db.orders.findByUser(userId),\n  db.notifications.findByUser(userId)\n]);",
+        highlight_lines: [5,6,7],
+        highlight_class: "hl-low"
+      }
+    ],
+    explanation: "Pattern <strong>Sequential Awaits</strong> không phải là bug gây crash, nhưng là performance anti-pattern phổ biến. Khi các Promise <em>không phụ thuộc nhau</em> (kết quả của promise này không cần thiết để chạy promise kia), dùng await tuần tự lãng phí thời gian — queries chạy nối tiếp thay vì song song.\n\n<strong>Promise.all()</strong> chạy tất cả concurrently và chờ đến khi tất cả resolve — latency tổng là max(t1, t2, t3) thay vì t1+t2+t3. Với dashboard 3 queries ~120ms mỗi cái: 360ms → 120ms.",
+    docs: ["promise-all-concurrency", "sequential-vs-parallel-async", "performance-patterns"]
+  },
+  {
+    id: "rw_context",
+    title: "context_loss_this",
+    code: `// Bug: mất this khi truyền class method vào Express
+// Source: github.com/davidbanham/express-async-errors/issues/3
+
+class UserController {
+  constructor() {
+    this.db = new Database();
+    this.cache = new RedisCache();
+  }
+
+  async getUser(req, res) {
+    // this.db sẽ là undefined ở đây!
+    const cached = await this.cache.get(req.params.id);
+    if (cached) return res.json(cached);
+
+    const user = await this.db.findById(req.params.id);
+    res.json(user);
+  }
+}
+
+const ctrl = new UserController();
+
+// Truyền method reference mà không bind → mất this context
+app.get('/user/:id', ctrl.getUser);
+app.get('/users',    ctrl.listUsers);`,
+    issues: [
+      {
+        severity: "high",
+        pattern_id: "context_loss_this",
+        line_range: "21-22",
+        description: "ctrl.getUser được truyền như function reference — this bị mất khi Express gọi. this.db và this.cache trở thành undefined → TypeError.",
+        fix: "Bind khi đăng ký route:\napp.get('/user/:id', ctrl.getUser.bind(ctrl));\n// hoặc dùng arrow function:\napp.get('/user/:id', (req, res) => ctrl.getUser(req, res));",
+        highlight_lines: [21,22],
+        highlight_class: "hl-high"
+      },
+      {
+        severity: "med",
+        pattern_id: "context_loss_this",
+        line_range: "10-16",
+        description: "this.cache và this.db trong method body sẽ fail với TypeError: Cannot read property of undefined khi this bị mất.",
+        fix: "Bind trong constructor:\nthis.getUser = this.getUser.bind(this);",
+        highlight_lines: [11,12,14,15],
+        highlight_class: "hl-med"
+      }
+    ],
+    explanation: "JavaScript <strong>this</strong> binding phụ thuộc vào cách function được gọi, không phải nơi nó được định nghĩa. Khi bạn viết <code>ctrl.getUser</code> — bạn đang lấy function reference thuần túy, không có context. Khi Express sau đó gọi handler đó, this là undefined (strict mode) hoặc global object.\n\nCó 3 pattern fix: (1) <strong>.bind(ctrl)</strong> khi đăng ký, (2) arrow function wrapper, hoặc (3) bind trong constructor. Pattern sạch nhất cho class-based controllers: bind tất cả methods trong constructor.",
+    docs: ["this-binding-javascript", "class-method-context", "express-route-handlers"]
+  }
+];
+
+// ── STATE ──────────────────────────────────────────────
+let currentCase = CASES[0];
+let analysisRan = false;
+
+// ── RENDER CODE ────────────────────────────────────────
+function renderCode(caseData, highlights) {
+  const lines = caseData.code.split('\n');
+  const codeArea = document.getElementById('codeArea');
+  const lineNumbers = document.getElementById('lineNumbers');
+
+  // Build highlight map
+  const hlMap = {};
+  if (highlights) {
+    highlights.forEach(issue => {
+      issue.highlight_lines.forEach(ln => {
+        hlMap[ln] = issue.highlight_class;
+      });
+    });
+  }
+
+  // Line numbers
+  lineNumbers.innerHTML = lines.map((_, i) => {
+    const lineNum = i + 1;
+    const hlClass = hlMap[lineNum] ? (
+      hlMap[lineNum] === 'hl-high' ? 'highlighted' :
+      hlMap[lineNum] === 'hl-med'  ? 'highlighted-med' : 'highlighted-low'
+    ) : '';
+    const dotClass = hlMap[lineNum] ? (
+      hlMap[lineNum] === 'hl-high' ? 'high' :
+      hlMap[lineNum] === 'hl-med'  ? 'med' : 'low'
+    ) : '';
+    const dot = dotClass ? `<span class="gutter-dot ${dotClass}"></span>` : '';
+    return `<div class="line-num ${hlClass}">${dot}${lineNum}</div>`;
+  }).join('');
+
+  // Code with syntax highlight + line highlight
+  codeArea.innerHTML = lines.map((line, i) => {
+    const lineNum = i + 1;
+    const hlClass = hlMap[lineNum] || '';
+    const highlighted = syntaxHighlight(line);
+    return `<span class="code-line ${hlClass}">${highlighted}</span>`;
+  }).join('\n');
+}
+
+function syntaxHighlight(line) {
+  const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // Comments
+  if (/^\s*\/\//.test(line)) return `<span class="cmt">${esc(line)}</span>`;
+
+  let result = esc(line);
+
+  // Strings
+  result = result.replace(/(&quot;[^&]*?&quot;|&#039;[^&#]*?&#039;|`[^`]*?`)/g,
+    m => `<span class="str">${m}</span>`);
+
+  // Keywords
+  const kws = ['async','await','function','const','let','var','return','if','else','for','new','this','class','constructor','typeof','try','catch','throw','of','in'];
+  kws.forEach(kw => {
+    result = result.replace(new RegExp(`\\b(${kw})\\b`, 'g'), `<span class="kw">$1</span>`);
+  });
+
+  // Numbers
+  result = result.replace(/\b(\d+)\b/g, '<span class="num">$1</span>');
+
+  // Common functions
+  result = result.replace(/\b(console|setTimeout|Promise|require|app|db|res|req)\b/g,
+    '<span class="fn">$1</span>');
+
+  return result;
+}
+
+// ── RENDER ISSUES ──────────────────────────────────────
+function renderIssues(issues) {
+  const list = document.getElementById('issuesList');
+  const badge = document.getElementById('issueCount');
+
+  if (!issues || issues.length === 0) {
+    badge.textContent = '0';
+    badge.className = 'count-badge no-issues';
+    list.innerHTML = `<div class="empty-issues">
+      <div class="empty-icon">✓</div>
+      <div class="empty-text">No concurrency issues detected<br>in this code.</div>
+    </div>`;
+    return;
+  }
+
+  badge.textContent = issues.length;
+  badge.className = 'count-badge has-issues';
+
+  list.innerHTML = issues.map(issue => `
+    <div class="issue-card ${issue.severity}">
+      <div class="issue-top">
+        <span class="sev-pill ${issue.severity}">${issue.severity}</span>
+        <span style="font-size:11px;color:var(--text-mid);">${issue.pattern_id}</span>
+        <span class="issue-line">line ${issue.line_range}</span>
+      </div>
+      <div class="issue-desc">${issue.description}</div>
+      <div class="issue-fix-label">Fix</div>
+      <div class="issue-fix">${escapeHtml(issue.fix)}</div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── RENDER EXPLAIN ─────────────────────────────────────
+function renderExplanation(caseData) {
+  document.getElementById('explainText').innerHTML = caseData.explanation;
+  document.getElementById('docsUsed').innerHTML = caseData.docs.map(d =>
+    `<span class="doc-chip">${d}</span>`
+  ).join('');
+}
+
+// ── LOAD CASE ──────────────────────────────────────────
+function loadCase(idx) {
+  currentCase = CASES[parseInt(idx)];
+  analysisRan = false;
+  renderCode(currentCase, null);
+  document.getElementById('issuesList').innerHTML = `<div class="empty-issues">
+    <div class="empty-icon">⏳</div>
+    <div class="empty-text">Click <strong>Analyze</strong> to detect<br>concurrency bugs in this code.</div>
+  </div>`;
+  document.getElementById('issueCount').textContent = '0';
+  document.getElementById('issueCount').className = 'count-badge no-issues';
+  document.getElementById('explainText').innerHTML = '<span style="color:var(--text-dim);font-style:italic;">Run analysis to see an AI-generated explanation with knowledge-base references.</span>';
+  document.getElementById('docsUsed').innerHTML = '';
+  document.getElementById('analyzeBtn').disabled = false;
+}
+
+// ── RUN ANALYSIS (mock) ────────────────────────────────
+function runAnalysis() {
+  const btn = document.getElementById('analyzeBtn');
+  const overlay = document.getElementById('loadingOverlay');
+
+  btn.disabled = true;
+  overlay.classList.add('visible');
+
+  // Simulate AI latency (600ms–1.4s)
+  const delay = 600 + Math.random() * 800;
+
+  setTimeout(() => {
+    overlay.classList.remove('visible');
+    renderCode(currentCase, currentCase.issues);
+    renderIssues(currentCase.issues);
+    renderExplanation(currentCase);
+    analysisRan = true;
+    btn.disabled = false;
+  }, delay);
+}
+
+// ── INIT ───────────────────────────────────────────────
+loadCase(0);
+</script>
+</body>
+</html>
