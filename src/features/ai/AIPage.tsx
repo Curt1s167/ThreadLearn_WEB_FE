@@ -2,23 +2,17 @@
 
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bot, Send, BookOpen, Clock, Sparkles } from 'lucide-react';
+import { Bot, Send, Code2, Clock, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { aiService, coursesService } from '../../services';
+import { aiService } from '../../services';
 import { Card, Button, EmptyState, Skeleton } from '../../components/shared';
 
-export const AIPage: React.FC = () => {
-  const [selectedCourse, setSelectedCourse] = useState('');
-  const queryClient = useQueryClient();
+const LANGUAGES = ['javascript', 'typescript', 'python', 'java', 'go'];
 
-  const {
-    data: courses,
-    isLoading: coursesLoading,
-    isError: coursesError,
-  } = useQuery({
-    queryKey: ['courses-simple'],
-    queryFn: () => coursesService.list({ limit: 100 }),
-  });
+export const AIPage: React.FC = () => {
+  const [code, setCode] = useState('');
+  const [language, setLanguage] = useState('javascript');
+  const queryClient = useQueryClient();
 
   const {
     data: history,
@@ -30,21 +24,17 @@ export const AIPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (coursesError) toast.error('Failed to load courses');
-  }, [coursesError]);
-
-  useEffect(() => {
     if (historyError) toast.error('Failed to load AI history');
   }, [historyError]);
 
-  const { mutate: requestRec, isPending } = useMutation({
-    mutationFn: () => aiService.requestRecommendation(selectedCourse),
+  const { mutate: analyze, isPending } = useMutation({
+    mutationFn: () => aiService.analyzeCode(code, language),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-history'] });
-      setSelectedCourse('');
-      toast.success('AI recommendation generated!');
+      setCode('');
+      toast.success('Code analyzed!');
     },
-    onError: () => toast.error('Failed to get recommendation'),
+    onError: () => toast.error('Failed to analyze code'),
   });
 
   return (
@@ -55,8 +45,8 @@ export const AIPage: React.FC = () => {
           <Bot size={20} className="text-violet-400" />
         </div>
         <div>
-          <h1 className="font-mono font-bold text-2xl text-gray-100">AI Advisor</h1>
-          <p className="text-gray-600 font-mono text-sm">Personalized learning roadmap generator</p>
+          <h1 className="font-mono font-bold text-2xl text-gray-100">AI Code Analyzer</h1>
+          <p className="text-gray-600 font-mono text-sm">Detects concurrency issues in your code</p>
         </div>
       </div>
 
@@ -64,42 +54,48 @@ export const AIPage: React.FC = () => {
       <Card className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles size={14} className="text-violet-400" />
-          <h2 className="font-mono font-medium text-gray-200 text-sm">Get a recommendation</h2>
+          <h2 className="font-mono font-medium text-gray-200 text-sm">Analyze code</h2>
         </div>
 
         <div className="flex flex-col gap-3">
           <div>
-            <label className="text-xs text-gray-500 font-mono mb-1.5 block">Select a course</label>
+            <label className="text-xs text-gray-500 font-mono mb-1.5 block">Language</label>
             <select
-              value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
               className="input-field"
-              disabled={coursesLoading || coursesError}
             >
-              <option value="">
-                {coursesLoading ? 'Loading courses...' : '-- Choose a course --'}
-              </option>
-              {courses?.items.map((c) => (
-                <option key={c._id} value={c._id}>{c.title}</option>
+              {LANGUAGES.map((lang) => (
+                <option key={lang} value={lang}>{lang}</option>
               ))}
             </select>
           </div>
 
+          <div>
+            <label className="text-xs text-gray-500 font-mono mb-1.5 block">Code</label>
+            <textarea
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="input-field font-mono text-sm min-h-[160px]"
+              placeholder="Paste your code here..."
+            />
+          </div>
+
           <Button
-            onClick={() => requestRec()}
-            disabled={!selectedCourse || coursesLoading || coursesError}
+            onClick={() => analyze()}
+            disabled={!code.trim()}
             loading={isPending}
             className="self-start"
           >
             <Send size={13} />
-            Generate roadmap
+            Analyze
           </Button>
         </div>
       </Card>
 
       {/* History */}
       <div>
-        <h2 className="font-mono font-medium text-gray-400 text-sm mb-3">Recommendation history</h2>
+        <h2 className="font-mono font-medium text-gray-400 text-sm mb-3">Analysis history</h2>
 
         {historyLoading ? (
           <div className="flex flex-col gap-2">
@@ -110,9 +106,9 @@ export const AIPage: React.FC = () => {
             {history.map((log) => (
               <Card key={log._id} className="p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <BookOpen size={13} className="text-violet-400" />
+                  <Code2 size={13} className="text-violet-400" />
                   <span className="text-xs font-mono text-gray-500">
-                    {log.courseId ? `Course #${log.courseId.slice(-6)}` : 'Lesson recommendation'}
+                    {log.language ?? 'code'} analysis
                   </span>
                   <span className="text-gray-700">·</span>
                   <span className="text-xs text-gray-600 font-mono flex items-center gap-1">
@@ -131,8 +127,8 @@ export const AIPage: React.FC = () => {
         ) : (
           <EmptyState
             icon={<Bot size={36} />}
-            title="No recommendations yet"
-            description="Select a course to get your personalized roadmap"
+            title="No analyses yet"
+            description="Paste some code above to detect concurrency issues"
           />
         )}
       </div>
