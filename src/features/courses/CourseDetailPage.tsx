@@ -15,9 +15,10 @@ import {
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { coursesService, enrollmentsService, lessonsService } from '../../services';
+import { coursesService, enrollmentsService } from '../../services';
 import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/shared';
-import type { CourseLevel } from '../../types';
+import { useAuthStore } from '../../store';
+import type { CourseLevel, Enrollment } from '../../types';
 
 const levelColor: Record<CourseLevel, 'green' | 'amber' | 'red'> = {
   BEGINNER: 'green',
@@ -30,10 +31,22 @@ const getLevelColor = (level?: CourseLevel): 'green' | 'amber' | 'red' | 'gray' 
   return levelColor[level] ?? 'gray';
 };
 
+const getEnrollmentCourseRef = (enrollment: Enrollment) => {
+  if (typeof enrollment.courseId === 'string') {
+    return { id: enrollment.courseId };
+  }
+
+  return {
+    id: enrollment.courseId._id ?? enrollment.courseId.id,
+    slug: enrollment.courseId.slug,
+  };
+};
+
 export const CourseDetailPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuthStore();
 
   const {
     data: detail,
@@ -45,20 +58,41 @@ export const CourseDetailPage: React.FC = () => {
     enabled: !!courseId,
   });
 
-  const {
-    data: lessons = [],
-    isLoading: lessonsLoading,
-    isError: lessonsError,
-  } = useQuery({
-    queryKey: ['course-lessons', courseId],
-    queryFn: () => lessonsService.getByCourse(courseId!),
-    enabled: !!courseId,
+  const course = detail?.course;
+  const courseObjectId = course?._id ?? course?.id;
+  const courseLessons = detail?.lessons ?? [];
+
+  const { data: myEnrollments = [] } = useQuery({
+    queryKey: ['my-enrollments'],
+    queryFn: enrollmentsService.getMyEnrollments,
+    enabled: isAuthenticated,
+    retry: false,
   });
 
+  const isEnrolled = myEnrollments.some((enrollment) => {
+    const ref = getEnrollmentCourseRef(enrollment);
+    return ref.id === courseObjectId || ref.id === courseId || ref.slug === courseId;
+  });
+
+  const handleContinue = () => {
+    const firstLesson = courseLessons[0];
+    if (firstLesson?._id) {
+      router.push(`/lessons/${firstLesson._id}`);
+      return;
+    }
+    router.push('/dashboard');
+  };
+
   const { mutate: enroll, isPending: enrolling } = useMutation({
-    mutationFn: () => enrollmentsService.enroll(courseId!),
+    mutationFn: () => {
+      if (!courseObjectId) {
+        throw new Error('Course id is missing');
+      }
+      return enrollmentsService.enroll(courseObjectId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-enrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['course-detail', courseId] });
       toast.success('Enrolled in course');
     },
     onError: () => toast.error('Could not enroll in this course'),
@@ -66,11 +100,7 @@ export const CourseDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (detailError) toast.error('Failed to load course');
-    if (lessonsError) toast.error('Failed to load lessons');
-  }, [detailError, lessonsError]);
-
-  const course = detail?.course;
-  const courseLessons = lessons.length > 0 ? lessons : detail?.lessons ?? [];
+  }, [detailError]);
 
   if (detailLoading) {
     return (
@@ -129,9 +159,14 @@ export const CourseDetailPage: React.FC = () => {
                 {course.shortDescription || course.description}
               </p>
             </div>
-            <Button onClick={() => enroll()} loading={enrolling} className="shrink-0">
+            <Button
+              onClick={() => (isEnrolled ? handleContinue() : enroll())}
+              loading={enrolling}
+              disabled={!isEnrolled && !courseObjectId}
+              className="shrink-0"
+            >
               <CheckCircle size={14} />
-              Enroll
+              {isEnrolled ? 'Continue learning' : 'Enroll'}
             </Button>
           </div>
 
@@ -162,7 +197,7 @@ export const CourseDetailPage: React.FC = () => {
 
       <div>
         <h2 className="font-mono font-semibold text-gray-200 text-sm mb-3">Lessons</h2>
-        {lessonsLoading ? (
+        {detailLoading ? (
           <div className="flex flex-col gap-2">
             <Skeleton className="h-16 rounded-xl" count={3} />
           </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { StickyNote, Save } from 'lucide-react';
+import { AlertCircle, StickyNote, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { notesService } from '../../services';
 import { Button, Card, Skeleton } from '../../components/shared';
@@ -11,16 +11,26 @@ interface Props {
   lessonId: string;
 }
 
+const getHttpStatus = (error: unknown) =>
+  (error as { response?: { status?: number } })?.response?.status;
+
 export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
   const queryClient = useQueryClient();
   const [noteText, setNoteText] = useState('');
   const [codeSnippet, setCodeSnippet] = useState('');
 
-  const { data: existingNote, isLoading } = useQuery({
+  const {
+    data: existingNote,
+    error,
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: ['notes', lessonId],
     queryFn: () => notesService.getByLesson(lessonId),
     enabled: !!lessonId,
   });
+
+  const isEnrollmentRequired = isError && getHttpStatus(error) === 403;
 
   // Populate from existing
   useEffect(() => {
@@ -59,6 +69,26 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
           <Skeleton className="h-4 w-32 rounded mt-2" />
           <Skeleton className="h-16 rounded-lg" />
           <Skeleton className="h-8 w-24 rounded mt-1" />
+        </div>
+      ) : isEnrollmentRequired ? (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+          <div className="flex items-center gap-2 text-amber-300 font-mono text-sm">
+            <AlertCircle size={14} />
+            Enrollment required
+          </div>
+          <p className="text-xs text-gray-500 font-mono mt-2">
+            Enroll in this course to create and view notes for this lesson.
+          </p>
+        </div>
+      ) : isError ? (
+        <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-4">
+          <div className="flex items-center gap-2 text-rose-300 font-mono text-sm">
+            <AlertCircle size={14} />
+            Could not load notes
+          </div>
+          <p className="text-xs text-gray-500 font-mono mt-2">
+            Please try again in a moment.
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
