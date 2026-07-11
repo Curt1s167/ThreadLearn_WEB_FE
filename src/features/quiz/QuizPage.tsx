@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 import { quizService } from '../../services';
 import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/shared';
 
+const getHttpStatus = (error: unknown) =>
+  (error as { response?: { status?: number } })?.response?.status;
+
 export const QuizPage: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
   const router = useRouter();
@@ -20,6 +23,7 @@ export const QuizPage: React.FC = () => {
 
   const {
     data: quiz,
+    error,
     isLoading,
     isError,
   } = useQuery({
@@ -27,6 +31,8 @@ export const QuizPage: React.FC = () => {
     queryFn: () => quizService.getByLesson(lessonId!),
     enabled: !!lessonId,
   });
+
+  const isQuizMissing = isError && getHttpStatus(error) === 404;
 
   const { mutate: submit, isPending } = useMutation({
     mutationFn: () => quizService.submit({
@@ -86,6 +92,22 @@ export const QuizPage: React.FC = () => {
         <Skeleton className="h-16 rounded-xl" />
         <Skeleton className="h-36 rounded-xl" count={3} />
       </div>
+    );
+  }
+
+  if (isQuizMissing) {
+    return (
+      <EmptyState
+        icon={<AlertCircle size={36} />}
+        title="No quiz found"
+        description="This lesson does not have an associated quiz."
+        action={(
+          <Button variant="outline" onClick={() => router.back()}>
+            <ArrowLeft size={14} />
+            Back
+          </Button>
+        )}
+      />
     );
   }
 

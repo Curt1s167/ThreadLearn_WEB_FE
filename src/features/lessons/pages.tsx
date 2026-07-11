@@ -27,21 +27,31 @@ const NotesPanel = dynamic(
 
 
 // ─── Lesson Viewer Page ───────────────────────────────────────────────────────
+const getHttpStatus = (error: unknown) =>
+  (error as { response?: { status?: number } })?.response?.status;
+
 export const LessonPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'content' | 'comments' | 'notes'>('content');
 
-  const { data: lesson, isLoading, isError } = useQuery({
+  const {
+    data: lesson,
+    error,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['lesson', id],
     queryFn: () => lessonsService.getById(id!),
     enabled: !!id,
   });
 
+  const isEnrollmentRequired = getHttpStatus(error) === 403;
+
   useEffect(() => {
-    if (isError) toast.error('Failed to load lesson');
-  }, [isError]);
+    if (isError && !isEnrollmentRequired) toast.error('Failed to load lesson');
+  }, [isEnrollmentRequired, isError]);
 
   const { mutate: toggleBookmark } = useMutation({
     mutationFn: () => bookmarksService.toggle(id!, lesson?.title),
@@ -102,8 +112,18 @@ export const LessonPage: React.FC = () => {
       ) : isError ? (
         <EmptyState
           icon={<AlertCircle size={36} />}
-          title="Could not load lesson"
-          description="Please try again in a moment"
+          title={isEnrollmentRequired ? 'Enrollment required' : 'Could not load lesson'}
+          description={
+            isEnrollmentRequired
+              ? 'Please enroll in this course before opening this lesson.'
+              : 'Please try again in a moment'
+          }
+          action={(
+            <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft size={14} />
+              Back
+            </Button>
+          )}
         />
       ) : lesson ? (
         <>

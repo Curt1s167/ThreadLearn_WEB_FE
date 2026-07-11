@@ -13,6 +13,9 @@ interface Props {
   lessonId: string;
 }
 
+const getHttpStatus = (error: unknown) =>
+  (error as { response?: { status?: number } })?.response?.status;
+
 const CommentItem: React.FC<{
   comment: Comment;
   onReply: (id: string) => void;
@@ -147,7 +150,13 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
       setNewComment('');
       setReplyTo(undefined);
     },
-    onError: () => toast.error('Failed to post comment'),
+    onError: (error) => {
+      if (getHttpStatus(error) === 403) {
+        toast.error('You must enroll in the course to comment');
+        return;
+      }
+      toast.error('Failed to post comment');
+    },
   });
 
   // Build tree from flat array
