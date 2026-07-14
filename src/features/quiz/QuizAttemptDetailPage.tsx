@@ -3,10 +3,27 @@
 import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { AlertCircle, ArrowLeft, CheckCircle, Clock, Hash, Trophy, XCircle, Zap } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle,
+  Clock,
+  Hash,
+  Trophy,
+  XCircle,
+  Zap,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { quizService } from '../../services';
-import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/shared';
+import { Button, EmptyState, Skeleton } from '../../components/shared';
+import {
+  DemoDisplayTitle,
+  DemoHeroWhite,
+  DemoMuted,
+  DemoPageRoot,
+  DemoPill,
+  DemoWhitePanel,
+} from '../ui-reskin/demo-ui';
 
 const getAttemptDuration = (startedAt?: string, completedAt?: string, timeTaken?: number) => {
   if (timeTaken != null) return timeTaken;
@@ -21,6 +38,10 @@ const getAnswerRows = (answers: { questionId: string; selectedOption: number }[]
   return Object.entries(answers).map(([questionId, selectedOption]) => ({ questionId, selectedOption }));
 };
 
+/**
+ * PR6 — attempt detail visual polish (demo language).
+ * Data still from quizService.getAttemptById only.
+ */
 export const QuizAttemptDetailPage: React.FC = () => {
   const { attemptId } = useParams<{ attemptId: string }>();
   const router = useRouter();
@@ -43,11 +64,10 @@ export const QuizAttemptDetailPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4 max-w-2xl mx-auto">
-        <Skeleton className="h-14 rounded-xl" />
-        <Skeleton className="h-32 rounded-xl" />
-        <Skeleton className="h-48 rounded-xl" />
-      </div>
+      <DemoPageRoot>
+        <Skeleton className="h-40 rounded-lg" />
+        <Skeleton className="h-56 rounded-lg" />
+      </DemoPageRoot>
     );
   }
 
@@ -82,89 +102,94 @@ export const QuizAttemptDetailPage: React.FC = () => {
   const answers = getAnswerRows(attempt.answers);
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.push('/quiz/history')} className="btn-ghost">
-          <ArrowLeft size={14} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-mono font-bold text-xl text-gray-100 truncate">
-            Quiz attempt #{attempt._id.slice(-6)}
-          </h1>
-          <p className="text-xs text-gray-600 font-mono mt-1">
-            Quiz #{attempt.quizId.slice(-6)}
-          </p>
-        </div>
-        <Badge color={attempt.passed ? 'green' : 'red'}>
-          {attempt.passed ? 'PASSED' : 'FAILED'}
-        </Badge>
-      </div>
+    <DemoPageRoot>
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-6">
+          <DemoHeroWhite>
+            <div className="flex flex-wrap items-center gap-2">
+              <DemoPill tone={attempt.passed ? 'lime' : 'pink'}>
+                {attempt.passed ? 'Passed' : 'Failed'}
+              </DemoPill>
+              <button
+                type="button"
+                onClick={() => router.push('/quiz/history')}
+                className="inline-flex items-center gap-1 text-xs text-black/50 hover:text-black"
+              >
+                <ArrowLeft size={12} />
+                History
+              </button>
+            </div>
+            <DemoDisplayTitle>
+              Quiz attempt · {attempt._id.slice(-6).toUpperCase()}
+            </DemoDisplayTitle>
+            <DemoMuted>
+              Quiz #{attempt.quizId.slice(-6)}
+              {completedAt ? ` · ${new Date(completedAt).toLocaleString()}` : ''}
+            </DemoMuted>
+          </DemoHeroWhite>
 
-      <Card className="p-5">
-        <div className="flex items-center gap-4">
-          <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${
-            attempt.passed ? 'bg-emerald-500/10' : 'bg-rose-500/10'
-          }`}>
-            {attempt.passed
-              ? <CheckCircle size={24} className="text-emerald-400" />
-              : <XCircle size={24} className="text-rose-400" />}
-          </div>
-          <div className="flex-1">
-            <p className="text-xs text-gray-600 font-mono">Score</p>
-            <p className={`text-3xl font-mono font-bold ${attempt.passed ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {attempt.score.toFixed(0)}%
+          <DemoWhitePanel>
+            <div className="border-b border-black/10 px-5 py-3 text-xs font-medium uppercase tracking-[0.14em] text-black/45">
+              Submitted answers
+            </div>
+            {answers.length > 0 ? (
+              answers.map((answer, index) => (
+                <div
+                  key={`${answer.questionId}-${index}`}
+                  className="grid gap-2 border-b border-black/10 p-5 last:border-b-0 sm:grid-cols-[1fr_80px] sm:items-center"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs text-black/45">Question {index + 1}</p>
+                    <p className="truncate text-sm font-medium text-ink">{answer.questionId}</p>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink">
+                    <Hash size={13} className="text-black/40" />
+                    {String.fromCharCode(65 + answer.selectedOption)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="p-5 text-sm text-black/55">No answers were recorded for this attempt.</p>
+            )}
+          </DemoWhitePanel>
+        </div>
+
+        <aside className="space-y-4">
+          <div className={`rounded-lg p-6 ${attempt.passed ? 'bg-[#d9f99d]' : 'bg-[#fecaca]'}`}>
+            {attempt.passed ? (
+              <CheckCircle size={24} />
+            ) : (
+              <XCircle size={24} className="text-[#7f1d1d]" />
+            )}
+            <p className="mt-5 text-4xl font-semibold text-ink">{attempt.score.toFixed(0)}%</p>
+            <p className="mt-2 text-sm text-black/65">
+              Passing score {attempt.passingScorePercent ?? 80}%
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-600 font-mono">Passing score</p>
-            <p className="text-sm font-mono text-gray-300">{attempt.passingScorePercent ?? 80}%</p>
-          </div>
-        </div>
-      </Card>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="p-4 flex items-center gap-3">
-          <Clock size={16} className="text-sky-400" />
-          <div>
-            <p className="text-xs text-gray-600 font-mono">Duration</p>
-            <p className="text-sm font-mono font-semibold text-gray-100">{formatDuration(duration)}</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-3">
-          <Zap size={16} className="text-violet-400" />
-          <div>
-            <p className="text-xs text-gray-600 font-mono">XP rewarded</p>
-            <p className="text-sm font-mono font-semibold text-gray-100">{attempt.xpRewarded ?? 0} XP</p>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="p-4">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h2 className="font-mono font-semibold text-gray-200 text-sm">Submitted answers</h2>
-          <span className="text-xs text-gray-600 font-mono">
-            {completedAt ? new Date(completedAt).toLocaleString() : 'No completion date'}
-          </span>
-        </div>
-        {answers.length > 0 ? (
-          <div className="divide-y divide-white/[0.04]">
-            {answers.map((answer, index) => (
-              <div key={`${answer.questionId}-${index}`} className="py-3 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-600 font-mono">Question</p>
-                  <p className="text-sm text-gray-300 font-mono truncate">{answer.questionId}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 text-sm font-mono text-gray-200">
-                  <Hash size={13} className="text-gray-600" />
-                  {String.fromCharCode(65 + answer.selectedOption)}
-                </div>
+          <div className="rounded-lg border border-black/10 bg-white p-5">
+            <div className="flex items-center gap-3">
+              <Clock size={18} className="text-black/50" />
+              <div>
+                <p className="text-xs text-black/45">Duration</p>
+                <p className="text-sm font-semibold text-ink">{formatDuration(duration)}</p>
               </div>
-            ))}
+            </div>
+            <div className="mt-4 flex items-center gap-3 border-t border-black/10 pt-4">
+              <Zap size={18} className="text-black/50" />
+              <div>
+                <p className="text-xs text-black/45">XP rewarded</p>
+                <p className="text-sm font-semibold text-ink">{attempt.xpRewarded ?? 0} XP</p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <p className="text-sm text-gray-600 font-mono">No answers were recorded for this attempt.</p>
-        )}
-      </Card>
-    </div>
+
+          <div className="rounded-lg border border-black/10 bg-white p-5 text-sm text-black/60">
+            <p className="font-semibold text-ink">API</p>
+            <p className="mt-2">GET /quiz/attempts/:attemptId</p>
+          </div>
+        </aside>
+      </div>
+    </DemoPageRoot>
   );
 };
