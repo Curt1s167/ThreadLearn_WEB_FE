@@ -5,12 +5,12 @@
 | **Document** | ThreadLearn FE — Full Light Theme & Layout Alignment |
 | **Author** | Dev4 / FE (placeholder) |
 | **Date** | 2026-07-13 |
-| **Status** | **In progress** — PR1–PR6 on clean history branch (design review approved) |
+| **Status** | **In progress** — PR1–PR9 on clean history branch (design review approved) |
 | **Working branch** | **`feat/ui-light-theme-reskin`** (from latest `origin/develop`) |
 | **Legacy WIP branch** | `feat/dev4-ui-reskin-pilot-demo-pages` (same file tree; messier commits — do not continue) |
 | **Visual reference** | `origin/refactor/fe-next-demo-flow` → `DemoAppShell` + `Demo*Page` |
 | **Related docs** | `docs/DEV4_FE_PROTECTED_SURFACE.md`, `docs/DEV4_UI_RESKIN_PILOT.md` |
-| **Last progress update** | 2026-07-13 — PR8 admin quizzes/plans fidelity |
+| **Last progress update** | 2026-07-14 — PR9 profile/XP fidelity |
 
 ### Implementation progress (PR tracker)
 
@@ -24,8 +24,8 @@
 | **PR5** | Auth light + public 403/404 | ✅ **Done** | `d5e1ff6` | **`/login`**, **`/register`**, **`/forgot-password`**, **`/403`** |
 | **PR6** | Quiz take + attempt detail fidelity (timer safe) | ✅ **Done** | `c356005` | **`/quiz/[lessonId]`**, **`/quiz/attempts/[id]`** |
 | **PR7** | Pricing / payment fidelity | ✅ **Done** | `4f91d3c` | **`/pricing`**, **`/pricing/callback`**, **`/mock-payment/vnpay`** |
-| **PR8** | Admin quizzes & plans fidelity | ✅ **Done** | 8cf3be0 | **`/admin/quizzes`**, **`/admin/plans`**, **`/admin`** |
-| **PR9** | XP widget / profile fidelity | ⬜ Pending | — | `/profile` |
+| **PR8** | Admin quizzes & plans fidelity | ✅ **Done** | `8cf3be0` | **`/admin/quizzes`**, **`/admin/plans`**, **`/admin`** |
+| **PR9** | XP widget / profile fidelity | ✅ **Done** | `04be21b` | **`/profile`** |
 | **PR10** | Courses / lessons demo fidelity (Dev4 owns after PR6–9) | ⬜ Pending | — | `/courses`, `/lessons/[id]` |
 
 **History note:** Rebuilt from `origin/develop` (`739319a`) with **one commit per PR** for review. Content matches prior WIP branch `feat/dev4-ui-reskin-pilot-demo-pages`.
@@ -789,7 +789,7 @@ Resolved into Key Decisions where they blocked PR2/PR3. User decisions (2026-07-
 1. **Who owns PR10** (courses/lessons full demo fidelity) — **Dev4**, after Dev4 pages (PR6–PR9).  
 2. **Bandwidth:** **Keep PR7 and PR8 separate** (recommended). PR6 quiz take always isolated. Contrast bridge (PR3) stays mandatory.  
 3. **Optional later:** Replace grandfathered `/` and `/ide` with real feature pages that do not import `demo-data` — not required for this epic.  
-4. **Next implementation step:** ~~PR1–PR8~~ ✅. **Next:** PR9 (XP widget / profile) or PR10 (courses/lessons).
+4. **Next implementation step:** ~~PR1–PR9~~ ✅. **Next:** PR10 (courses/lessons demo fidelity).
 
 ---
 
@@ -920,13 +920,13 @@ These three landed together on the feature branch (single merge-unit commit). In
 
 *If bandwidth is low: merge PR7+PR8 into one “Dev4 remaining light fidelity” PR after PR3; **never** fold PR6 into that PR.*
 
-### PR9 — Gamification widget & profile fidelity — ⬜ PENDING
+### PR9 — Gamification widget & profile fidelity — ✅ DONE
 
 | | |
 |--|--|
-| **Status** | ⬜ Pending |
-| **Title** | `style(gamification): light XpLevelStreakWidget and profile cards` |
-| **Files** | `XpLevelStreakWidget.tsx`, `ProfileGamificationPage.tsx` |
+| **Status** | ✅ Done (`04be21b`) |
+| **Title** | `style(gamification): PR9 demo-light profile and XP widget` |
+| **Files** | `XpLevelStreakWidget.tsx`, `ProfileGamificationPage.tsx`, `app/(app)/profile/page.tsx` |
 | **Depends on** | **PR3** |
 | **Test pages** | `/profile` |
 | **Description** | Layout polish; data from API/store only. |
