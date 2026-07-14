@@ -45,7 +45,7 @@ const CommentItem: React.FC<{
   });
 
   return (
-    <div className={`${depth > 0 ? 'ml-8 border-l border-white/[0.04] pl-4' : ''}`}>
+    <div className={`${depth > 0 ? 'ml-8 border-l border-black/10 pl-4' : ''}`}>
       <div className="flex gap-3 py-3">
         <Avatar
           src={comment.user?.avatarUrl}
@@ -54,10 +54,10 @@ const CommentItem: React.FC<{
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono font-medium text-gray-300">
+            <span className="text-xs font-mono font-medium text-ink/80">
               {comment.user?.name || 'Anonymous'}
             </span>
-            <span className="text-[10px] text-gray-700 font-mono">
+            <span className="text-[10px] text-ink-faint font-mono">
               {new Date(comment.createdAt).toLocaleDateString()}
             </span>
           </div>
@@ -89,19 +89,19 @@ const CommentItem: React.FC<{
               <button
                 onClick={() => { setIsEditing(false); setEditContent(comment.content); }}
                 disabled={isUpdating}
-                className="text-xs text-gray-600 hover:text-gray-400 font-mono disabled:opacity-50 disabled:pointer-events-none"
+                className="text-xs text-ink-faint hover:text-ink-muted font-mono disabled:opacity-50 disabled:pointer-events-none"
               >
                 Cancel
               </button>
             </div>
           ) : (
-            <p className="text-sm text-gray-400 font-mono">{comment.content}</p>
+            <p className="text-sm text-ink-muted font-mono">{comment.content}</p>
           )}
 
           <div className="flex items-center gap-3 mt-1.5">
             <button
               onClick={() => onReply(comment._id)}
-              className="text-[11px] text-gray-600 hover:text-violet-400 font-mono flex items-center gap-1 transition-colors"
+              className="text-[11px] text-ink-faint hover:text-violet-400 font-mono flex items-center gap-1 transition-colors"
             >
               <CornerDownRight size={10} />
               Reply
@@ -110,14 +110,14 @@ const CommentItem: React.FC<{
               <>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="text-[11px] text-gray-600 hover:text-gray-300 font-mono flex items-center gap-1 transition-colors"
+                  className="text-[11px] text-ink-faint hover:text-ink/80 font-mono flex items-center gap-1 transition-colors"
                 >
                   <Pencil size={10} />
                   Edit
                 </button>
                 <button
                   onClick={() => deleteComment()}
-                  className="text-[11px] text-gray-600 hover:text-rose-400 font-mono flex items-center gap-1 transition-colors"
+                  className="text-[11px] text-ink-faint hover:text-rose-400 font-mono flex items-center gap-1 transition-colors"
                 >
                   <Trash2 size={10} />
                   Delete
@@ -167,8 +167,8 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <MessageSquare size={15} className="text-gray-500" />
-        <h3 className="font-mono font-medium text-gray-300 text-sm">
+        <MessageSquare size={15} className="text-ink-muted" />
+        <h3 className="font-mono font-medium text-ink/80 text-sm">
           Discussion ({comments?.length ?? 0})
         </h3>
       </div>
@@ -183,7 +183,7 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
               <button
                 onClick={() => setReplyTo(undefined)}
                 disabled={isPending}
-                className="text-gray-600 hover:text-gray-400 ml-1 disabled:opacity-50"
+                className="text-ink-faint hover:text-ink-muted ml-1 disabled:opacity-50"
               >
                 ✕
               </button>
@@ -234,7 +234,7 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
           ))}
         </div>
       ) : (
-        <p className="text-xs text-gray-700 font-mono py-4 text-center">
+        <p className="text-xs text-ink-faint font-mono py-4 text-center">
           No comments yet. Be the first to discuss!
         </p>
       )}

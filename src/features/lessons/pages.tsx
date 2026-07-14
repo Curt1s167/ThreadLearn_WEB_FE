@@ -87,7 +87,7 @@ export const LessonPage: React.FC = () => {
           {isLoading ? (
             <div className="h-5 w-48 skeleton rounded" />
           ) : (
-            <h1 className="font-mono font-bold text-xl text-gray-100 truncate">{lesson?.title}</h1>
+            <h1 className="font-mono font-bold text-xl text-ink truncate">{lesson?.title}</h1>
           )}
         </div>
         {lesson && (
@@ -129,7 +129,7 @@ export const LessonPage: React.FC = () => {
         <>
           <Card className="px-4 py-2.5 flex items-center gap-4 flex-wrap">
             {duration > 0 && (
-              <span className="flex items-center gap-1 text-xs text-gray-600 font-mono">
+              <span className="flex items-center gap-1 text-xs text-ink-faint font-mono">
                 <Clock size={11} />{duration} min
               </span>
             )}
@@ -139,14 +139,14 @@ export const LessonPage: React.FC = () => {
                 Attachment
               </a>
             )}
-            {order != null && <span className="text-xs text-gray-700 font-mono">Order: #{order}</span>}
+            {order != null && <span className="text-xs text-ink-faint font-mono">Order: #{order}</span>}
             <Button size="sm" variant="outline" onClick={() => completeLesson()} loading={completing} className="ml-auto">
               <CheckCircle size={12} />
               Mark complete
             </Button>
           </Card>
 
-          <div className="flex gap-1 border-b border-white/[0.06] pb-0.5">
+          <div className="flex gap-1 border-b border-black/10 pb-0.5">
             {(['content', 'comments', 'notes'] as const).map((tab) => (
               <button
                 key={tab}
@@ -154,7 +154,7 @@ export const LessonPage: React.FC = () => {
                 className={`px-3 py-1.5 text-xs font-mono rounded-t-lg transition-colors ${
                   activeTab === tab
                     ? 'text-violet-300 bg-violet-500/10 border border-b-0 border-violet-500/20'
-                    : 'text-gray-600 hover:text-gray-400'
+                    : 'text-ink-faint hover:text-ink-muted'
                 }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -165,11 +165,11 @@ export const LessonPage: React.FC = () => {
           {activeTab === 'content' && (
             <Card className="p-6">
               {lesson.videoUrl && (
-                <div className="mb-5 rounded-xl overflow-hidden border border-white/[0.05] bg-black aspect-video">
+                <div className="mb-5 rounded-xl overflow-hidden border border-black/10 bg-black aspect-video">
                   <iframe src={lesson.videoUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                 </div>
               )}
-              <div className="prose prose-invert prose-sm max-w-none font-mono text-gray-300 leading-relaxed [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-white/[0.06] [&_pre]:p-4 [&_code]:text-violet-300 [&_a]:text-violet-400 [&_h1]:text-gray-100 [&_h2]:text-gray-200 [&_h3]:text-gray-200 [&_blockquote]:border-violet-500/30 [&_blockquote]:text-gray-500">
+              <div className="prose prose-invert prose-sm max-w-none font-mono text-ink/80 leading-relaxed [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:p-4 [&_code]:text-violet-300 [&_a]:text-violet-400 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_blockquote]:border-violet-500/30 [&_blockquote]:text-ink-muted">
                 <LessonMarkdown content={content} />
               </div>
             </Card>
@@ -183,7 +183,7 @@ export const LessonPage: React.FC = () => {
         </>
       ) : (
         <Card className="p-8 text-center">
-          <p className="text-gray-500 font-mono">Lesson not found</p>
+          <p className="text-ink-muted font-mono">Lesson not found</p>
         </Card>
       )}
     </div>
@@ -194,11 +194,11 @@ export const LessonPage: React.FC = () => {
 export const NotFoundPage: React.FC = () => {
   const router = useRouter();
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+    <div className="min-h-screen bg-canvas-cream flex items-center justify-center">
       <div className="text-center">
         <p className="font-mono font-bold text-[96px] text-white/5 leading-none">404</p>
-        <h1 className="font-mono font-bold text-2xl text-gray-300 -mt-4">Page not found</h1>
-        <p className="text-gray-600 font-mono text-sm mt-2">The page you are looking for does not exist.</p>
+        <h1 className="font-mono font-bold text-2xl text-ink/80 -mt-4">Page not found</h1>
+        <p className="text-ink-faint font-mono text-sm mt-2">The page you are looking for does not exist.</p>
         <button onClick={() => router.push('/dashboard')} className="btn-primary mt-6 mx-auto">
           Go home
         </button>

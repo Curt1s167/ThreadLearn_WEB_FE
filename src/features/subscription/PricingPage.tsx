@@ -76,9 +76,9 @@ export const PricingPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <Crown size={20} className="text-amber-400" />
-            <h1 className="font-mono font-bold text-2xl text-gray-100">Pricing</h1>
+            <h1 className="font-mono font-bold text-2xl text-ink">Pricing</h1>
           </div>
-          <p className="text-gray-600 font-mono text-sm mt-1">
+          <p className="text-ink-faint font-mono text-sm mt-1">
             Choose a subscription plan to unlock premium learning features
           </p>
         </div>
@@ -92,8 +92,8 @@ export const PricingPage: React.FC = () => {
       {myPlan && (
         <Card className="p-4 flex items-center justify-between gap-4 border-violet-500/20 bg-violet-500/5">
           <div>
-            <p className="text-xs text-gray-600 font-mono">Current subscription</p>
-            <p className="text-sm text-gray-200 font-mono">
+            <p className="text-xs text-ink-faint font-mono">Current subscription</p>
+            <p className="text-sm text-ink font-mono">
               Plan #{myPlan.planId.slice(-6)} · expires {new Date(myPlan.expiresAt).toLocaleDateString()}
             </p>
           </div>

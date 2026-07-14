@@ -76,10 +76,10 @@ export const XpLevelStreakWidget: React.FC = () => {
 
   const statCards = [
     {
-      icon: <Star size={16} className="text-accent-400" />,
+      icon: <Star size={16} className="text-ink-muted" />,
       label: 'Total XP',
       value: stats.xp.toLocaleString(),
-      bg: 'bg-accent-500/10',
+      bg: 'bg-brand-lime/40',
     },
     {
       icon: <Flame size={16} className="text-amber-400" />,
@@ -105,36 +105,36 @@ export const XpLevelStreakWidget: React.FC = () => {
     <div className="flex flex-col gap-5">
       <Card className={`p-5 transition-shadow duration-200 ${levelJustChanged ? 'border-accent-500/40 shadow-glow motion-safe:animate-level-pop' : ''}`}>
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-accent-500/10 flex items-center justify-center shrink-0">
-            <GraduationCap size={22} className="text-accent-300" />
+          <div className="w-12 h-12 rounded-xl bg-brand-lime/40 flex items-center justify-center shrink-0">
+            <GraduationCap size={22} className="text-ink" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-3 mb-2">
-              <span className="font-mono font-semibold text-gray-200 text-sm">Level {stats.level}</span>
-              <span className="text-xs text-gray-500 font-mono">
+              <span className="font-mono font-semibold text-ink text-sm">Level {stats.level}</span>
+              <span className="text-xs text-ink-muted font-mono">
                 <CountUpNumber value={stats.xp} /> / {nextLevelXp.toLocaleString()} XP
               </span>
             </div>
-            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-2 bg-black/[0.04] rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-200"
                 style={{ width: `${levelProgress}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 font-mono mt-2">Last active: {lastActiveDate}</p>
+            <p className="text-xs text-ink-muted font-mono mt-2">Last active: {lastActiveDate}</p>
           </div>
         </div>
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
         {statCards.map((item) => (
-          <Card key={item.label} className="p-4 flex items-center gap-3 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-accent-500/20">
+          <Card key={item.label} className="p-4 flex items-center gap-3 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-black/10">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.bg} ${item.label === 'Current streak' ? 'shadow-sm shadow-amber-400/20' : ''}`}>
               {item.icon}
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-gray-500 font-mono">{item.label}</p>
-              <p className="text-lg font-mono font-bold text-gray-100 truncate">
+              <p className="text-xs text-ink-muted font-mono">{item.label}</p>
+              <p className="text-lg font-mono font-bold text-ink truncate">
                 {item.label === 'Total XP' ? <CountUpNumber value={stats.xp} /> : item.value}
               </p>
             </div>
@@ -144,12 +144,12 @@ export const XpLevelStreakWidget: React.FC = () => {
 
       <Card className="p-4 flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs text-gray-500 font-mono">Highest streak</p>
-          <p className="text-lg font-mono font-bold text-gray-100">{stats.highestStreak ?? currentStreak} days</p>
+          <p className="text-xs text-ink-muted font-mono">Highest streak</p>
+          <p className="text-lg font-mono font-bold text-ink">{stats.highestStreak ?? currentStreak} days</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-500 font-mono">Courses completed</p>
-          <p className="text-lg font-mono font-bold text-gray-100">{stats.coursesCompleted ?? 0}</p>
+          <p className="text-xs text-ink-muted font-mono">Courses completed</p>
+          <p className="text-lg font-mono font-bold text-ink">{stats.coursesCompleted ?? 0}</p>
         </div>
       </Card>
     </div>

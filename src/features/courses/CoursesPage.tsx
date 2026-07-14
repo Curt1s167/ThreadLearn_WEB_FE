@@ -36,14 +36,14 @@ export const CoursesPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-mono font-bold text-2xl text-gray-100">Courses</h1>
-          <p className="text-gray-600 font-mono text-sm mt-1">
+          <h1 className="font-mono font-bold text-2xl text-ink">Courses</h1>
+          <p className="text-ink-faint font-mono text-sm mt-1">
             {data?.total ?? 0} courses available
           </p>
         </div>
         <button
           onClick={() => setShowFilters((v) => !v)}
-          className="btn-outline text-sm outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+          className="btn-outline text-sm outline-none focus-visible:ring-2 focus-visible:ring-black/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream"
         >
           <Filter size={14} />
           Filters
@@ -54,7 +54,7 @@ export const CoursesPage: React.FC = () => {
       {/* Search + filters */}
       <div className="flex flex-col gap-3">
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
           <input
             type="text"
             value={search}
@@ -66,14 +66,14 @@ export const CoursesPage: React.FC = () => {
 
         {showFilters && (
           <div className="flex gap-2 flex-wrap">
-            <span className="text-xs text-gray-600 font-mono self-center">Level:</span>
+            <span className="text-xs text-ink-faint font-mono self-center">Level:</span>
             <button
               onClick={() => setLevel('')}
               className={`text-xs font-mono px-3 py-1 rounded-lg border transition-colors ${
                 level === ''
-                  ? 'bg-accent-500/10 border-accent-500/30 text-accent-300'
-                  : 'border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300'
-              } outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas`}
+                  ? 'bg-brand-lime/40 border-black/15 text-ink'
+                  : 'border-black/10 text-ink-muted hover:border-black/15 hover:text-ink/80'
+              } outline-none focus-visible:ring-2 focus-visible:ring-black/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream`}
             >
               All
             </button>
@@ -83,9 +83,9 @@ export const CoursesPage: React.FC = () => {
                 onClick={() => setLevel(l === level ? '' : l)}
                 className={`text-xs font-mono px-3 py-1 rounded-lg border transition-colors ${
                   level === l
-                    ? 'bg-accent-500/10 border-accent-500/30 text-accent-300'
-                    : 'border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-300'
-                } outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas`}
+                    ? 'bg-brand-lime/40 border-black/15 text-ink'
+                    : 'border-black/10 text-ink-muted hover:border-black/15 hover:text-ink/80'
+                } outline-none focus-visible:ring-2 focus-visible:ring-black/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream`}
               >
                 {l}
               </button>

@@ -45,8 +45,8 @@ export const AIPage: React.FC = () => {
           <Bot size={20} className="text-violet-400" />
         </div>
         <div>
-          <h1 className="font-mono font-bold text-2xl text-gray-100">AI Code Analyzer</h1>
-          <p className="text-gray-600 font-mono text-sm">Detects concurrency issues in your code</p>
+          <h1 className="font-mono font-bold text-2xl text-ink">AI Code Analyzer</h1>
+          <p className="text-ink-faint font-mono text-sm">Detects concurrency issues in your code</p>
         </div>
       </div>
 
@@ -54,12 +54,12 @@ export const AIPage: React.FC = () => {
       <Card className="p-5">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles size={14} className="text-violet-400" />
-          <h2 className="font-mono font-medium text-gray-200 text-sm">Analyze code</h2>
+          <h2 className="font-mono font-medium text-ink text-sm">Analyze code</h2>
         </div>
 
         <div className="flex flex-col gap-3">
           <div>
-            <label className="text-xs text-gray-500 font-mono mb-1.5 block">Language</label>
+            <label className="text-xs text-ink-muted font-mono mb-1.5 block">Language</label>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
@@ -72,7 +72,7 @@ export const AIPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-xs text-gray-500 font-mono mb-1.5 block">Code</label>
+            <label className="text-xs text-ink-muted font-mono mb-1.5 block">Code</label>
             <textarea
               value={code}
               onChange={(e) => setCode(e.target.value)}
@@ -95,7 +95,7 @@ export const AIPage: React.FC = () => {
 
       {/* History */}
       <div>
-        <h2 className="font-mono font-medium text-gray-400 text-sm mb-3">Analysis history</h2>
+        <h2 className="font-mono font-medium text-ink-muted text-sm mb-3">Analysis history</h2>
 
         {historyLoading ? (
           <div className="flex flex-col gap-2">
@@ -107,17 +107,17 @@ export const AIPage: React.FC = () => {
               <Card key={log._id} className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Code2 size={13} className="text-violet-400" />
-                  <span className="text-xs font-mono text-gray-500">
+                  <span className="text-xs font-mono text-ink-muted">
                     {log.language ?? 'code'} analysis
                   </span>
-                  <span className="text-gray-700">·</span>
-                  <span className="text-xs text-gray-600 font-mono flex items-center gap-1">
+                  <span className="text-ink-faint">·</span>
+                  <span className="text-xs text-ink-faint font-mono flex items-center gap-1">
                     <Clock size={11} />
                     {new Date(log.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                <div className="bg-black/20 rounded-lg p-3 border border-white/[0.04]">
-                  <p className="text-sm text-gray-400 font-mono leading-relaxed whitespace-pre-wrap">
+                <div className="bg-black/20 rounded-lg p-3 border border-black/10">
+                  <p className="text-sm text-ink-muted font-mono leading-relaxed whitespace-pre-wrap">
                     {log.response}
                   </p>
                 </div>

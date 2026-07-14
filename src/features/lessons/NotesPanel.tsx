@@ -58,7 +58,7 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
     <Card className="p-4">
       <div className="flex items-center gap-2 mb-3">
         <StickyNote size={14} className="text-amber-400" />
-        <h3 className="font-mono font-medium text-gray-300 text-sm">
+        <h3 className="font-mono font-medium text-ink/80 text-sm">
           Your notes
         </h3>
       </div>
@@ -76,7 +76,7 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
             <AlertCircle size={14} />
             Enrollment required
           </div>
-          <p className="text-xs text-gray-500 font-mono mt-2">
+          <p className="text-xs text-ink-muted font-mono mt-2">
             Enroll in this course to create and view notes for this lesson.
           </p>
         </div>
@@ -86,7 +86,7 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
             <AlertCircle size={14} />
             Could not load notes
           </div>
-          <p className="text-xs text-gray-500 font-mono mt-2">
+          <p className="text-xs text-ink-muted font-mono mt-2">
             Please try again in a moment.
           </p>
         </div>
@@ -101,7 +101,7 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
           />
 
           <div>
-            <label className="text-[10px] text-gray-600 font-mono mb-1 block">
+            <label className="text-[10px] text-ink-faint font-mono mb-1 block">
               Code snippet (optional)
             </label>
             <textarea
@@ -128,7 +128,7 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
       )}
 
       {!isLoading && existingNote?.updatedAt && (
-        <p className="text-[10px] text-gray-700 font-mono mt-2">
+        <p className="text-[10px] text-ink-faint font-mono mt-2">
           Last saved: {new Date(existingNote.updatedAt).toLocaleString()}
         </p>
       )}

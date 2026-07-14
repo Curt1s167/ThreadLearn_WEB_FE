@@ -34,7 +34,7 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
-      <h1 className="font-mono font-bold text-2xl text-gray-100">Profile</h1>
+      <h1 className="font-mono font-bold text-2xl text-ink">Profile</h1>
 
       {/* Profile card */}
       <Card className="p-6">
@@ -58,14 +58,14 @@ export const ProfilePage: React.FC = () => {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-mono font-bold text-xl text-gray-100">{user.name}</h2>
+              <h2 className="font-mono font-bold text-xl text-ink">{user.name}</h2>
               <Badge color={user.role === 'ADMIN' ? 'purple' : 'gray'}>{user.role}</Badge>
               <Badge color={user.planType === 'PREMIUM' ? 'amber' : 'gray'}>
                 {user.planType}
               </Badge>
             </div>
-            <p className="text-gray-600 font-mono text-sm mt-1">{user.email}</p>
-            <p className="text-gray-700 font-mono text-xs mt-2">
+            <p className="text-ink-faint font-mono text-sm mt-1">{user.email}</p>
+            <p className="text-ink-faint font-mono text-xs mt-2">
               Member since {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
           </div>
@@ -85,8 +85,8 @@ export const ProfilePage: React.FC = () => {
               {item.icon}
             </div>
             <div>
-              <p className="text-xs text-gray-600 font-mono">{item.label}</p>
-              <p className="text-lg font-mono font-bold text-gray-100">{item.value}</p>
+              <p className="text-xs text-ink-faint font-mono">{item.label}</p>
+              <p className="text-lg font-mono font-bold text-ink">{item.value}</p>
             </div>
           </Card>
         ))}
@@ -95,10 +95,10 @@ export const ProfilePage: React.FC = () => {
       {/* Level card */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-mono font-semibold text-gray-200 text-sm">Level {stats?.level ?? 1}</span>
-          <span className="text-xs text-gray-600 font-mono">{stats?.xp ?? 0} / {((stats?.level ?? 1)) * 1000} XP</span>
+          <span className="font-mono font-semibold text-ink text-sm">Level {stats?.level ?? 1}</span>
+          <span className="text-xs text-ink-faint font-mono">{stats?.xp ?? 0} / {((stats?.level ?? 1)) * 1000} XP</span>
         </div>
-        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-2 bg-black/[0.04] rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-violet-600 to-violet-400 rounded-full transition-all duration-500"
             style={{ width: `${((stats?.xp ?? 0) % 1000) / 10}%` }}
@@ -111,8 +111,8 @@ export const ProfilePage: React.FC = () => {
         <Card className="p-5 border-amber-500/10 bg-amber-500/5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="font-mono font-semibold text-gray-200 text-sm">Upgrade to Premium</h3>
-              <p className="text-xs text-gray-500 font-mono mt-1">
+              <h3 className="font-mono font-semibold text-ink text-sm">Upgrade to Premium</h3>
+              <p className="text-xs text-ink-muted font-mono mt-1">
                 Unlock AI recommendations, Vector Search, and exclusive courses
               </p>
             </div>

@@ -71,7 +71,7 @@ export const BookmarksPage: React.FC = () => {
     <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
       <div className="flex items-center gap-2">
         <BookmarkIcon size={18} className="text-violet-400" />
-        <h1 className="font-mono font-bold text-2xl text-gray-100">Bookmarks</h1>
+        <h1 className="font-mono font-bold text-2xl text-ink">Bookmarks</h1>
       </div>
 
       {isLoading ? (
@@ -102,16 +102,16 @@ export const BookmarksPage: React.FC = () => {
                   }
                 }}
               >
-                <p className="text-sm text-gray-200 font-mono truncate hover:text-violet-300 transition-colors">
+                <p className="text-sm text-ink font-mono truncate hover:text-violet-300 transition-colors">
                   {bm.title || `Lesson #${bm.targetId.slice(-6)}`}
                 </p>
-                <p className="text-xs text-gray-600 font-mono">
+                <p className="text-xs text-ink-faint font-mono">
                   Saved {new Date(bm.createdAt).toLocaleDateString()}
                 </p>
               </div>
               <button
                 onClick={() => toggleBookmark(bm.targetId)}
-                className="p-2 text-gray-600 hover:text-rose-400 hover:bg-rose-500/5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]"
+                className="p-2 text-ink-faint hover:text-rose-400 hover:bg-rose-500/5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]"
                 title="Remove bookmark"
               >
                 <Trash2 size={14} />

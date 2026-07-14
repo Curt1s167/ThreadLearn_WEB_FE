@@ -103,12 +103,12 @@ export const AdminQuizManagementPage: React.FC = () => {
     <div className="flex flex-col gap-5 animate-fade-in">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="size-9 rounded-xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center shrink-0">
-            <FileQuestion size={18} className="text-accent-400" />
+          <div className="size-9 rounded-xl bg-brand-lime/40 border border-black/10 flex items-center justify-center shrink-0">
+            <FileQuestion size={18} className="text-ink-muted" />
           </div>
           <div className="min-w-0">
-            <h1 className="font-mono font-bold text-2xl text-gray-100 text-balance">Quiz Management</h1>
-            <p className="text-gray-600 font-mono text-sm text-pretty">
+            <h1 className="font-mono font-bold text-2xl text-ink text-balance">Quiz Management</h1>
+            <p className="text-ink-faint font-mono text-sm text-pretty">
               {quizList.length} admin quizzes configured
             </p>
           </div>
@@ -138,9 +138,9 @@ export const AdminQuizManagementPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.05]">
+                <tr className="border-b border-black/10">
                   {['Title', 'Lesson', 'Passing', 'XP', 'Questions', 'Actions'].map((heading) => (
-                    <th key={heading} className="text-left text-xs text-gray-600 font-mono px-4 py-3">
+                    <th key={heading} className="text-left text-xs text-ink-faint font-mono px-4 py-3">
                       {heading}
                     </th>
                   ))}
@@ -152,15 +152,15 @@ export const AdminQuizManagementPage: React.FC = () => {
                   const passingScore = quiz.passingScorePercent ?? quiz.passingScore;
 
                   return (
-                    <tr key={quizId} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                    <tr key={quizId} className="border-b border-white/[0.03] hover:bg-black/[0.03] transition-colors">
                       <td className="px-4 py-3 min-w-56">
-                        <p className="text-sm text-gray-200 font-mono font-medium truncate max-w-xs">{quiz.title}</p>
+                        <p className="text-sm text-ink font-mono font-medium truncate max-w-xs">{quiz.title}</p>
                         {quiz.description && (
-                          <p className="text-xs text-gray-600 font-mono mt-1 line-clamp-1">{quiz.description}</p>
+                          <p className="text-xs text-ink-faint font-mono mt-1 line-clamp-1">{quiz.description}</p>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 font-mono">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-ink-muted font-mono">
                           <BookOpen size={12} />
                           {formatLessonId(quiz.lessonId)}
                         </span>
@@ -177,7 +177,7 @@ export const AdminQuizManagementPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-gray-400 font-mono tabular-nums">
+                        <span className="text-sm text-ink-muted font-mono tabular-nums">
                           {quiz.questions.length}
                         </span>
                       </td>

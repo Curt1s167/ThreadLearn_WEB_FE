@@ -67,29 +67,29 @@ export function PricingPlans({
           <Card key={planId} className="p-5 flex flex-col gap-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="font-mono font-bold text-lg text-gray-100 truncate">{plan.name}</h2>
+                <h2 className="font-mono font-bold text-lg text-ink truncate">{plan.name}</h2>
                 {plan.description && (
-                  <p className="text-xs text-gray-600 font-mono mt-1 line-clamp-2">{plan.description}</p>
+                  <p className="text-xs text-ink-faint font-mono mt-1 line-clamp-2">{plan.description}</p>
                 )}
               </div>
               {isCurrentPlan ? <Badge color="green">Current</Badge> : null}
             </div>
 
             <div>
-              <p className="font-mono font-bold text-3xl text-gray-100">
+              <p className="font-mono font-bold text-3xl text-ink">
                 {formatPrice(plan.price, plan.currency)}
               </p>
-              <p className="text-xs text-gray-600 font-mono mt-1">{plan.durationDays} days</p>
+              <p className="text-xs text-ink-faint font-mono mt-1">{plan.durationDays} days</p>
             </div>
 
             <div className="flex flex-col gap-2 flex-1">
               {plan.features.length > 0 ? plan.features.map((feature) => (
-                <div key={feature} className="flex items-start gap-2 text-sm text-gray-400 font-mono">
+                <div key={feature} className="flex items-start gap-2 text-sm text-ink-muted font-mono">
                   <Check size={14} className="text-emerald-400 mt-0.5 shrink-0" />
                   <span>{feature}</span>
                 </div>
               )) : (
-                <p className="text-sm text-gray-600 font-mono">Premium access for this plan duration.</p>
+                <p className="text-sm text-ink-faint font-mono">Premium access for this plan duration.</p>
               )}
             </div>
 

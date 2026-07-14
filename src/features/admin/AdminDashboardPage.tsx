@@ -17,8 +17,8 @@ const StatTile: React.FC<{
     <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${color}`}>
       {icon}
     </div>
-    <p className="text-2xl font-mono font-bold text-gray-100">{value}</p>
-    <p className="text-xs text-gray-500 font-mono mt-0.5">{label}</p>
+    <p className="text-2xl font-mono font-bold text-ink">{value}</p>
+    <p className="text-xs text-ink-muted font-mono mt-0.5">{label}</p>
     {sub && <p className="text-xs text-emerald-400 font-mono mt-1">{sub}</p>}
   </Card>
 );
@@ -43,8 +43,8 @@ export const AdminDashboardPage: React.FC = () => {
           <BarChart2 size={18} className="text-violet-400" />
         </div>
         <div>
-          <h1 className="font-mono font-bold text-2xl text-gray-100">Admin Dashboard</h1>
-          <p className="text-gray-600 font-mono text-sm">Platform analytics & management</p>
+          <h1 className="font-mono font-bold text-2xl text-ink">Admin Dashboard</h1>
+          <p className="text-ink-faint font-mono text-sm">Platform analytics & management</p>
         </div>
       </div>
 
@@ -76,14 +76,14 @@ export const AdminDashboardPage: React.FC = () => {
 
       {/* Recent users */}
       <div>
-        <h2 className="font-mono font-semibold text-gray-300 text-sm mb-3">Recent users</h2>
+        <h2 className="font-mono font-semibold text-ink/80 text-sm mb-3">Recent users</h2>
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.05]">
+                <tr className="border-b border-black/10">
                   {['Name', 'Email', 'Role', 'Plan', 'Joined'].map((h) => (
-                    <th key={h} className="text-left text-xs text-gray-600 font-mono px-4 py-3">
+                    <th key={h} className="text-left text-xs text-ink-faint font-mono px-4 py-3">
                       {h}
                     </th>
                   ))}
@@ -98,7 +98,7 @@ export const AdminDashboardPage: React.FC = () => {
                   </tr>
                 ) : recentUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-sm text-gray-600 font-mono text-center">
+                    <td colSpan={5} className="px-4 py-6 text-sm text-ink-faint font-mono text-center">
                       No recent users found
                     </td>
                   </tr>
@@ -110,20 +110,20 @@ export const AdminDashboardPage: React.FC = () => {
                     const planType = u.planType ?? 'FREE';
 
                     return (
-                      <tr key={userId} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                        <td className="px-4 py-2.5 text-sm text-gray-300 font-mono">{userName}</td>
-                        <td className="px-4 py-2.5 text-sm text-gray-500 font-mono">{u.email}</td>
+                      <tr key={userId} className="border-b border-white/[0.03] hover:bg-black/[0.03] transition-colors">
+                        <td className="px-4 py-2.5 text-sm text-ink/80 font-mono">{userName}</td>
+                        <td className="px-4 py-2.5 text-sm text-ink-muted font-mono">{u.email}</td>
                         <td className="px-4 py-2.5">
-                          <span className={`badge-${u.role === 'ADMIN' ? 'purple' : 'gray'} text-xs font-mono px-2 py-0.5 rounded-full border ${u.role === 'ADMIN' ? 'bg-violet-500/10 text-violet-300 border-violet-500/20' : 'bg-white/5 text-gray-500 border-white/10'}`}>
+                          <span className={`badge-${u.role === 'ADMIN' ? 'purple' : 'gray'} text-xs font-mono px-2 py-0.5 rounded-full border ${u.role === 'ADMIN' ? 'bg-violet-500/10 text-violet-300 border-violet-500/20' : 'bg-black/[0.04] text-ink-muted border-black/10'}`}>
                             {u.role}
                           </span>
                         </td>
                         <td className="px-4 py-2.5">
-                          <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${planType === 'PREMIUM' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-white/5 text-gray-600 border-white/10'}`}>
+                          <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${planType === 'PREMIUM' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-black/[0.04] text-ink-faint border-black/10'}`}>
                             {planType}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-gray-600 font-mono">
+                        <td className="px-4 py-2.5 text-xs text-ink-faint font-mono">
                           {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}
                         </td>
                       </tr>

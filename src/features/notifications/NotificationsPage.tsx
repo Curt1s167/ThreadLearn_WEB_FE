@@ -57,8 +57,8 @@ export const NotificationsPage: React.FC = () => {
     <div className="flex flex-col gap-4 animate-fade-in max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Bell size={18} className="text-gray-400" />
-          <h1 className="font-mono font-bold text-2xl text-gray-100">Notifications</h1>
+          <Bell size={18} className="text-ink-muted" />
+          <h1 className="font-mono font-bold text-2xl text-ink">Notifications</h1>
           {unread > 0 && (
             <span className="text-xs font-mono bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded-full border border-violet-500/20">
               {unread} new
@@ -80,7 +80,7 @@ export const NotificationsPage: React.FC = () => {
           ))}
         </div>
       ) : notifications && notifications.length > 0 ? (
-        <Card className="overflow-hidden divide-y divide-white/[0.04]">
+        <Card className="overflow-hidden divide-y divide-black/10">
           {notifications.map((notif) => (
             <div
               key={notif._id}
@@ -93,19 +93,19 @@ export const NotificationsPage: React.FC = () => {
                   markRead(notif._id);
                 }
               }}
-              className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-white/[0.02] ${
+              className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-black/[0.03] ${
                 !notif.isRead ? 'bg-violet-500/[0.03] cursor-pointer' : ''
               }`}
             >
-              <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center shrink-0 mt-0.5">
-                {notifIcons[notif.type] ?? <Bell size={14} className="text-gray-400" />}
+              <div className="w-7 h-7 rounded-lg bg-black/[0.04] flex items-center justify-center shrink-0 mt-0.5">
+                {notifIcons[notif.type] ?? <Bell size={14} className="text-ink-muted" />}
               </div>
               <div className="flex-1">
-                <p className={`text-sm font-mono ${notif.isRead ? 'text-gray-400' : 'text-gray-200 font-medium'}`}>
+                <p className={`text-sm font-mono ${notif.isRead ? 'text-ink-muted' : 'text-ink font-medium'}`}>
                   {notif.title}
                 </p>
-                <p className="text-xs text-gray-600 font-mono mt-0.5">{notif.message}</p>
-                <p className="text-[10px] text-gray-700 font-mono mt-1">
+                <p className="text-xs text-ink-faint font-mono mt-0.5">{notif.message}</p>
+                <p className="text-[10px] text-ink-faint font-mono mt-1">
                   {new Date(notif.createdAt).toLocaleString()}
                 </p>
               </div>
