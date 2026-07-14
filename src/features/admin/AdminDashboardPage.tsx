@@ -4,25 +4,33 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Users, BookOpen, BarChart2, CheckCircle, Activity, TrendingUp } from 'lucide-react';
 import { adminService } from '../../services';
-import { Card, Skeleton } from '../../components/shared';
+import { Skeleton } from '../../components/shared';
+import {
+  DemoDisplayTitle,
+  DemoHeroWhite,
+  DemoMuted,
+  DemoPageRoot,
+  DemoPill,
+  DemoWhitePanel,
+} from '../ui-reskin/demo-ui';
 
 const StatTile: React.FC<{
   icon: React.ReactNode;
   label: string;
   value: string | number;
   sub?: string;
-  color: string;
-}> = ({ icon, label, value, sub, color }) => (
-  <Card className="p-4">
-    <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${color}`}>
+}> = ({ icon, label, value, sub }) => (
+  <div className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
+    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[#f7f4ee] text-ink">
       {icon}
     </div>
-    <p className="text-2xl font-mono font-bold text-ink">{value}</p>
-    <p className="text-xs text-ink-muted font-mono mt-0.5">{label}</p>
-    {sub && <p className="text-xs text-emerald-400 font-mono mt-1">{sub}</p>}
-  </Card>
+    <p className="text-3xl font-light tracking-tight text-ink">{value}</p>
+    <p className="mt-1 text-sm text-black/55">{label}</p>
+    {sub ? <p className="mt-1 text-xs text-emerald-700">{sub}</p> : null}
+  </div>
 );
 
+/** PR8 optional polish — admin analytics shell in demo light language. */
 export const AdminDashboardPage: React.FC = () => {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin-stats'],
@@ -36,105 +44,82 @@ export const AdminDashboardPage: React.FC = () => {
   const recentUsers = usersData?.items ?? [];
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-          <BarChart2 size={18} className="text-violet-400" />
+    <DemoPageRoot>
+      <DemoHeroWhite>
+        <div className="flex flex-wrap items-center gap-2">
+          <DemoPill tone="pink">Admin</DemoPill>
+          <BarChart2 size={18} className="text-black/45" />
         </div>
-        <div>
-          <h1 className="font-mono font-bold text-2xl text-ink">Admin Dashboard</h1>
-          <p className="text-ink-faint font-mono text-sm">Platform analytics & management</p>
-        </div>
-      </div>
+        <DemoDisplayTitle>Admin dashboard</DemoDisplayTitle>
+        <DemoMuted>Platform analytics and recent student activity.</DemoMuted>
+      </DemoHeroWhite>
 
-      {/* Stats */}
       {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-lg" />
+          ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-          <StatTile icon={<Users size={18} className="text-blue-400" />} label="Total students" value={(stats?.totalStudents ?? 0).toLocaleString()} color="bg-blue-500/10" />
-          <StatTile icon={<BookOpen size={18} className="text-violet-400" />} label="Total courses" value={stats?.totalCourses ?? 0} color="bg-violet-500/10" />
-          <StatTile icon={<Activity size={18} className="text-emerald-400" />} label="Enrollments" value={(stats?.totalEnrollments ?? 0).toLocaleString()} color="bg-emerald-500/10" />
-          <StatTile icon={<CheckCircle size={18} className="text-amber-400" />} label="Quiz attempts" value={(stats?.totalQuizAttempts ?? 0).toLocaleString()} color="bg-amber-500/10" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
           <StatTile
-            icon={<TrendingUp size={18} className="text-emerald-400" />}
-            label="Course completion rate"
-            value={`${((stats?.courseCompletionRate ?? 0) * 100).toFixed(1)}%`}
-            color="bg-emerald-500/10"
+            icon={<Users size={18} />}
+            label="Total students"
+            value={(stats?.totalStudents ?? 0).toLocaleString()}
+          />
+          <StatTile icon={<BookOpen size={18} />} label="Total courses" value={stats?.totalCourses ?? 0} />
+          <StatTile
+            icon={<Activity size={18} />}
+            label="Enrollments"
+            value={(stats?.totalEnrollments ?? 0).toLocaleString()}
           />
           <StatTile
-            icon={<CheckCircle size={18} className="text-violet-400" />}
+            icon={<CheckCircle size={18} />}
+            label="Quiz attempts"
+            value={(stats?.totalQuizAttempts ?? 0).toLocaleString()}
+          />
+          <StatTile
+            icon={<TrendingUp size={18} />}
+            label="Course completion rate"
+            value={`${((stats?.courseCompletionRate ?? 0) * 100).toFixed(1)}%`}
+          />
+          <StatTile
+            icon={<CheckCircle size={18} />}
             label="Quiz pass rate"
             value={`${((stats?.quizPassRate ?? 0) * 100).toFixed(1)}%`}
-            color="bg-violet-500/10"
           />
         </div>
       )}
 
-      {/* Recent users */}
       <div>
-        <h2 className="font-mono font-semibold text-ink/80 text-sm mb-3">Recent users</h2>
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-black/10">
-                  {['Name', 'Email', 'Role', 'Plan', 'Joined'].map((h) => (
-                    <th key={h} className="text-left text-xs text-ink-faint font-mono px-4 py-3">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {usersLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6">
-                      <Skeleton className="h-4 rounded" count={5} />
-                    </td>
-                  </tr>
-                ) : recentUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-sm text-ink-faint font-mono text-center">
-                      No recent users found
-                    </td>
-                  </tr>
-                ) : (
-                  recentUsers.map((u) => {
-                    const userId = u._id ?? u.id ?? u.email;
-                    const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ');
-                    const userName = u.name || fullName || u.email;
-                    const planType = u.planType ?? 'FREE';
-
-                    return (
-                      <tr key={userId} className="border-b border-white/[0.03] hover:bg-black/[0.03] transition-colors">
-                        <td className="px-4 py-2.5 text-sm text-ink/80 font-mono">{userName}</td>
-                        <td className="px-4 py-2.5 text-sm text-ink-muted font-mono">{u.email}</td>
-                        <td className="px-4 py-2.5">
-                          <span className={`badge-${u.role === 'ADMIN' ? 'purple' : 'gray'} text-xs font-mono px-2 py-0.5 rounded-full border ${u.role === 'ADMIN' ? 'bg-violet-500/10 text-violet-300 border-violet-500/20' : 'bg-black/[0.04] text-ink-muted border-black/10'}`}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${planType === 'PREMIUM' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-black/[0.04] text-ink-faint border-black/10'}`}>
-                            {planType}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-xs text-ink-faint font-mono">
-                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <h2 className="mb-3 text-lg font-semibold text-ink">Recent users</h2>
+        <DemoWhitePanel>
+          {usersLoading ? (
+            <div className="p-4">
+              <Skeleton className="h-10 rounded-lg" count={5} />
+            </div>
+          ) : recentUsers.length === 0 ? (
+            <p className="p-6 text-sm text-black/50">No recent users.</p>
+          ) : (
+            <div className="divide-y divide-black/10">
+              {recentUsers.map((user) => (
+                <div
+                  key={user._id ?? user.id ?? user.email}
+                  className="flex items-center justify-between gap-3 px-5 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">{user.name}</p>
+                    <p className="truncate text-xs text-black/50">{user.email}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[#f7f4ee] px-2.5 py-0.5 text-[11px] font-medium text-black/60">
+                    {user.role}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </DemoWhitePanel>
       </div>
-    </div>
+    </DemoPageRoot>
   );
 };

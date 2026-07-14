@@ -333,6 +333,7 @@ src/features/demo/**
 | 2026-07-13 | **PR5 done** — light auth shell + 403/404. |
 | 2026-07-13 | **PR6 done** — DemoQuiz layout (2-col) + attempt detail; timer/auto-submit unchanged. |
 | 2026-07-13 | **History rebuild:** branch **`feat/ui-light-theme-reskin`** from latest `origin/develop` with atomic commits docs→PR1…PR6. Continue work here (not on `feat/dev4-ui-reskin-pilot-demo-pages`). |
-| 2026-07-13 | **PR7 done** — pricing/payment demo-light UI; purchase redirect, mock webhook, real poll unchanged. Test `/pricing`, `/pricing/callback`, `/mock-payment/vnpay`. Next: PR8 admin. |
+| 2026-07-13 | **PR7 done** (`4f91d3c`) — pricing/payment demo-light UI. |
+| 2026-07-13 | **PR8 done** — admin quiz/plan tables + dashboard light fidelity; CRUD/modals locked. Test `/admin/quizzes`, `/admin/plans`, `/admin`. Next: PR9 profile/XP. |
 
 **Cập nhật khi:** thêm màn Dev4, đổi contract BE, hoặc team chốt Option A/B skin / land PR mới.

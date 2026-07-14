@@ -5,11 +5,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, BookOpen, Edit2, FileQuestion, Plus, Trash2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { quizService } from '../../services';
-import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/shared';
+import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { ConfirmModal, Modal } from '../../components/shared/Modal';
 import { useUIStore } from '../../store';
 import type { Quiz } from '../../types';
 import { AdminQuizForm } from './AdminQuizForm';
+import {
+  DemoDisplayTitle,
+  DemoHeroWhite,
+  DemoMuted,
+  DemoPageRoot,
+  DemoPill,
+  DemoWhitePanel,
+} from '../ui-reskin/demo-ui';
 
 const QUIZ_FORM_MODAL = 'admin-quiz-form';
 const DELETE_QUIZ_MODAL = 'delete-admin-quiz';
@@ -17,8 +25,12 @@ const DELETE_QUIZ_MODAL = 'delete-admin-quiz';
 const getQuizId = (quiz: Quiz) => quiz.id ?? quiz._id;
 
 const formatLessonId = (lessonId: string) =>
-  lessonId.length > 10 ? `...${lessonId.slice(-8)}` : lessonId;
+  lessonId.length > 10 ? `…${lessonId.slice(-8)}` : lessonId;
 
+/**
+ * PR8 — admin quiz list visual polish.
+ * LOGIC LOCK: listAll, remove, modal form create/edit.
+ */
 export const AdminQuizManagementPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { openModal, closeModal } = useUIStore();
@@ -72,15 +84,10 @@ export const AdminQuizManagementPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-5 animate-fade-in">
-        <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-12 w-64 rounded-xl" />
-          <Skeleton className="h-10 w-32 rounded-lg" />
-        </div>
-        <Card className="p-4">
-          <Skeleton className="h-9 rounded-lg" count={6} />
-        </Card>
-      </div>
+      <DemoPageRoot>
+        <Skeleton className="h-36 rounded-lg" />
+        <Skeleton className="h-64 rounded-lg" />
+      </DemoPageRoot>
     );
   }
 
@@ -91,7 +98,10 @@ export const AdminQuizManagementPage: React.FC = () => {
         title="Could not load quizzes"
         description="Please try again in a moment"
         action={(
-          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-quizzes'] })}>
+          <Button
+            variant="outline"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-quizzes'] })}
+          >
             Retry
           </Button>
         )}
@@ -100,47 +110,60 @@ export const AdminQuizManagementPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="size-9 rounded-xl bg-brand-lime/40 border border-black/10 flex items-center justify-center shrink-0">
-            <FileQuestion size={18} className="text-ink-muted" />
+    <DemoPageRoot>
+      <DemoHeroWhite>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <DemoPill tone="blue">Admin · UC36–39</DemoPill>
+              <FileQuestion size={18} className="text-black/45" />
+            </div>
+            <DemoDisplayTitle>Quiz management</DemoDisplayTitle>
+            <DemoMuted>
+              {quizList.length} quiz{quizList.length === 1 ? '' : 'zes'} configured. Create, edit
+              questions, or delete via admin quiz APIs.
+            </DemoMuted>
           </div>
-          <div className="min-w-0">
-            <h1 className="font-mono font-bold text-2xl text-ink text-balance">Quiz Management</h1>
-            <p className="text-ink-faint font-mono text-sm text-pretty">
-              {quizList.length} admin quizzes configured
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={openCreateForm}
+            className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-black/90"
+          >
+            <Plus size={14} />
+            New quiz
+          </button>
         </div>
-        <Button onClick={openCreateForm}>
-          <Plus size={14} />
-          New quiz
-        </Button>
-      </div>
+      </DemoHeroWhite>
 
       {quizList.length === 0 ? (
-        <Card className="p-6">
+        <DemoWhitePanel className="p-8">
           <EmptyState
             icon={<FileQuestion size={36} />}
             title="No quizzes found"
             description="Create the first quiz for a lesson"
             action={(
-              <Button onClick={openCreateForm}>
+              <button
+                type="button"
+                onClick={openCreateForm}
+                className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
+              >
                 <Plus size={14} />
                 New quiz
-              </Button>
+              </button>
             )}
           />
-        </Card>
+        </DemoWhitePanel>
       ) : (
-        <Card className="overflow-hidden">
+        <DemoWhitePanel>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[720px]">
               <thead>
-                <tr className="border-b border-black/10">
+                <tr className="border-b border-black/10 bg-[#f7f4ee]/80">
                   {['Title', 'Lesson', 'Passing', 'XP', 'Questions', 'Actions'].map((heading) => (
-                    <th key={heading} className="text-left text-xs text-ink-faint font-mono px-4 py-3">
+                    <th
+                      key={heading}
+                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.12em] text-black/45"
+                    >
                       {heading}
                     </th>
                   ))}
@@ -152,50 +175,65 @@ export const AdminQuizManagementPage: React.FC = () => {
                   const passingScore = quiz.passingScorePercent ?? quiz.passingScore;
 
                   return (
-                    <tr key={quizId} className="border-b border-white/[0.03] hover:bg-black/[0.03] transition-colors">
+                    <tr
+                      key={quizId}
+                      className="border-b border-black/10 last:border-b-0 hover:bg-black/[0.02] transition-colors"
+                    >
                       <td className="px-4 py-3 min-w-56">
-                        <p className="text-sm text-ink font-mono font-medium truncate max-w-xs">{quiz.title}</p>
-                        {quiz.description && (
-                          <p className="text-xs text-ink-faint font-mono mt-1 line-clamp-1">{quiz.description}</p>
-                        )}
+                        <p className="truncate text-sm font-medium text-ink max-w-xs">{quiz.title}</p>
+                        {quiz.description ? (
+                          <p className="mt-0.5 line-clamp-1 text-xs text-black/50">{quiz.description}</p>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs text-ink-muted font-mono">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-black/60">
                           <BookOpen size={12} />
                           {formatLessonId(quiz.lessonId)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge color={passingScore >= 70 ? 'green' : 'amber'}>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            (passingScore ?? 0) >= 70
+                              ? 'bg-[#d9f99d] text-black'
+                              : 'bg-[#fde68a] text-black'
+                          }`}
+                        >
                           {passingScore}%
-                        </Badge>
+                        </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-mono tabular-nums">
+                        <span className="inline-flex items-center gap-1 text-xs tabular-nums text-black/70">
                           <Zap size={12} />
                           {quiz.xpReward}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm text-ink-muted font-mono tabular-nums">
-                          {quiz.questions.length}
-                        </span>
+                      <td className="px-4 py-3 text-sm tabular-nums text-black/70">
+                        {quiz.questions.length}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openEditForm(quiz)}>
-                            <Edit2 size={13} />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => openDeleteConfirm(quiz)}
-                            loading={deleteQuizMutation.isPending && quizToDelete ? getQuizId(quizToDelete) === quizId : false}
+                          <button
+                            type="button"
+                            onClick={() => openEditForm(quiz)}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 px-3 py-1.5 text-xs font-medium text-ink hover:bg-black/[0.03]"
                           >
-                            <Trash2 size={13} />
+                            <Edit2 size={12} />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openDeleteConfirm(quiz)}
+                            disabled={
+                              deleteQuizMutation.isPending &&
+                              quizToDelete != null &&
+                              getQuizId(quizToDelete) === quizId
+                            }
+                            className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                          >
+                            <Trash2 size={12} />
                             Delete
-                          </Button>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -204,13 +242,17 @@ export const AdminQuizManagementPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </Card>
+        </DemoWhitePanel>
       )}
 
       <Modal
         name={QUIZ_FORM_MODAL}
         title={editingQuiz ? 'Edit quiz' : 'Create quiz'}
-        description={editingQuiz ? 'Update quiz settings and questions' : 'Create a quiz linked to a lesson'}
+        description={
+          editingQuiz
+            ? 'Update quiz settings and questions'
+            : 'Create a quiz linked to a lesson'
+        }
         size="xl"
         onClose={() => setEditingQuiz(null)}
       >
@@ -220,7 +262,11 @@ export const AdminQuizManagementPage: React.FC = () => {
       <ConfirmModal
         name={DELETE_QUIZ_MODAL}
         title="Delete quiz"
-        description={quizToDelete ? `Delete "${quizToDelete.title}"? This action cannot be undone.` : 'Delete this quiz?'}
+        description={
+          quizToDelete
+            ? `Delete "${quizToDelete.title}"? This action cannot be undone.`
+            : 'Delete this quiz?'
+        }
         confirmLabel="Delete"
         danger
         onConfirm={() => {
@@ -228,6 +274,6 @@ export const AdminQuizManagementPage: React.FC = () => {
           deleteQuizMutation.mutate(getQuizId(quizToDelete));
         }}
       />
-    </div>
+    </DemoPageRoot>
   );
 };

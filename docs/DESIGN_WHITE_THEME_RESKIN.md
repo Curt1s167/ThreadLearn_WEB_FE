@@ -10,7 +10,7 @@
 | **Legacy WIP branch** | `feat/dev4-ui-reskin-pilot-demo-pages` (same file tree; messier commits — do not continue) |
 | **Visual reference** | `origin/refactor/fe-next-demo-flow` → `DemoAppShell` + `Demo*Page` |
 | **Related docs** | `docs/DEV4_FE_PROTECTED_SURFACE.md`, `docs/DEV4_UI_RESKIN_PILOT.md` |
-| **Last progress update** | 2026-07-13 — PR7 pricing/payment fidelity on `feat/ui-light-theme-reskin` |
+| **Last progress update** | 2026-07-13 — PR8 admin quizzes/plans fidelity |
 
 ### Implementation progress (PR tracker)
 
@@ -23,8 +23,8 @@
 | **PR4** | Pilot layout polish vs `Demo*Page` | ✅ **Done** | `369bebf` | **`/dashboard`**, **`/leaderboard`**, **`/quiz/history`** |
 | **PR5** | Auth light + public 403/404 | ✅ **Done** | `d5e1ff6` | **`/login`**, **`/register`**, **`/forgot-password`**, **`/403`** |
 | **PR6** | Quiz take + attempt detail fidelity (timer safe) | ✅ **Done** | `c356005` | **`/quiz/[lessonId]`**, **`/quiz/attempts/[id]`** |
-| **PR7** | Pricing / payment fidelity | ✅ **Done** | 4f91d3c | **`/pricing`**, **`/pricing/callback`**, **`/mock-payment/vnpay`** |
-| **PR8** | Admin quizzes & plans fidelity | ⬜ Pending | — | `/admin/quizzes`, `/admin/plans` |
+| **PR7** | Pricing / payment fidelity | ✅ **Done** | `4f91d3c` | **`/pricing`**, **`/pricing/callback`**, **`/mock-payment/vnpay`** |
+| **PR8** | Admin quizzes & plans fidelity | ✅ **Done** | *(see style(admin) commit)* | **`/admin/quizzes`**, **`/admin/plans`**, **`/admin`** |
 | **PR9** | XP widget / profile fidelity | ⬜ Pending | — | `/profile` |
 | **PR10** | Courses / lessons demo fidelity (Dev4 owns after PR6–9) | ⬜ Pending | — | `/courses`, `/lessons/[id]` |
 
@@ -789,7 +789,7 @@ Resolved into Key Decisions where they blocked PR2/PR3. User decisions (2026-07-
 1. **Who owns PR10** (courses/lessons full demo fidelity) — **Dev4**, after Dev4 pages (PR6–PR9).  
 2. **Bandwidth:** **Keep PR7 and PR8 separate** (recommended). PR6 quiz take always isolated. Contrast bridge (PR3) stays mandatory.  
 3. **Optional later:** Replace grandfathered `/` and `/ide` with real feature pages that do not import `demo-data` — not required for this epic.  
-4. **Next implementation step:** ~~PR1–PR7~~ ✅. **Next:** PR8 (admin quizzes/plans) or PR9 (XP/profile).
+4. **Next implementation step:** ~~PR1–PR8~~ ✅. **Next:** PR9 (XP widget / profile) or PR10 (courses/lessons).
 
 ---
 
@@ -907,15 +907,15 @@ These three landed together on the feature branch (single merge-unit commit). In
 | **Test pages** | `/pricing`, `/pricing/callback`, `/mock-payment/vnpay` |
 | **Description** | Polish beyond contrast (plan cards, lime current plan, black CTA). Keep `subscriptionService`. |
 
-### PR8 — Admin quizzes & plans fidelity — ⬜ PENDING
+### PR8 — Admin quizzes & plans fidelity — ✅ DONE
 
 | | |
 |--|--|
-| **Status** | ⬜ Pending |
+| **Status** | ✅ Done — demo hero + cream table chrome; CRUD/modals unchanged |
 | **Title** | `style(admin): quiz and plan management light fidelity` |
-| **Files** | `AdminQuizManagementPage.tsx`, `AdminQuizForm.tsx`, `AdminPlanManagementPage.tsx`, optionally `AdminDashboardPage.tsx` |
+| **Files** | `AdminQuizManagementPage.tsx`, `AdminQuizForm.tsx`, `AdminPlanManagementPage.tsx`, `AdminDashboardPage.tsx` |
 | **Depends on** | **PR3** |
-| **Test pages** | `/admin/quizzes`, `/admin/plans` |
+| **Test pages** | `/admin/quizzes`, `/admin/plans`, `/admin` |
 | **Description** | Dense light tables/forms; preserve CRUD. Role guard untouched. |
 
 *If bandwidth is low: merge PR7+PR8 into one “Dev4 remaining light fidelity” PR after PR3; **never** fold PR6 into that PR.*

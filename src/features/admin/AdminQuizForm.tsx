@@ -284,7 +284,7 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-ink-muted font-mono">Description</label>
+        <label className="text-xs font-medium text-ink-muted">Description</label>
         <textarea
           value={description}
           onChange={(event) => setDescription(event.target.value)}
@@ -324,8 +324,8 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
 
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-mono font-semibold text-ink text-sm">Questions</h3>
-          {errors.questions && <p className="text-xs text-rose-400 font-mono mt-1">{errors.questions}</p>}
+          <h3 className="text-sm font-semibold text-ink">Questions</h3>
+          {errors.questions && <p className="mt-1 text-xs text-rose-600">{errors.questions}</p>}
         </div>
         <Button
           type="button"
@@ -340,10 +340,10 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
 
       <div className="flex flex-col gap-3 max-h-[50dvh] overflow-y-auto pr-1">
         {questions.map((question, questionIndex) => (
-          <div key={question.localId} className="rounded-xl border border-black/10 bg-white/[0.02] p-4">
+          <div key={question.localId} className="rounded-xl border border-black/10 bg-[#f7f4ee]/50 p-4">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex-1">
-                <p className="text-xs text-ink-muted font-mono mb-2">Question {questionIndex + 1}</p>
+                <p className="text-xs font-medium text-ink-muted mb-2">Question {questionIndex + 1}</p>
                 <Input
                   value={question.questionText}
                   onChange={(event) => updateQuestion(question.localId, { questionText: event.target.value })}
