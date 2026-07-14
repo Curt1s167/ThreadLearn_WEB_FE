@@ -24,7 +24,7 @@
 | **PR5** | Auth light + public 403/404 | ✅ **Done** | `d5e1ff6` | **`/login`**, **`/register`**, **`/forgot-password`**, **`/403`** |
 | **PR6** | Quiz take + attempt detail fidelity (timer safe) | ✅ **Done** | `c356005` | **`/quiz/[lessonId]`**, **`/quiz/attempts/[id]`** |
 | **PR7** | Pricing / payment fidelity | ✅ **Done** | `4f91d3c` | **`/pricing`**, **`/pricing/callback`**, **`/mock-payment/vnpay`** |
-| **PR8** | Admin quizzes & plans fidelity | ✅ **Done** | *(see style(admin) commit)* | **`/admin/quizzes`**, **`/admin/plans`**, **`/admin`** |
+| **PR8** | Admin quizzes & plans fidelity | ✅ **Done** | 8cf3be0 | **`/admin/quizzes`**, **`/admin/plans`**, **`/admin`** |
 | **PR9** | XP widget / profile fidelity | ⬜ Pending | — | `/profile` |
 | **PR10** | Courses / lessons demo fidelity (Dev4 owns after PR6–9) | ⬜ Pending | — | `/courses`, `/lessons/[id]` |
 

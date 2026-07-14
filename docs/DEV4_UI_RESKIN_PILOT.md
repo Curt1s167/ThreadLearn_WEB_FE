@@ -24,7 +24,7 @@ Xem thêm:
 | PR5 | Auth light + 403/404 | ✅ Done | `d5e1ff6` | `/login`, `/register`, `/forgot-password`, `/403` |
 | PR6 | Quiz take + attempt detail fidelity | ✅ Done | `c356005` | `/quiz/[lessonId]`, `/quiz/attempts/[id]` |
 | PR7 | Pricing / payment fidelity | ✅ Done | `4f91d3c` | `/pricing`, callback, mock VNPay |
-| **PR8** | **Admin quizzes / plans fidelity** | ✅ **Done** | *(style(admin))* | **`/admin/quizzes`**, **`/admin/plans`**, **`/admin`** |
+| **PR8** | **Admin quizzes / plans fidelity** | ✅ **Done** | 8cf3be0 | **`/admin/quizzes`**, **`/admin/plans`**, **`/admin`** |
 | PR9 | XP widget / profile | ⬜ Pending | — | `/profile` |
 | PR10 | Courses / lessons demo (Dev4 sau PR6–9) | ⬜ Pending | — | `/courses`, `/lessons/[id]` |
 
