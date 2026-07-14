@@ -5,28 +5,30 @@
 | **Document** | ThreadLearn FE — Full Light Theme & Layout Alignment |
 | **Author** | Dev4 / FE (placeholder) |
 | **Date** | 2026-07-13 |
-| **Status** | **In progress** — PR1–PR5 implemented on feature branch (design review approved) |
-| **Base branch** | `feat/dev4-ui-reskin-pilot-demo-pages` |
+| **Status** | **In progress** — PR1–PR6 on clean history branch (design review approved) |
+| **Working branch** | **`feat/ui-light-theme-reskin`** (from latest `origin/develop`) |
+| **Legacy WIP branch** | `feat/dev4-ui-reskin-pilot-demo-pages` (same file tree; messier commits — do not continue) |
 | **Visual reference** | `origin/refactor/fe-next-demo-flow` → `DemoAppShell` + `Demo*Page` |
 | **Related docs** | `docs/DEV4_FE_PROTECTED_SURFACE.md`, `docs/DEV4_UI_RESKIN_PILOT.md` |
-| **Last progress update** | 2026-07-13 — PR6 landed |
+| **Last progress update** | 2026-07-13 — rebased as atomic commits on develop; PR6 included |
 
 ### Implementation progress (PR tracker)
 
-| PR | Scope | Status | Commit(s) on branch | Test pages |
-|----|--------|--------|---------------------|------------|
-| **PR1** | Tokens + shared inventory + light toaster/primitives | ✅ **Done** | `b686428` (merge unit) | — |
-| **PR2** | Light shell (`DashboardLayout` / Sidebar / Topbar), nav, stats | ✅ **Done** | `b686428` (merge unit) | Any authed page shell |
-| **PR3** | Repo-wide contrast bridge | ✅ **Done** | `b686428` (merge unit) | Quiz/pricing/admin readable |
-| **PR4** | Pilot layout polish vs `Demo*Page` | ✅ **Done** | `606faeb` | **`/dashboard`**, **`/leaderboard`**, **`/quiz/history`** |
-| **PR5** | Auth light + root cream cutover | ✅ **Done** | `75705ca` | **`/login`**, **`/register`**, **`/forgot-password`**, **`/403`**, **`/not-found`** |
-| **PR6** | Quiz take + attempt detail fidelity (timer safe) | ✅ **Done** | `215c5cf` | **`/quiz/[lessonId]`**, **`/quiz/attempts/[id]`** |
+| PR | Scope | Status | Commit on `feat/ui-light-theme-reskin` | Test pages |
+|----|--------|--------|----------------------------------------|------------|
+| **docs** | Design + Dev4 trackers | ✅ **Done** | `c4d5515` | — |
+| **PR1** | Tokens + shared inventory + light toaster/primitives | ✅ **Done** | `457a312` | — |
+| **PR2** | Light shell (`DashboardLayout` / Sidebar / Topbar), nav, stats | ✅ **Done** | `c6fc543` | Any authed page shell |
+| **PR3** | Repo-wide contrast bridge | ✅ **Done** | `0d40c83` | Quiz/pricing/admin readable |
+| **PR4** | Pilot layout polish vs `Demo*Page` | ✅ **Done** | `369bebf` | **`/dashboard`**, **`/leaderboard`**, **`/quiz/history`** |
+| **PR5** | Auth light + public 403/404 | ✅ **Done** | `d5e1ff6` | **`/login`**, **`/register`**, **`/forgot-password`**, **`/403`** |
+| **PR6** | Quiz take + attempt detail fidelity (timer safe) | ✅ **Done** | `c356005` | **`/quiz/[lessonId]`**, **`/quiz/attempts/[id]`** |
 | **PR7** | Pricing / payment fidelity | ⬜ Pending | — | `/pricing`, callback, mock VNPay |
 | **PR8** | Admin quizzes & plans fidelity | ⬜ Pending | — | `/admin/quizzes`, `/admin/plans` |
 | **PR9** | XP widget / profile fidelity | ⬜ Pending | — | `/profile` |
 | **PR10** | Courses / lessons demo fidelity (Dev4 owns after PR6–9) | ⬜ Pending | — | `/courses`, `/lessons/[id]` |
 
-**Note:** PR1–PR3 shipped as one merge-unit commit (`b686428`). PR4 is separate (`606faeb`). Pilot seed before merge unit: `165ff26`.
+**History note:** Rebuilt from `origin/develop` (`739319a`) with **one commit per PR** for review. Content matches prior WIP branch `feat/dev4-ui-reskin-pilot-demo-pages`.
 
 ---
 

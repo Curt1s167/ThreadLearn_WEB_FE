@@ -330,7 +330,8 @@ src/features/demo/**
 | 2026-07-13 | Tạo file: lock surface Dev4 + plan reskin visual từ `refactor/fe-next-demo-flow` trên base current. |
 | 2026-07-13 | Design full light theme approved. Implementation tracker: `docs/DESIGN_WHITE_THEME_RESKIN.md` (top table). |
 | 2026-07-13 | **PR1–PR3 done** (`b686428` merge unit). **PR4 done** (`606faeb`) — test `/dashboard`, `/leaderboard`, `/quiz/history`. Branch `feat/dev4-ui-reskin-pilot-demo-pages`. |
-| 2026-07-13 | **PR5 done** (`75705ca`) — light auth shell + root cream/ink cutover. Test `/login`, `/register`, `/forgot-password`, `/403`. |
-| 2026-07-13 | **PR6 done** (`215c5cf`) — DemoQuiz layout (2-col) + attempt detail polish; timer/auto-submit/API unchanged. Test `/quiz/[lessonId]`, `/quiz/attempts/[id]`. Next: PR7 pricing. |
+| 2026-07-13 | **PR5 done** — light auth shell + 403/404. |
+| 2026-07-13 | **PR6 done** — DemoQuiz layout (2-col) + attempt detail; timer/auto-submit unchanged. |
+| 2026-07-13 | **History rebuild:** branch **`feat/ui-light-theme-reskin`** from latest `origin/develop` with atomic commits docs→PR1…PR6. Continue work here (not on `feat/dev4-ui-reskin-pilot-demo-pages`). Next: PR7 pricing. |
 
 **Cập nhật khi:** thêm màn Dev4, đổi contract BE, hoặc team chốt Option A/B skin / land PR mới.
