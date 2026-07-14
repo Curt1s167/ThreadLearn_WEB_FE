@@ -1,35 +1,29 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   BookOpen,
-  CheckCircle,
+  CheckCircle2,
   Clock,
   Lock,
-  PlayCircle,
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { coursesService, enrollmentsService } from '../../services';
-import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/shared';
+import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { useAuthStore } from '../../store';
 import type { CourseLevel, Enrollment } from '../../types';
-
-const levelColor: Record<CourseLevel, 'green' | 'amber' | 'red'> = {
-  BEGINNER: 'green',
-  INTERMEDIATE: 'amber',
-  ADVANCED: 'red',
-};
-
-const getLevelColor = (level?: CourseLevel): 'green' | 'amber' | 'red' | 'gray' => {
-  if (!level) return 'gray';
-  return levelColor[level] ?? 'gray';
-};
+import {
+  COURSE_ACCENT_COLORS,
+  DemoPageRoot,
+  DemoPill,
+} from '../ui-reskin/demo-ui';
 
 const getEnrollmentCourseRef = (enrollment: Enrollment) => {
   if (typeof enrollment.courseId === 'string') {
@@ -42,6 +36,17 @@ const getEnrollmentCourseRef = (enrollment: Enrollment) => {
   };
 };
 
+const levelTone = (level?: CourseLevel): 'lime' | 'pink' | 'blue' | 'default' => {
+  if (level === 'BEGINNER') return 'lime';
+  if (level === 'INTERMEDIATE') return 'pink';
+  if (level === 'ADVANCED') return 'blue';
+  return 'default';
+};
+
+/**
+ * PR10 — course detail mirrors DemoCourseDetailPage hero + lesson list.
+ * LOGIC LOCK: getById, enrollments, enroll mutation, continue → first lesson.
+ */
 export const CourseDetailPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const router = useRouter();
@@ -69,15 +74,34 @@ export const CourseDetailPage: React.FC = () => {
     retry: false,
   });
 
-  const isEnrolled = myEnrollments.some((enrollment) => {
-    const ref = getEnrollmentCourseRef(enrollment);
-    return ref.id === courseObjectId || ref.id === courseId || ref.slug === courseId;
-  });
+  const enrollment = useMemo(
+    () =>
+      myEnrollments.find((item) => {
+        const ref = getEnrollmentCourseRef(item);
+        return ref.id === courseObjectId || ref.id === courseId || ref.slug === courseId;
+      }),
+    [courseId, courseObjectId, myEnrollments],
+  );
+
+  const isEnrolled = !!enrollment;
+  const progress = Math.round(enrollment?.progressPercent ?? enrollment?.progress ?? 0);
+  const completedSet = useMemo(
+    () => new Set(enrollment?.completedLessons ?? []),
+    [enrollment?.completedLessons],
+  );
+
+  const accent =
+    COURSE_ACCENT_COLORS[(course?.title?.length ?? 0) % COURSE_ACCENT_COLORS.length];
+
+  const continueLessonId = useMemo(() => {
+    if (enrollment?.lastLessonId) return enrollment.lastLessonId;
+    const nextOpen = courseLessons.find((lesson) => !completedSet.has(lesson._id) && !lesson.isLocked);
+    return nextOpen?._id ?? courseLessons[0]?._id;
+  }, [completedSet, courseLessons, enrollment?.lastLessonId]);
 
   const handleContinue = () => {
-    const firstLesson = courseLessons[0];
-    if (firstLesson?._id) {
-      router.push(`/lessons/${firstLesson._id}`);
+    if (continueLessonId) {
+      router.push(`/lessons/${continueLessonId}`);
       return;
     }
     router.push('/dashboard');
@@ -104,10 +128,13 @@ export const CourseDetailPage: React.FC = () => {
 
   if (detailLoading) {
     return (
-      <div className="flex flex-col gap-4 animate-fade-in">
-        <Skeleton className="h-48 rounded-xl" />
-        <Skeleton className="h-20 rounded-xl" count={3} />
-      </div>
+      <DemoPageRoot>
+        <Skeleton className="h-56 rounded-lg" />
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <Skeleton className="h-72 rounded-lg" />
+          <Skeleton className="h-48 rounded-lg" />
+        </div>
+      </DemoPageRoot>
     );
   }
 
@@ -127,117 +154,172 @@ export const CourseDetailPage: React.FC = () => {
     );
   }
 
+  const outcomes = [
+    course.shortDescription || course.description,
+    `${course.totalLessons ?? courseLessons.length} structured lessons`,
+    course.language ? `Hands-on ${course.language} practice` : 'Hands-on coding practice',
+    isEnrolled ? 'Resume anytime from your dashboard' : 'Enroll free to unlock lessons',
+  ].filter(Boolean) as string[];
+
   return (
-    <div className="flex flex-col gap-5 animate-fade-in">
-      <button onClick={() => router.back()} className="btn-ghost self-start">
+    <DemoPageRoot>
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="inline-flex items-center gap-2 text-sm text-black/50 transition hover:text-black"
+      >
         <ArrowLeft size={14} />
         Back
       </button>
 
-      <Card className="overflow-hidden border-accent-500/10">
-        <div className="h-52 bg-gradient-to-br from-accent-900/40 to-surface-muted border-b border-black/10 relative">
-          {course.thumbnailUrl ? (
-            <Image src={course.thumbnailUrl} alt={course.title} fill unoptimized className="w-full h-full object-cover" />
+      <section className={`${accent} rounded-lg p-6 sm:p-8`}>
+        <div className="grid gap-7 lg:grid-cols-[1fr_340px] lg:items-end">
+          <div>
+            <div className="mb-5 flex flex-wrap gap-2">
+              {course.level ? <DemoPill tone={levelTone(course.level)}>{course.level.toLowerCase()}</DemoPill> : null}
+              {course.language ? <DemoPill tone="blue">{course.language}</DemoPill> : null}
+              {course.isPremium ? <DemoPill>Premium</DemoPill> : null}
+            </div>
+            <h1 className="max-w-4xl text-4xl font-light tracking-tight sm:text-5xl">{course.title}</h1>
+            <p className="mt-5 max-w-2xl text-black/65">
+              {course.shortDescription || course.description}
+            </p>
+            <div className="mt-5 flex flex-wrap gap-4 text-sm text-black/55">
+              <span className="inline-flex items-center gap-1.5">
+                <BookOpen size={15} />
+                {course.totalLessons ?? courseLessons.length} lessons
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Users size={15} />
+                {(course.totalEnrollments ?? 0).toLocaleString()} learners
+              </span>
+              {(course.estimatedDuration ?? 0) > 0 ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock size={15} />
+                  {course.estimatedDuration} min
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="relative overflow-hidden rounded-lg bg-white/72 p-5 backdrop-blur-sm">
+            {course.thumbnailUrl ? (
+              <div className="pointer-events-none absolute inset-0 opacity-20">
+                <Image src={course.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
+              </div>
+            ) : null}
+            <div className="relative">
+              <p className="text-sm text-black/55">{isEnrolled ? 'Course progress' : 'Ready to start'}</p>
+              <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
+              <div className="mt-4 h-2 rounded-full bg-black/10">
+                <div
+                  className="h-2 rounded-full bg-black transition-all"
+                  style={{ width: `${isEnrolled ? progress : 0}%` }}
+                />
+              </div>
+              <Button
+                onClick={() => (isEnrolled ? handleContinue() : enroll())}
+                loading={enrolling}
+                disabled={!isEnrolled && !courseObjectId}
+                className="mt-5 w-full"
+              >
+                {isEnrolled ? (
+                  <>
+                    Continue lesson <ArrowRight size={16} />
+                  </>
+                ) : (
+                  'Enroll'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="rounded-lg border border-black/10 bg-white p-5">
+          <h2 className="text-xl font-semibold">Lessons</h2>
+          {courseLessons.length === 0 ? (
+            <EmptyState
+              icon={<BookOpen size={36} />}
+              title="No lessons yet"
+              description="This course does not have published lessons"
+            />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <BookOpen size={44} className="text-accent-500/50" />
+            <div className="mt-5 divide-y divide-black/10">
+              {courseLessons.map((lesson, index) => {
+                const done = completedSet.has(lesson._id);
+                const isCurrent = continueLessonId === lesson._id && isEnrolled && !done;
+                const locked = !!lesson.isLocked && !isEnrolled;
+
+                return (
+                  <button
+                    key={lesson._id}
+                    type="button"
+                    onClick={() => {
+                      if (locked) {
+                        toast.error('Enroll to unlock this lesson');
+                        return;
+                      }
+                      router.push(`/lessons/${lesson._id}`);
+                    }}
+                    className="flex w-full items-center gap-4 py-4 text-left transition hover:bg-black/[0.02]"
+                  >
+                    <span
+                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-medium ${
+                        done
+                          ? 'bg-black text-white'
+                          : isCurrent
+                            ? 'bg-[#d9f99d] text-ink'
+                            : locked
+                              ? 'bg-black/[0.04] text-black/35'
+                              : 'bg-black/[0.04] text-black/55'
+                      }`}
+                    >
+                      {locked ? <Lock size={16} /> : done ? <CheckCircle2 size={16} /> : index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium text-ink">{lesson.title}</span>
+                      <span className="mt-1 block text-sm text-black/50">
+                        Lesson {lesson.order ?? lesson.orderIndex ?? index + 1}
+                        {lesson.duration || lesson.estimatedTime
+                          ? ` · ${lesson.duration ?? lesson.estimatedTime} min`
+                          : ''}
+                      </span>
+                    </span>
+                    {(lesson.duration ?? lesson.estimatedTime) ? (
+                      <span className="shrink-0 text-sm text-black/45">
+                        {lesson.duration ?? lesson.estimatedTime} min
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/30 to-transparent" />
         </div>
 
-        <div className="p-5 flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <Badge color={getLevelColor(course.level)}>{course.level ?? 'COURSE'}</Badge>
-                {course.language && <span className="tag">{course.language}</span>}
-                {course.isPremium && <Badge color="amber">Premium</Badge>}
+        <aside className="rounded-lg border border-black/10 bg-white p-5">
+          <h2 className="text-xl font-semibold">What you will learn</h2>
+          <div className="mt-5 space-y-3">
+            {outcomes.map((outcome) => (
+              <div key={outcome} className="flex gap-3 text-sm text-black/65">
+                <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-black" />
+                <span className="line-clamp-3">{outcome}</span>
               </div>
-              <h1 className="font-mono font-bold text-2xl text-ink">{course.title}</h1>
-              <p className="text-sm text-ink-muted font-mono mt-2 leading-relaxed">
-                {course.shortDescription || course.description}
-              </p>
-            </div>
-            <Button
-              onClick={() => (isEnrolled ? handleContinue() : enroll())}
-              loading={enrolling}
-              disabled={!isEnrolled && !courseObjectId}
-              className="shrink-0"
-            >
-              <CheckCircle size={14} />
-              {isEnrolled ? 'Continue learning' : 'Enroll'}
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-lg bg-white border border-black/10 p-3">
-              <BookOpen size={14} className="text-ink-muted mb-2" />
-              <p className="text-lg font-mono font-bold text-ink">{course.totalLessons ?? courseLessons.length}</p>
-              <p className="text-xs text-ink-muted font-mono">lessons</p>
-            </div>
-            <div className="rounded-lg bg-white border border-black/10 p-3">
-              <Users size={14} className="text-emerald-400 mb-2" />
-              <p className="text-lg font-mono font-bold text-ink">{course.totalEnrollments ?? 0}</p>
-              <p className="text-xs text-ink-muted font-mono">learners</p>
-            </div>
-            <div className="rounded-lg bg-white border border-black/10 p-3">
-              <Clock size={14} className="text-amber-400 mb-2" />
-              <p className="text-lg font-mono font-bold text-ink">{course.estimatedDuration ?? 0}</p>
-              <p className="text-xs text-ink-muted font-mono">minutes</p>
-            </div>
-            <div className="rounded-lg bg-white border border-black/10 p-3">
-              <CheckCircle size={14} className="text-blue-400 mb-2" />
-              <p className="text-lg font-mono font-bold text-ink">{course.status ?? 'published'}</p>
-              <p className="text-xs text-ink-muted font-mono">status</p>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <div>
-        <h2 className="font-mono font-semibold text-ink text-sm mb-3">Lessons</h2>
-        {detailLoading ? (
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-16 rounded-xl" count={3} />
-          </div>
-        ) : courseLessons.length === 0 ? (
-          <EmptyState
-            icon={<BookOpen size={36} />}
-            title="No lessons yet"
-            description="This course does not have published lessons"
-          />
-        ) : (
-          <div className="flex flex-col gap-4">
-            {courseLessons.map((lesson, index) => (
-              <Card
-                key={lesson._id}
-                role="button"
-                tabIndex={0}
-                className="p-3 flex items-center gap-3 hover:border-black/10 transition-all duration-200 motion-safe:hover:-translate-y-0.5 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-black/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream"
-                onClick={() => router.push(`/lessons/${lesson._id}`)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    router.push(`/lessons/${lesson._id}`);
-                  }
-                }}
-              >
-                <div className="w-8 h-8 rounded-lg bg-brand-lime/40 flex items-center justify-center shrink-0">
-                  {lesson.isLocked ? <Lock size={14} className="text-ink-muted" /> : <PlayCircle size={14} className="text-ink-muted" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-ink/80 font-mono truncate">{lesson.title}</p>
-                  <p className="text-xs text-ink-muted font-mono">
-                    Lesson {lesson.order ?? index + 1}
-                    {lesson.duration ? ` - ${lesson.duration} min` : ''}
-                  </p>
-                </div>
-              </Card>
             ))}
           </div>
-        )}
-      </div>
-    </div>
+          {course.tags?.length ? (
+            <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-5">
+              {course.tags.map((tag) => (
+                <span key={tag} className="rounded bg-black/[0.04] px-2 py-1 text-xs text-black/55">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </aside>
+      </section>
+    </DemoPageRoot>
   );
 };

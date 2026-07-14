@@ -2,39 +2,47 @@
 
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertCircle, CheckCircle, Clock, Zap, ArrowLeft, Bookmark,
+  AlertCircle,
+  Bookmark,
+  CheckCircle2,
+  Clock,
+  MessageCircle,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { lessonsService, bookmarksService } from '../../services';
-import { Card, Button, Badge, EmptyState } from '../../components/shared';
+import { bookmarksService, lessonsService } from '../../services';
+import { Button, EmptyState } from '../../components/shared';
+import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
 
 const LessonMarkdown = dynamic(
   () => import('./LessonMarkdown').then((module) => module.LessonMarkdown),
-  { loading: () => <div className="h-32 skeleton rounded-lg" /> }
+  { loading: () => <div className="h-32 skeleton rounded-lg" /> },
 );
 const CommentsSection = dynamic(
   () => import('./CommentsSection').then((module) => module.CommentsSection),
-  { loading: () => <div className="h-24 skeleton rounded-lg" /> }
+  { loading: () => <div className="h-24 skeleton rounded-lg" /> },
 );
 const NotesPanel = dynamic(
   () => import('./NotesPanel').then((module) => module.NotesPanel),
-  { loading: () => <div className="h-32 skeleton rounded-lg" /> }
+  { loading: () => <div className="h-32 skeleton rounded-lg" /> },
 );
 
-
-
-// ─── Lesson Viewer Page ───────────────────────────────────────────────────────
 const getHttpStatus = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status;
 
+/**
+ * PR10 — lesson room mirrors DemoLessonPage (content + sticky aside).
+ * LOGIC LOCK: getById, bookmark toggle, complete mutation, quiz link, comments/notes.
+ */
 export const LessonPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'content' | 'comments' | 'notes'>('content');
+  const [activePanel, setActivePanel] = useState<'notes' | 'comments'>('notes');
 
   const {
     data: lesson,
@@ -53,11 +61,19 @@ export const LessonPage: React.FC = () => {
     if (isError && !isEnrollmentRequired) toast.error('Failed to load lesson');
   }, [isEnrollmentRequired, isError]);
 
-  const { mutate: toggleBookmark } = useMutation({
+  const { data: bookmarksPage } = useQuery({
+    queryKey: ['bookmarks'],
+    queryFn: bookmarksService.getAll,
+    enabled: !!id,
+    retry: false,
+  });
+  const isBookmarked = !!bookmarksPage?.data?.some((bm) => bm.targetId === id);
+
+  const { mutate: toggleBookmark, isPending: bookmarking } = useMutation({
     mutationFn: () => bookmarksService.toggle(id!, lesson?.title),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
-      toast.success('Bookmark toggled');
+      toast.success(isBookmarked ? 'Bookmark removed' : 'Bookmarked');
     },
     onError: () => toast.error('Failed to toggle bookmark'),
   });
@@ -76,38 +92,18 @@ export const LessonPage: React.FC = () => {
   const duration = lesson?.estimatedTime ?? lesson?.duration ?? 0;
   const order = lesson?.orderIndex ?? lesson?.order;
   const content = lesson?.contentMarkdown ?? lesson?.content ?? '';
+  const courseHref =
+    typeof lesson?.courseId === 'string' ? `/courses/${lesson.courseId}` : '/courses';
 
   return (
-    <div className="flex flex-col gap-4 animate-fade-in">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <button onClick={() => router.back()} className="btn-ghost shrink-0">
-            <ArrowLeft size={14} />
-          </button>
-          {isLoading ? (
-            <div className="h-5 w-48 skeleton rounded" />
-          ) : (
-            <h1 className="font-mono font-bold text-xl text-ink truncate">{lesson?.title}</h1>
-          )}
-        </div>
-        {lesson && (
-          <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => toggleBookmark()} className="btn-ghost" title="Bookmark">
-              <Bookmark size={14} />
-            </button>
-            <button onClick={() => router.push(`/quiz/${id}`)} className="btn-outline text-sm">
-              <Zap size={13} />
-              Take quiz
-            </button>
-          </div>
-        )}
-      </div>
-
+    <DemoPageRoot>
       {isLoading ? (
-        <div className="flex flex-col gap-3">
-          <div className="h-4 skeleton rounded w-3/4" />
-          <div className="h-4 skeleton rounded" />
-          <div className="h-4 skeleton rounded w-5/6" />
+        <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
+          <div className="space-y-5">
+            <div className="h-40 rounded-lg skeleton" />
+            <div className="h-80 rounded-lg skeleton" />
+          </div>
+          <div className="h-64 rounded-lg skeleton" />
         </div>
       ) : isError ? (
         <EmptyState
@@ -120,86 +116,184 @@ export const LessonPage: React.FC = () => {
           }
           action={(
             <Button variant="outline" onClick={() => router.back()}>
-              <ArrowLeft size={14} />
               Back
             </Button>
           )}
         />
       ) : lesson ? (
-        <>
-          <Card className="px-4 py-2.5 flex items-center gap-4 flex-wrap">
-            {duration > 0 && (
-              <span className="flex items-center gap-1 text-xs text-ink-faint font-mono">
-                <Clock size={11} />{duration} min
-              </span>
-            )}
-            {lesson.videoUrl && <Badge color="purple">Video</Badge>}
-            {lesson.attachmentUrl && (
-              <a href={lesson.attachmentUrl} target="_blank" rel="noreferrer" className="text-xs text-violet-400 hover:text-violet-300 font-mono">
-                Attachment
-              </a>
-            )}
-            {order != null && <span className="text-xs text-ink-faint font-mono">Order: #{order}</span>}
-            <Button size="sm" variant="outline" onClick={() => completeLesson()} loading={completing} className="ml-auto">
-              <CheckCircle size={12} />
-              Mark complete
-            </Button>
-          </Card>
-
-          <div className="flex gap-1 border-b border-black/10 pb-0.5">
-            {(['content', 'comments', 'notes'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1.5 text-xs font-mono rounded-t-lg transition-colors ${
-                  activeTab === tab
-                    ? 'text-violet-300 bg-violet-500/10 border border-b-0 border-violet-500/20'
-                    : 'text-ink-faint hover:text-ink-muted'
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {activeTab === 'content' && (
-            <Card className="p-6">
-              {lesson.videoUrl && (
-                <div className="mb-5 rounded-xl overflow-hidden border border-black/10 bg-black aspect-video">
-                  <iframe src={lesson.videoUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+        <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
+          <article className="space-y-5">
+            <div className="rounded-lg bg-white p-6 sm:p-8">
+              <Link href={courseHref} className="text-sm text-black/50 hover:text-black">
+                Back to course
+              </Link>
+              <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {order != null ? <DemoPill tone="default">Lesson #{order}</DemoPill> : null}
+                    {duration > 0 ? (
+                      <DemoPill tone="blue">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock size={12} />
+                          {duration} min
+                        </span>
+                      </DemoPill>
+                    ) : null}
+                    {lesson.videoUrl ? <DemoPill tone="pink">Video</DemoPill> : null}
+                  </div>
+                  <h1 className="text-4xl font-light tracking-tight text-ink">{lesson.title}</h1>
+                  {lesson.attachmentUrl ? (
+                    <a
+                      href={lesson.attachmentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-block text-sm font-medium text-black/60 underline underline-offset-2 hover:text-black"
+                    >
+                      Download attachment
+                    </a>
+                  ) : null}
                 </div>
-              )}
-              <div className="prose prose-invert prose-sm max-w-none font-mono text-ink/80 leading-relaxed [&_pre]:bg-black/40 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:p-4 [&_code]:text-violet-300 [&_a]:text-violet-400 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_blockquote]:border-violet-500/30 [&_blockquote]:text-ink-muted">
+                <button
+                  type="button"
+                  onClick={() => toggleBookmark()}
+                  disabled={bookmarking}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
+                    isBookmarked ? 'bg-[#d9f99d] text-ink' : 'bg-black text-white hover:bg-black/90'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Bookmark size={14} className={isBookmarked ? 'fill-current' : ''} />
+                    {isBookmarked ? 'Bookmarked' : 'Bookmark'}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-black/10 bg-white p-6 sm:p-8">
+              {lesson.videoUrl ? (
+                <div className="mb-6 aspect-video overflow-hidden rounded-lg border border-black/10 bg-black">
+                  <iframe
+                    src={lesson.videoUrl}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={lesson.title}
+                  />
+                </div>
+              ) : null}
+              <div className="prose prose-neutral max-w-none text-base leading-8 text-black/70 [&_a]:text-black [&_code]:rounded [&_code]:bg-black/[0.04] [&_code]:px-1 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:bg-[#111827] [&_pre]:p-4 [&_pre]:text-[#d9f99d]">
                 <LessonMarkdown content={content} />
               </div>
-            </Card>
-          )}
-          {activeTab === 'comments' && (
-            <Card className="p-4">
+            </div>
+
+            <div className="rounded-lg border border-black/10 bg-white p-6 xl:hidden">
+              <div className="mb-4 flex gap-2">
+                {(['notes', 'comments'] as const).map((panel) => (
+                  <button
+                    key={panel}
+                    type="button"
+                    onClick={() => setActivePanel(panel)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize ${
+                      activePanel === panel ? 'bg-black text-white' : 'bg-black/[0.04] text-black/55'
+                    }`}
+                  >
+                    {panel}
+                  </button>
+                ))}
+              </div>
+              {activePanel === 'notes' ? <NotesPanel lessonId={id!} /> : <CommentsSection lessonId={id!} />}
+            </div>
+          </article>
+
+          <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
+            <div className="rounded-lg bg-[#d9f99d] p-5">
+              <Zap size={22} className="text-ink" />
+              <h2 className="mt-4 text-xl font-semibold text-ink">Quiz check-in</h2>
+              <p className="mt-3 text-sm text-black/65">
+                Lock in this lesson with a short quiz. Timer and auto-submit stay on the quiz flow.
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push(`/quiz/${id}`)}
+                className="mt-5 rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/90"
+              >
+                Take quiz
+              </button>
+            </div>
+
+            <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
+              <NotesPanel lessonId={id!} />
+            </div>
+
+            <div className="rounded-lg border border-black/10 bg-white p-5">
+              <h2 className="font-semibold text-ink">Lesson checklist</h2>
+              <div className="mt-4 space-y-3 text-sm">
+                {[
+                  { label: 'Read the explanation', done: true },
+                  { label: 'Review the code / video', done: !!content || !!lesson.videoUrl },
+                  { label: 'Mark lesson complete', done: false },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-3 text-black/70">
+                    <span
+                      className={`grid h-5 w-5 place-items-center rounded-full ${
+                        item.done ? 'bg-black text-white' : 'bg-black/10'
+                      }`}
+                    >
+                      {item.done ? <CheckCircle2 size={13} /> : null}
+                    </span>
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                className="mt-5 w-full"
+                onClick={() => completeLesson()}
+                loading={completing}
+              >
+                <CheckCircle2 size={14} />
+                Mark complete
+              </Button>
+            </div>
+
+            <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
+              <div className="mb-4 flex items-center gap-2">
+                <MessageCircle size={18} />
+                <h2 className="font-semibold text-ink">Discussion</h2>
+              </div>
               <CommentsSection lessonId={id!} />
-            </Card>
-          )}
-          {activeTab === 'notes' && <NotesPanel lessonId={id!} />}
-        </>
+            </div>
+          </aside>
+        </div>
       ) : (
-        <Card className="p-8 text-center">
-          <p className="text-ink-muted font-mono">Lesson not found</p>
-        </Card>
+        <EmptyState
+          icon={<AlertCircle size={36} />}
+          title="Lesson not found"
+          description="This lesson may have been removed"
+          action={(
+            <Button variant="outline" onClick={() => router.push('/courses')}>
+              Browse courses
+            </Button>
+          )}
+        />
       )}
-    </div>
+    </DemoPageRoot>
   );
 };
 
-// ─── 404 Page ─────────────────────────────────────────────────────────────────
 export const NotFoundPage: React.FC = () => {
   const router = useRouter();
   return (
-    <div className="min-h-screen bg-canvas-cream flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-canvas-cream">
       <div className="text-center">
-        <p className="font-mono font-bold text-[96px] text-white/5 leading-none">404</p>
-        <h1 className="font-mono font-bold text-2xl text-ink/80 -mt-4">Page not found</h1>
-        <p className="text-ink-faint font-mono text-sm mt-2">The page you are looking for does not exist.</p>
-        <button onClick={() => router.push('/dashboard')} className="btn-primary mt-6 mx-auto">
+        <p className="text-[96px] font-light leading-none text-black/5">404</p>
+        <h1 className="-mt-4 text-2xl font-semibold text-ink">Page not found</h1>
+        <p className="mt-2 text-sm text-black/50">The page you are looking for does not exist.</p>
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard')}
+          className="btn-primary mx-auto mt-6"
+        >
           Go home
         </button>
       </div>

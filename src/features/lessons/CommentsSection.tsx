@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageSquare, Send, CornerDownRight, Pencil, Trash2 } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CornerDownRight, MessageSquare, Pencil, Send, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { commentsService } from '../../services';
 import { useAuthStore } from '../../store';
-import { Avatar, Button, Card } from '../../components/shared';
+import { Avatar, Button } from '../../components/shared';
 import type { Comment } from '../../types';
 
 interface Props {
@@ -45,85 +45,88 @@ const CommentItem: React.FC<{
   });
 
   return (
-    <div className={`${depth > 0 ? 'ml-8 border-l border-black/10 pl-4' : ''}`}>
+    <div className={depth > 0 ? 'ml-6 border-l border-black/10 pl-4' : ''}>
       <div className="flex gap-3 py-3">
-        <Avatar
-          src={comment.user?.avatarUrl}
-          name={comment.user?.name || 'User'}
-          size="sm"
-        />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono font-medium text-ink/80">
-              {comment.user?.name || 'Anonymous'}
-            </span>
-            <span className="text-[10px] text-ink-faint font-mono">
+        <Avatar src={comment.user?.avatarUrl} name={comment.user?.name || 'User'} size="sm" />
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-sm font-medium text-ink">{comment.user?.name || 'Anonymous'}</span>
+            <span className="text-xs text-black/40">
               {new Date(comment.createdAt).toLocaleDateString()}
             </span>
           </div>
 
           {isEditing ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <input
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="input-field flex-1 text-xs py-1.5 disabled:opacity-50 disabled:pointer-events-none"
+                className="input-field min-w-0 flex-1 text-sm disabled:opacity-50"
                 autoFocus
                 disabled={isUpdating}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && editContent.trim() && !isUpdating) {
-                    updateComment();
-                  } else if (e.key === 'Escape' && !isUpdating) {
+                  if (e.key === 'Enter' && editContent.trim() && !isUpdating) updateComment();
+                  else if (e.key === 'Escape' && !isUpdating) {
                     setIsEditing(false);
                     setEditContent(comment.content);
                   }
                 }}
               />
               <button
+                type="button"
                 onClick={() => updateComment()}
                 disabled={isUpdating || !editContent.trim()}
-                className="text-xs text-violet-400 hover:text-violet-300 font-mono disabled:opacity-50 disabled:pointer-events-none"
+                className="text-xs font-medium text-ink disabled:opacity-50"
               >
                 {isUpdating ? 'Saving...' : 'Save'}
               </button>
               <button
-                onClick={() => { setIsEditing(false); setEditContent(comment.content); }}
+                type="button"
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditContent(comment.content);
+                }}
                 disabled={isUpdating}
-                className="text-xs text-ink-faint hover:text-ink-muted font-mono disabled:opacity-50 disabled:pointer-events-none"
+                className="text-xs text-black/45 disabled:opacity-50"
               >
                 Cancel
               </button>
             </div>
           ) : (
-            <p className="text-sm text-ink-muted font-mono">{comment.content}</p>
+            <div className="rounded-lg bg-[#f7f4ee] p-3">
+              <p className="text-sm text-black/70">{comment.content}</p>
+            </div>
           )}
 
-          <div className="flex items-center gap-3 mt-1.5">
+          <div className="mt-2 flex items-center gap-3">
             <button
+              type="button"
               onClick={() => onReply(comment._id)}
-              className="text-[11px] text-ink-faint hover:text-violet-400 font-mono flex items-center gap-1 transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-black"
             >
               <CornerDownRight size={10} />
               Reply
             </button>
-            {isOwner && (
+            {isOwner ? (
               <>
                 <button
+                  type="button"
                   onClick={() => setIsEditing(true)}
-                  className="text-[11px] text-ink-faint hover:text-ink/80 font-mono flex items-center gap-1 transition-colors"
+                  className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-black"
                 >
                   <Pencil size={10} />
                   Edit
                 </button>
                 <button
+                  type="button"
                   onClick={() => deleteComment()}
-                  className="text-[11px] text-ink-faint hover:text-rose-400 font-mono flex items-center gap-1 transition-colors"
+                  className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-rose-600"
                 >
                   <Trash2 size={10} />
                   Delete
                 </button>
               </>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -131,6 +134,7 @@ const CommentItem: React.FC<{
   );
 };
 
+/** PR10 — discussion UI light; create/reply/edit/delete API locked. */
 export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState<string | undefined>();
@@ -150,8 +154,8 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
       setNewComment('');
       setReplyTo(undefined);
     },
-    onError: (error) => {
-      if (getHttpStatus(error) === 403) {
+    onError: (err) => {
+      if (getHttpStatus(err) === 403) {
         toast.error('You must enroll in the course to comment');
         return;
       }
@@ -159,36 +163,32 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
     },
   });
 
-  // Build tree from flat array
   const rootComments = comments?.filter((c) => !c.parentId) || [];
-  const replies = (parentId: string) =>
-    comments?.filter((c) => c.parentId === parentId) || [];
+  const replies = (parentId: string) => comments?.filter((c) => c.parentId === parentId) || [];
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <MessageSquare size={15} className="text-ink-muted" />
-        <h3 className="font-mono font-medium text-ink/80 text-sm">
-          Discussion ({comments?.length ?? 0})
-        </h3>
+        <MessageSquare size={15} className="text-ink" />
+        <h3 className="text-sm font-semibold text-ink">Discussion ({comments?.length ?? 0})</h3>
       </div>
 
-      {/* New comment form */}
       <div className="flex gap-2">
-        <div className="flex-1 relative">
-          {replyTo && (
-            <div className="text-[10px] text-violet-400 font-mono mb-1 flex items-center gap-1">
+        <div className="min-w-0 flex-1">
+          {replyTo ? (
+            <div className="mb-1 flex items-center gap-1 text-xs text-black/50">
               <CornerDownRight size={10} />
               Replying to comment
               <button
+                type="button"
                 onClick={() => setReplyTo(undefined)}
                 disabled={isPending}
-                className="text-ink-faint hover:text-ink-muted ml-1 disabled:opacity-50"
+                className="ml-1 text-black/40 hover:text-black disabled:opacity-50"
               >
                 ✕
               </button>
             </div>
-          )}
+          ) : null}
           <input
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
@@ -197,7 +197,7 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
             }}
             disabled={isPending}
             placeholder="Add a comment..."
-            className="input-field text-xs disabled:opacity-50 disabled:pointer-events-none"
+            className="w-full rounded-full border border-black/10 bg-[#f7f4ee] px-4 py-2.5 text-sm text-ink outline-none focus:border-black/25 disabled:opacity-50"
           />
         </div>
         <Button
@@ -205,36 +205,31 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
           onClick={() => postComment()}
           disabled={!newComment.trim()}
           loading={isPending}
+          className="shrink-0 self-end"
         >
           <Send size={12} />
         </Button>
       </div>
 
-      {/* Comments list */}
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-14 skeleton rounded-lg" />
+            <div key={i} className="h-14 rounded-lg skeleton" />
           ))}
         </div>
       ) : rootComments.length > 0 ? (
-        <div className="divide-y divide-white/[0.03]">
+        <div className="divide-y divide-black/10">
           {rootComments.map((comment) => (
             <div key={comment._id}>
               <CommentItem comment={comment} onReply={setReplyTo} />
               {replies(comment._id).map((reply) => (
-                <CommentItem
-                  key={reply._id}
-                  comment={reply}
-                  onReply={setReplyTo}
-                  depth={1}
-                />
+                <CommentItem key={reply._id} comment={reply} onReply={setReplyTo} depth={1} />
               ))}
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-ink-faint font-mono py-4 text-center">
+        <p className="py-4 text-center text-sm text-black/40">
           No comments yet. Be the first to discuss!
         </p>
       )}

@@ -25,8 +25,8 @@ Xem thêm:
 | PR6 | Quiz take + attempt detail fidelity | ✅ Done | `c356005` | `/quiz/[lessonId]`, `/quiz/attempts/[id]` |
 | PR7 | Pricing / payment fidelity | ✅ Done | `4f91d3c` | `/pricing`, callback, mock VNPay |
 | PR8 | Admin quizzes / plans fidelity | ✅ Done | `8cf3be0` | `/admin/quizzes`, `/admin/plans`, `/admin` |
-| **PR9** | **XP widget / profile** | ✅ **Done** | `04be21b` | **`/profile`** |
-| PR10 | Courses / lessons demo (Dev4 sau PR6–9) | ⬜ Pending | — | `/courses`, `/lessons/[id]` |
+| PR9 | XP widget / profile | ✅ Done | `04be21b` | `/profile` |
+| **PR10** | **Courses / lessons demo** | ✅ **Done** | PENDING_HASH | **`/courses`**, **`/courses/[id]`**, **`/lessons/[id]`**, **`/bookmarks`** |
 
 ```bash
 git log --oneline origin/develop..feat/ui-light-theme-reskin
@@ -65,4 +65,6 @@ npm run dev
 | ~~Pricing / payment polish~~ | ~~PR7~~ ✅ |
 | ~~Admin quizzes / plans polish~~ | ~~PR8~~ ✅ |
 | ~~XP widget / profile~~ | ~~PR9~~ ✅ |
-| Courses list / lesson room full demo | **PR10 (next)** |
+| ~~Courses list / lesson room full demo~~ | ~~PR10~~ ✅ |
+
+Epic light-theme reskin (PR1–PR10) complete on `feat/ui-light-theme-reskin`.

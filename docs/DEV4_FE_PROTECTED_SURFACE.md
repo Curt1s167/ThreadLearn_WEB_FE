@@ -336,5 +336,6 @@ src/features/demo/**
 | 2026-07-13 | **PR7 done** (`4f91d3c`) — pricing/payment demo-light UI. |
 | 2026-07-13 | **PR8 done** (`8cf3be0`) — admin quiz/plan tables + dashboard light fidelity; CRUD/modals locked. Test `/admin/quizzes`, `/admin/plans`, `/admin`. Next: PR9 profile/XP. |
 | 2026-07-14 | **PR9 done** (`04be21b`) — profile 2-col DemoProfile layout + XpLevelStreakWidget light cards; avatar upload + getStats locked. Test `/profile`. Next: PR10 courses/lessons. |
+| 2026-07-14 | **PR10 done** — courses catalog/detail + lesson room + bookmarks demo fidelity; CourseCard shared restyle; list/enroll/complete/bookmark/notes/comments APIs locked. Test `/courses`, `/courses/[id]`, `/lessons/[id]`, `/bookmarks`. |
 
 **Cập nhật khi:** thêm màn Dev4, đổi contract BE, hoặc team chốt Option A/B skin / land PR mới.

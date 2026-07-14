@@ -5,12 +5,12 @@
 | **Document** | ThreadLearn FE — Full Light Theme & Layout Alignment |
 | **Author** | Dev4 / FE (placeholder) |
 | **Date** | 2026-07-13 |
-| **Status** | **In progress** — PR1–PR9 on clean history branch (design review approved) |
+| **Status** | **PR1–PR10 complete** on clean history branch (ready to push when package accepted) |
 | **Working branch** | **`feat/ui-light-theme-reskin`** (from latest `origin/develop`) |
 | **Legacy WIP branch** | `feat/dev4-ui-reskin-pilot-demo-pages` (same file tree; messier commits — do not continue) |
 | **Visual reference** | `origin/refactor/fe-next-demo-flow` → `DemoAppShell` + `Demo*Page` |
 | **Related docs** | `docs/DEV4_FE_PROTECTED_SURFACE.md`, `docs/DEV4_UI_RESKIN_PILOT.md` |
-| **Last progress update** | 2026-07-14 — PR9 profile/XP fidelity |
+| **Last progress update** | 2026-07-14 — PR10 courses/lessons demo fidelity |
 
 ### Implementation progress (PR tracker)
 
@@ -26,7 +26,7 @@
 | **PR7** | Pricing / payment fidelity | ✅ **Done** | `4f91d3c` | **`/pricing`**, **`/pricing/callback`**, **`/mock-payment/vnpay`** |
 | **PR8** | Admin quizzes & plans fidelity | ✅ **Done** | `8cf3be0` | **`/admin/quizzes`**, **`/admin/plans`**, **`/admin`** |
 | **PR9** | XP widget / profile fidelity | ✅ **Done** | `04be21b` | **`/profile`** |
-| **PR10** | Courses / lessons demo fidelity (Dev4 owns after PR6–9) | ⬜ Pending | — | `/courses`, `/lessons/[id]` |
+| **PR10** | Courses / lessons demo fidelity | ✅ **Done** | PENDING_HASH | **`/courses`**, **`/courses/[id]`**, **`/lessons/[id]`**, **`/bookmarks`** |
 
 **History note:** Rebuilt from `origin/develop` (`739319a`) with **one commit per PR** for review. Content matches prior WIP branch `feat/dev4-ui-reskin-pilot-demo-pages`.
 
@@ -789,7 +789,7 @@ Resolved into Key Decisions where they blocked PR2/PR3. User decisions (2026-07-
 1. **Who owns PR10** (courses/lessons full demo fidelity) — **Dev4**, after Dev4 pages (PR6–PR9).  
 2. **Bandwidth:** **Keep PR7 and PR8 separate** (recommended). PR6 quiz take always isolated. Contrast bridge (PR3) stays mandatory.  
 3. **Optional later:** Replace grandfathered `/` and `/ide` with real feature pages that do not import `demo-data` — not required for this epic.  
-4. **Next implementation step:** ~~PR1–PR9~~ ✅. **Next:** PR10 (courses/lessons demo fidelity).
+4. **Next implementation step:** ~~PR1–PR10~~ ✅ on `feat/ui-light-theme-reskin`. Push when user accepts package.
 
 ---
 
@@ -931,16 +931,16 @@ These three landed together on the feature branch (single merge-unit commit). In
 | **Test pages** | `/profile` |
 | **Description** | Layout polish; data from API/store only. |
 
-### PR10 (optional) — Courses / lessons demo fidelity — ⬜ PENDING
+### PR10 (optional) — Courses / lessons demo fidelity — ✅ DONE
 
 | | |
 |--|--|
-| **Status** | ⬜ Pending — owner: **Dev4** (after PR6–PR9) |
-| **Title** | `style(courses): demo-fidelity catalog, detail, lesson room` |
-| **Files** | `CoursesPage.tsx`, `CourseDetailPage.tsx`, `lessons/*`, CourseCard consumers |
+| **Status** | ✅ Done (hash in follow-up docs commit) |
+| **Title** | `style(courses): PR10 demo-fidelity catalog, detail, lesson room` |
+| **Files** | `CourseCard`, `CoursesPage.tsx`, `CourseDetailPage.tsx`, `lessons/pages.tsx`, `NotesPanel`, `CommentsSection`, `BookmarksPage` |
 | **Depends on** | PR3 |
-| **Test pages** | `/courses`, `/courses/[courseId]`, `/lessons/[id]` |
-| **Description** | Full visual port from demo courses/lessons. |
+| **Test pages** | `/courses`, `/courses/[courseId]`, `/lessons/[id]`, `/bookmarks` |
+| **Description** | Full visual port from demo courses/lessons; services/React Query locked. |
 
 ### Suggested merge order
 

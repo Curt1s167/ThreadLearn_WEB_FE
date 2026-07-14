@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { BookOpen, Loader2, Users } from 'lucide-react';
+import { BookOpen, Clock, Code2, Loader2, Star, Users } from 'lucide-react';
 import type { Course, CourseLevel } from '../../types';
 
 // ─── Button ───────────────────────────────────────────────────────────────────
@@ -182,19 +182,15 @@ export const CountUpNumber: React.FC<{
   );
 };
 
-// ─── Course Card ──────────────────────────────────────────────────────────────
-const courseLevelColors: Record<CourseLevel, 'green' | 'amber' | 'red'> = {
-  BEGINNER: 'green',
-  INTERMEDIATE: 'amber',
-  ADVANCED: 'red',
-};
+// ─── Course Card (PR10 demo-fidelity) ─────────────────────────────────────────
+const COURSE_ACCENTS = ['bg-[#d9f99d]', 'bg-[#f5d0fe]', 'bg-[#bfdbfe]', 'bg-[#fde68a]'];
 
-const getCourseLevelColor = (level?: CourseLevel): 'green' | 'amber' | 'red' | 'gray' => {
-  if (!level) return 'gray';
-  return courseLevelColors[level] ?? 'gray';
+const levelPillClass = (level?: CourseLevel) => {
+  if (level === 'BEGINNER') return 'bg-[#d9f99d] text-black';
+  if (level === 'INTERMEDIATE') return 'bg-[#f5d0fe] text-black';
+  if (level === 'ADVANCED') return 'bg-[#bfdbfe] text-black';
+  return 'bg-black text-white';
 };
-
-const COURSE_ACCENTS = ['bg-brand-lime', 'bg-brand-pink', 'bg-brand-blue', 'bg-amber-200'];
 
 export const CourseCard: React.FC<{
   course: Course;
@@ -203,74 +199,105 @@ export const CourseCard: React.FC<{
   className?: string;
 }> = ({ course, onClick, compact = false, className = '' }) => {
   const accent = COURSE_ACCENTS[(course.title?.length ?? 0) % COURSE_ACCENTS.length];
+  const lessons = course.totalLessons ?? course.lessonCount ?? 0;
+  const learners = course.totalEnrollments ?? course.enrollmentCount ?? 0;
+  const duration = course.estimatedDuration;
+
   return (
-  <Card
-    role={onClick ? 'button' : undefined}
-    tabIndex={onClick ? 0 : undefined}
-    onClick={onClick}
-    onKeyDown={(event) => {
-      if (onClick && (event.key === 'Enter' || event.key === ' ')) {
-        event.preventDefault();
-        onClick();
-      }
-    }}
-    className={`group overflow-hidden transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-black/20 hover:shadow-glow-sm outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream ${onClick ? 'cursor-pointer' : ''} ${className}`}
-  >
-    <div className={`${compact ? 'h-24' : 'h-28'} ${accent} flex items-center justify-center border-b border-black/5 relative overflow-hidden`}>
-      {course.thumbnailUrl ? (
-        <Image
-          src={course.thumbnailUrl}
-          alt={course.title}
-          fill
-          unoptimized
-          className="w-full h-full object-cover transition-transform duration-200 motion-safe:group-hover:scale-[1.03]"
-        />
-      ) : (
-        <BookOpen size={compact ? 24 : 28} className="text-ink/50" />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-white/40 to-transparent" />
-      <div className="absolute top-2 left-2 flex gap-1.5">
-        <Badge color={getCourseLevelColor(course.level)}>{course.level?.slice(0, 3) ?? 'N/A'}</Badge>
-        {course.isPremium && <Badge color="amber">Premium</Badge>}
-      </div>
-      {!course.isPublished && (
-        <div className="absolute top-2 right-2">
-          <Badge color="gray">Draft</Badge>
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      className={`group block overflow-hidden rounded-lg border border-black/10 bg-white transition-all duration-200 motion-safe:hover:-translate-y-1 hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    >
+      <div className={`relative overflow-hidden ${compact ? 'aspect-[16/9] max-h-28' : 'aspect-video'} ${accent} p-4 sm:p-5`}>
+        {course.thumbnailUrl ? (
+          <Image
+            src={course.thumbnailUrl}
+            alt={course.title}
+            fill
+            unoptimized
+            className="object-cover transition-transform duration-200 motion-safe:group-hover:scale-[1.03]"
+          />
+        ) : null}
+        <div className={`relative flex h-full flex-col justify-between rounded-md bg-white/65 p-4 ${course.thumbnailUrl ? 'bg-white/80 backdrop-blur-[1px]' : ''}`}>
+          <div className="flex items-center justify-between gap-2">
+            <Code2 size={compact ? 20 : 26} className="text-ink shrink-0" />
+            <div className="flex flex-wrap items-center justify-end gap-1.5">
+              {course.level ? (
+                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${levelPillClass(course.level)}`}>
+                  {course.level.toLowerCase()}
+                </span>
+              ) : null}
+              {course.isPremium ? (
+                <span className="inline-flex rounded-full bg-black px-2.5 py-0.5 text-[10px] font-medium text-white">
+                  Premium
+                </span>
+              ) : null}
+              {!course.isPublished ? (
+                <span className="inline-flex rounded-full bg-black/10 px-2.5 py-0.5 text-[10px] font-medium text-black/55">
+                  Draft
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div>
+            {course.language ? (
+              <p className="text-xs uppercase tracking-[0.18em] text-black/45">{course.language}</p>
+            ) : null}
+            <p className={`mt-1 font-semibold text-ink leading-snug line-clamp-2 ${compact ? 'text-base' : 'text-lg'}`}>
+              {course.title}
+            </p>
+          </div>
         </div>
-      )}
-    </div>
-
-    <div className={compact ? 'p-3' : 'p-4'}>
-      <h3 className="font-semibold text-ink text-sm leading-tight line-clamp-2 transition-colors group-hover:text-black">
-        {course.title}
-      </h3>
-      {course.description && (
-        <p className="text-xs text-ink-muted line-clamp-2 mt-2">
-          {course.shortDescription || course.description}
-        </p>
-      )}
-
-      <div className="flex items-center gap-3 text-xs text-ink-faint mt-3">
-        <span className="flex items-center gap-1">
-          <BookOpen size={11} />
-          {course.totalLessons ?? course.lessonCount ?? 0} lessons
-        </span>
-        <span className="flex items-center gap-1">
-          <Users size={11} />
-          {course.totalEnrollments ?? course.enrollmentCount ?? 0}
-        </span>
-        {course.language && <span className="tag">{course.language}</span>}
       </div>
 
-      {course.tags && course.tags.length > 0 && (
-        <div className="flex gap-1 mt-2 flex-wrap">
-          {course.tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="tag">{tag}</span>
-          ))}
+      <div className={compact ? 'p-4' : 'p-5'}>
+        {(course.shortDescription || course.description) ? (
+          <p className="line-clamp-2 min-h-11 text-sm text-black/60">
+            {course.shortDescription || course.description}
+          </p>
+        ) : null}
+
+        {course.tags && course.tags.length > 0 ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {course.tags.slice(0, 3).map((tag) => (
+              <span key={tag} className="rounded bg-black/[0.04] px-2 py-1 text-xs text-black/55">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-4 text-xs text-black/50">
+          <span className="flex items-center gap-1">
+            <BookOpen size={13} />
+            {lessons} lessons
+          </span>
+          <span className="flex items-center gap-1">
+            <Users size={13} />
+            {learners.toLocaleString()}
+          </span>
+          {duration != null && duration > 0 ? (
+            <span className="flex items-center gap-1">
+              <Clock size={13} />
+              {duration} min
+            </span>
+          ) : course.averageRating != null ? (
+            <span className="flex items-center gap-1">
+              <Star size={13} className="fill-yellow-400 text-yellow-400" />
+              {course.averageRating.toFixed(1)}
+            </span>
+          ) : null}
         </div>
-      )}
+      </div>
     </div>
-  </Card>
   );
 };
 

@@ -1,19 +1,30 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Bookmark as BookmarkIcon, BookOpen, Trash2 } from 'lucide-react';
+import { ArrowRight, Bookmark as BookmarkIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { bookmarksService } from '../../services';
-import { Card, EmptyState, Skeleton } from '../../components/shared';
+import { EmptyState, Skeleton } from '../../components/shared';
 import type { Bookmark, PaginationMeta } from '../../types';
+import {
+  DemoDisplayTitle,
+  DemoHeroWhite,
+  DemoMuted,
+  DemoPageRoot,
+  DemoPill,
+} from '../ui-reskin/demo-ui';
 
 type BookmarksQueryData = {
   data: Bookmark[];
   meta?: PaginationMeta;
 };
 
+/**
+ * PR10 — bookmarks list mirrors DemoBookmarksPage card grid.
+ * LOGIC LOCK: getAll, optimistic remove via toggle.
+ */
 export const BookmarksPage: React.FC = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -68,55 +79,60 @@ export const BookmarksPage: React.FC = () => {
   });
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
-      <div className="flex items-center gap-2">
-        <BookmarkIcon size={18} className="text-violet-400" />
-        <h1 className="font-mono font-bold text-2xl text-ink">Bookmarks</h1>
-      </div>
+    <DemoPageRoot>
+      <DemoHeroWhite>
+        <DemoPill tone="blue">Bookmarks</DemoPill>
+        <DemoDisplayTitle>Saved lessons for quick review.</DemoDisplayTitle>
+        <DemoMuted>
+          Jump back into bookmarked lessons. Data from the bookmark service — not demo fixtures.
+        </DemoMuted>
+      </DemoHeroWhite>
 
       {isLoading ? (
-        <div className="flex flex-col gap-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-14 rounded-xl" />
+            <Skeleton key={i} className="h-36 rounded-lg" />
           ))}
         </div>
+      ) : isError ? (
+        <EmptyState
+          icon={<BookmarkIcon size={36} />}
+          title="Could not load bookmarks"
+          description="Please try again in a moment"
+        />
       ) : bookmarks.length > 0 ? (
-        <div className="flex flex-col gap-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {bookmarks.map((bm) => (
-            <Card
+            <div
               key={bm._id}
-              className="p-3 flex items-center gap-3 hover:border-violet-500/20 transition-all"
+              className="group rounded-lg border border-black/10 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                <BookOpen size={14} className="text-violet-400" />
+              <div className="flex items-start justify-between gap-3">
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => router.push(`/lessons/${bm.targetId}`)}
+                >
+                  <p className="text-xs uppercase tracking-[0.18em] text-black/40">
+                    Saved {new Date(bm.createdAt).toLocaleDateString()}
+                  </p>
+                  <h2 className="mt-3 text-xl font-semibold text-ink">
+                    {bm.title || `Lesson #${bm.targetId.slice(-6)}`}
+                  </h2>
+                  <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-ink">
+                    Open lesson <ArrowRight size={15} />
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleBookmark(bm.targetId)}
+                  className="rounded-lg p-2 text-black/35 transition hover:bg-rose-50 hover:text-rose-600"
+                  title="Remove bookmark"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
-              <div
-                role="button"
-                tabIndex={0}
-                className="flex-1 min-w-0 cursor-pointer"
-                onClick={() => router.push(`/lessons/${bm.targetId}`)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    router.push(`/lessons/${bm.targetId}`);
-                  }
-                }}
-              >
-                <p className="text-sm text-ink font-mono truncate hover:text-violet-300 transition-colors">
-                  {bm.title || `Lesson #${bm.targetId.slice(-6)}`}
-                </p>
-                <p className="text-xs text-ink-faint font-mono">
-                  Saved {new Date(bm.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <button
-                onClick={() => toggleBookmark(bm.targetId)}
-                className="p-2 text-ink-faint hover:text-rose-400 hover:bg-rose-500/5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-violet-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f]"
-                title="Remove bookmark"
-              >
-                <Trash2 size={14} />
-              </button>
-            </Card>
+            </div>
           ))}
         </div>
       ) : (
@@ -126,6 +142,6 @@ export const BookmarksPage: React.FC = () => {
           description="Bookmark lessons to find them quickly later"
         />
       )}
-    </div>
+    </DemoPageRoot>
   );
 };
