@@ -1,15 +1,32 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Clock, CheckCircle, ChevronRight, XCircle, Zap, History } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { History } from 'lucide-react';
 import { toast } from 'sonner';
 import { quizService } from '../../services';
-import { Card, Badge, Skeleton, EmptyState } from '../../components/shared';
+import {
+  DemoDisplayTitle,
+  DemoHeroWhite,
+  DemoMuted,
+  DemoPageRoot,
+  DemoPill,
+  DemoPrimaryButton,
+  DemoWhitePanel,
+  UI_PLACEHOLDERS,
+  formatPercent,
+} from '../ui-reskin/demo-ui';
 
+/**
+ * Visual layout mirrors DemoQuizHistoryPage:
+ * white hero (pink pill + display title) → simple white rows
+ * [title | score | status pill | XP]
+ * Data + links still from quizService.getMyAttempts / attempt detail routes.
+ */
 export const QuizHistoryPage: React.FC = () => {
-  const { data: attempts, isLoading, isError } = useQuery({
+  const { data: attempts, isLoading, isError, refetch } = useQuery({
     queryKey: ['quiz-attempts-me'],
     queryFn: quizService.getMyAttempts,
   });
@@ -21,100 +38,88 @@ export const QuizHistoryPage: React.FC = () => {
   }, [isError]);
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
-      <div className="flex items-center gap-2">
-        <History size={18} className="text-violet-400" />
-        <h1 className="font-mono font-bold text-2xl text-gray-100">Quiz History</h1>
-      </div>
-      <p className="text-gray-600 font-mono text-sm -mt-3">
-        Review your past quiz attempts and scores
-      </p>
+    <DemoPageRoot>
+      <DemoHeroWhite>
+        <DemoPill tone="pink">Quiz attempts</DemoPill>
+        <DemoDisplayTitle>Attempt history from quiz-attempts module.</DemoDisplayTitle>
+        <DemoMuted>
+          Score, pass state, XP reward, and links to each attempt detail — from the real API.
+        </DemoMuted>
+      </DemoHeroWhite>
 
       {isLoading ? (
-        <div className="flex flex-col gap-2">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-16 rounded-xl" />
+        <DemoWhitePanel>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[72px] animate-pulse border-b border-black/10 bg-[#f7f4ee]/80 last:border-b-0"
+            />
           ))}
-        </div>
+        </DemoWhitePanel>
       ) : isError ? (
-        <EmptyState
-          icon={<History size={36} />}
-          title="Could not load quiz history"
-          description="Please try again in a moment"
-        />
+        <DemoWhitePanel className="p-8 text-center">
+          <History className="mx-auto text-rose-500" size={32} />
+          <h2 className="mt-4 text-xl font-semibold text-black">Could not load quiz history</h2>
+          <p className="mt-2 text-sm text-black/55">Please try again in a moment.</p>
+          <DemoPrimaryButton className="mt-5" onClick={() => refetch()}>
+            Retry
+          </DemoPrimaryButton>
+        </DemoWhitePanel>
       ) : attempts && attempts.length > 0 ? (
-        <Card className="overflow-hidden divide-y divide-white/[0.04]">
-          {attempts.map((attempt) => {
-            const finishedAt = attempt.completedAt ?? attempt.createdAt;
-            const duration = attempt.timeTaken ?? (
-              attempt.startedAt && finishedAt
-                ? Math.max(0, Math.floor((new Date(finishedAt).getTime() - new Date(attempt.startedAt).getTime()) / 1000))
-                : 0
-            );
+        <DemoWhitePanel>
+          {attempts.map((attempt, index) => {
+            const title = UI_PLACEHOLDERS.quizAttemptTitle(attempt.quizId);
+            const xpLabel =
+              attempt.xpRewarded != null
+                ? `${attempt.xpRewarded > 0 ? '+' : ''}${attempt.xpRewarded} XP`
+                : attempt.passed
+                  ? '+XP'
+                  : '+0 XP';
+            const statusLabel = attempt.passed ? 'Passed' : 'Retry';
 
             return (
-              <Link
+              <motion.div
                 key={attempt._id}
-                href={`/quiz/attempts/${attempt._id}`}
-                className="flex items-center gap-4 px-4 py-3 hover:bg-white/[0.02] transition-colors"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.18, delay: Math.min(index * 0.03, 0.25) }}
               >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    attempt.passed
-                      ? 'bg-emerald-500/10'
-                      : 'bg-rose-500/10'
-                  }`}
+                <Link
+                  href={`/quiz/attempts/${attempt._id}`}
+                  className="grid gap-3 border-b border-black/10 p-5 last:border-b-0 transition-colors hover:bg-black/[0.02] sm:grid-cols-[1fr_100px_100px_100px] sm:items-center"
                 >
-                  {attempt.passed ? (
-                    <CheckCircle size={16} className="text-emerald-400" />
-                  ) : (
-                    <XCircle size={16} className="text-rose-400" />
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-gray-200 font-mono font-medium truncate">
-                      Quiz #{attempt.quizId.slice(-6)}
-                    </p>
-                    <Badge color={attempt.passed ? 'green' : 'red'}>
-                      {attempt.passed ? 'PASSED' : 'FAILED'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-600 font-mono">
-                    <span className="flex items-center gap-1">
-                      <Zap size={10} />
-                      {attempt.score.toFixed(0)}%
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock size={10} />
-                      {Math.floor(duration / 60)}m {duration % 60}s
-                    </span>
-                    <span>{finishedAt ? new Date(finishedAt).toLocaleDateString() : 'No date'}</span>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <p
-                    className={`text-lg font-mono font-bold ${
-                      attempt.passed ? 'text-emerald-400' : 'text-rose-400'
+                  <p className="font-medium text-black">{title}</p>
+                  <p className="text-sm text-black/55">{formatPercent(attempt.score)}</p>
+                  <span
+                    className={`w-fit rounded-full px-3 py-1 text-xs ${
+                      attempt.passed
+                        ? 'bg-[#d9f99d] text-black'
+                        : 'bg-[#fecaca] text-[#7f1d1d]'
                     }`}
                   >
-                    {attempt.score.toFixed(0)}%
-                  </p>
-                </div>
-                <ChevronRight size={14} className="text-gray-700 shrink-0" />
-              </Link>
+                    {statusLabel}
+                  </span>
+                  <p className="text-sm font-medium text-black">{xpLabel}</p>
+                </Link>
+              </motion.div>
             );
           })}
-        </Card>
+        </DemoWhitePanel>
       ) : (
-        <EmptyState
-          icon={<History size={36} />}
-          title="No quiz attempts yet"
-          description="Complete quizzes to see your history here"
-        />
+        <DemoWhitePanel className="p-8 text-center">
+          <History className="mx-auto text-black/30" size={32} />
+          <h2 className="mt-4 text-xl font-semibold text-black">No quiz attempts yet</h2>
+          <p className="mt-2 text-sm text-black/55">
+            Complete a quiz from a lesson to see history here.
+          </p>
+          <Link
+            href="/courses"
+            className="mt-5 inline-flex rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white"
+          >
+            Browse courses
+          </Link>
+        </DemoWhitePanel>
       )}
-    </div>
+    </DemoPageRoot>
   );
 };
