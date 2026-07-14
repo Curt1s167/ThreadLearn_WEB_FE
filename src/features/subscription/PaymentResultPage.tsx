@@ -6,8 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertCircle, ArrowRight, CheckCircle, CreditCard, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionService } from '../../services';
-import { Button, Card, EmptyState, Skeleton } from '../../components/shared';
+import { Skeleton } from '../../components/shared';
 import type { PaymentConfirmationPayload } from '../../types';
+import {
+  DemoDisplayTitle,
+  DemoMuted,
+  DemoPageRoot,
+  DemoPill,
+} from '../ui-reskin/demo-ui';
 
 const isActiveSubscription = (status?: string) => status?.toLowerCase() === 'active';
 
@@ -31,10 +37,10 @@ type PaymentResultMode = 'real' | 'mock';
 
 const MAX_POLL_ATTEMPTS = 5;
 
-// TEMP DIAGNOSTIC — module-level so they survive component remounts (detects a remount loop).
-// let prdbgMountCount = 0;
-// let prdbgFireCount = 0;
-
+/**
+ * PR7 — payment result visual polish only.
+ * LOGIC LOCK: mock webhook confirm, real poll getMyPlan, security split real/mock.
+ */
 export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode = 'real' }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -47,15 +53,15 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   const transactionId = searchParams.get('transactionId') ?? searchParams.get('vnp_TxnRef');
   const responseCode = searchParams.get('vnp_ResponseCode');
   const rawStatus = searchParams.get('status')?.toLowerCase();
-  const inferredMockStatus = isMockPayment && (purchaseId || transactionId) && !responseCode && !rawStatus
-    ? 'success'
-    : undefined;
+  const inferredMockStatus =
+    isMockPayment && (purchaseId || transactionId) && !responseCode && !rawStatus
+      ? 'success'
+      : undefined;
   // SECURITY: Only the MOCK page may POST the webhook to simulate VNPay's signed, server-to-server IPN.
-  // The REAL callback must NEVER call the webhook from the browser — it only polls getMyPlan(), which
-  // reflects the subscription state the real IPN has already written server-side.
-  const shouldConfirmPayment = isMockPayment && Boolean(
-    (purchaseId || transactionId) && (responseCode || rawStatus || inferredMockStatus)
-  );
+  // The REAL callback must NEVER call the webhook from the browser — it only polls getMyPlan().
+  const shouldConfirmPayment =
+    isMockPayment &&
+    Boolean((purchaseId || transactionId) && (responseCode || rawStatus || inferredMockStatus));
 
   const paymentPayload = useMemo(
     () => buildPaymentPayload(searchParams, inferredMockStatus),
@@ -70,8 +76,6 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   } = useQuery({
     queryKey: ['my-subscription'],
     queryFn: subscriptionService.getMyPlan,
-    // On the real callback the browser may land before the IPN finished processing — poll a few
-    // times until the plan turns active, then stop. Mock never polls (webhook confirm is synchronous).
     refetchInterval: (query) => {
       if (mode !== 'real') return false;
       if (isActiveSubscription(query.state.data?.status)) return false;
@@ -84,7 +88,6 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   const {
     mutate: confirmPayment,
     data: confirmResult,
-    error: confirmError,
     isPending: isConfirmingPayment,
     isError: isConfirmError,
   } = useMutation({
@@ -100,147 +103,142 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     queryClient.invalidateQueries({ queryKey: ['my-subscription'] });
   }, [queryClient]);
 
-  // useEffect(() => {
-  //   prdbgMountCount += 1;
-  //   // eslint-disable-next-line no-console
-  //   console.log('[PRDBG] PaymentResultPage mounted', prdbgMountCount);
-  // }, []);
-
   useEffect(() => {
     if (!shouldConfirmPayment || hasSubmittedConfirmation.current) return;
     hasSubmittedConfirmation.current = true;
-    // prdbgFireCount += 1;
-    // eslint-disable-next-line no-console
-    // console.log('[PRDBG] firing confirmPayment', prdbgFireCount, paymentPayload);
     confirmPayment(paymentPayload);
   }, [confirmPayment, paymentPayload, shouldConfirmPayment]);
 
   const hasActivePlan = isActiveSubscription(myPlan?.status);
-  // Mock: the webhook confirm response is authoritative — it synchronously activates the
-  // subscription and returns the purchase status. Key the verdict off it directly so success does
-  // not depend on the (slower) my-subscription refetch landing first, which briefly flashed a
-  // wrong result against the stale pre-webhook plan.
   const mockPaymentSucceeded = isMockPayment && confirmResult?.status === 'succeeded';
   const paymentSucceeded = hasActivePlan || mockPaymentSucceeded;
   const hasGatewayFailure = Boolean(
     (responseCode && responseCode !== '00') ||
-    (rawStatus && !['success', 'succeeded', 'paid'].includes(rawStatus))
+      (rawStatus && !['success', 'succeeded', 'paid'].includes(rawStatus))
   );
   const hasPaymentSignal = Boolean(purchaseId || transactionId || responseCode || rawStatus);
-  const isPolling = mode === 'real'
-    && isFetchingPlan
-    && hasPaymentSignal
-    && !hasActivePlan
-    && pollAttempts.current < MAX_POLL_ATTEMPTS;
-  // If the plan is already active (or the mock confirm returned 'succeeded') there is no reason
-  // to keep the user staring at a skeleton while a dangling webhook request finishes. Short-circuit.
+  const isPolling =
+    mode === 'real' &&
+    isFetchingPlan &&
+    hasPaymentSignal &&
+    !hasActivePlan &&
+    pollAttempts.current < MAX_POLL_ATTEMPTS;
   const isChecking = !paymentSucceeded && (isLoadingPlan || isConfirmingPayment || isPolling);
 
-  // TEMP DIAGNOSTIC (dev only) — commented out after confirming the fix works.
-  // const debugLine =
-  //   process.env.NODE_ENV !== 'production'
-  //     ? `PRDBG mode=${mode} checking=${isChecking} loadPlan=${isLoadingPlan} confirming=${isConfirmingPayment} polling=${isPolling} confirmStatus=${confirmResult?.status ?? 'none'} planStatus=${myPlan?.status ?? 'none'} active=${hasActivePlan} succeeded=${paymentSucceeded} shouldConfirm=${shouldConfirmPayment} signal=${hasPaymentSignal} planErr=${isPlanError} confirmErr=${isConfirmError} mounts=${prdbgMountCount} fires=${prdbgFireCount} confirmErrMsg=${(confirmError as { message?: string } | null)?.message ?? 'none'}`
-  //     : null;
-  const debugLine = null;
+  const ResultShell = ({
+    tone,
+    pill,
+    title,
+    description,
+    icon,
+  }: {
+    tone: 'success' | 'fail' | 'neutral';
+    pill: string;
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+  }) => (
+    <DemoPageRoot className="max-w-xl mx-auto">
+      <section
+        className={`rounded-lg p-6 sm:p-8 ${
+          tone === 'success'
+            ? 'bg-[#d9f99d]'
+            : tone === 'fail'
+              ? 'bg-[#fecaca]'
+              : 'bg-white border border-black/10'
+        }`}
+      >
+        <DemoPill tone={tone === 'success' ? 'default' : tone === 'fail' ? 'pink' : 'blue'}>
+          {pill}
+        </DemoPill>
+        <div className="mt-5">{icon}</div>
+        <DemoDisplayTitle>{title}</DemoDisplayTitle>
+        <DemoMuted className={tone === 'success' || tone === 'fail' ? '!text-black/65' : ''}>
+          {description}
+        </DemoMuted>
+        {mode === 'mock' ? (
+          <p className="mt-3 text-xs uppercase tracking-[0.14em] text-black/40">Mock VNPay callback</p>
+        ) : (
+          <p className="mt-3 text-xs uppercase tracking-[0.14em] text-black/40">Live payment result</p>
+        )}
+        <div className="mt-8 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => router.push('/pricing')}
+            className="inline-flex items-center gap-2 rounded-full border border-black/15 bg-white/80 px-5 py-2.5 text-sm font-medium text-ink hover:bg-white"
+          >
+            <CreditCard size={14} />
+            Pricing
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard')}
+            className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-black/90"
+          >
+            Dashboard
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      </section>
+    </DemoPageRoot>
+  );
 
   if (isChecking) {
     return (
-      <div className="flex flex-col gap-4 max-w-xl mx-auto animate-fade-in">
-        {/* {debugLine ? <p data-testid="pr-debug" className="text-xs text-amber-400 font-mono break-all">{debugLine}</p> : null} */}
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
+      <DemoPageRoot className="max-w-xl mx-auto">
+        <Skeleton className="h-64 rounded-lg" />
+        <p className="text-center text-sm text-black/50">Verifying payment…</p>
+      </DemoPageRoot>
     );
   }
 
   if ((isPlanError || isConfirmError) && !paymentSucceeded) {
     return (
-      <Card className="max-w-xl mx-auto p-6">
-        <EmptyState
-          icon={<AlertCircle size={36} />}
-          title="Could not verify payment"
-          description="Please check your subscription again in a moment"
-          action={(
-            <div className="flex flex-wrap justify-center gap-3">
-              <Button variant="outline" onClick={() => router.push('/pricing')}>
-                <CreditCard size={14} />
-                Về trang gói
-              </Button>
-              <Button onClick={() => router.push('/dashboard')}>
-                Về dashboard
-                <ArrowRight size={14} />
-              </Button>
-            </div>
-          )}
-        />
-      </Card>
+      <ResultShell
+        tone="fail"
+        pill="Error"
+        title="Could not verify payment"
+        description="Please check your subscription again in a moment."
+        icon={<AlertCircle size={36} className="text-[#7f1d1d]" />}
+      />
     );
   }
 
   if (!hasPaymentSignal && !paymentSucceeded) {
     return (
-      <Card className="max-w-xl mx-auto p-6">
-        <EmptyState
-          icon={<CreditCard size={36} />}
-          title="No payment result found"
-          description="Start from the pricing page to create a new payment request"
-          action={(
-            <Button onClick={() => router.push('/pricing')}>
-              <CreditCard size={14} />
-              Về trang gói
-            </Button>
-          )}
-        />
-      </Card>
+      <ResultShell
+        tone="neutral"
+        pill="No result"
+        title="No payment result found"
+        description="Start from the pricing page to create a new payment request."
+        icon={<CreditCard size={36} className="text-black/40" />}
+      />
     );
   }
 
   if (paymentSucceeded) {
     return (
-      <Card className="max-w-xl mx-auto p-6 border-emerald-500/25 bg-emerald-500/5">
-        <EmptyState
-          icon={<CheckCircle size={42} className="text-emerald-400" />}
-          title="Payment successful"
-          description="Your premium subscription is active"
-          action={(
-            <div className="flex flex-wrap justify-center gap-3">
-              <Button variant="outline" onClick={() => router.push('/pricing')}>
-                <CreditCard size={14} />
-                Về trang gói
-              </Button>
-              <Button onClick={() => router.push('/dashboard')}>
-                Về dashboard
-                <ArrowRight size={14} />
-              </Button>
-            </div>
-          )}
-        />
-      </Card>
+      <ResultShell
+        tone="success"
+        pill="Succeeded"
+        title="Payment successful"
+        description="Your premium subscription is active. Gamification and plan access will use the updated subscription."
+        icon={<CheckCircle size={36} className="text-black" />}
+      />
     );
   }
 
   return (
-    <Card className="max-w-xl mx-auto p-6 border-rose-500/25 bg-rose-500/5">
-      <EmptyState
-        icon={<XCircle size={42} className="text-rose-400" />}
-        title="Payment failed"
-        description={
-          hasGatewayFailure
-            ? 'The payment gateway did not approve this transaction'
-            : 'We could not find an active subscription for this payment'
-        }
-        action={(
-          <div className="flex flex-wrap justify-center gap-3">
-            <Button variant="outline" onClick={() => router.push('/pricing')}>
-              <CreditCard size={14} />
-              Về trang gói
-            </Button>
-            <Button onClick={() => router.push('/dashboard')}>
-              Về dashboard
-              <ArrowRight size={14} />
-            </Button>
-          </div>
-        )}
-      />
-    </Card>
+    <ResultShell
+      tone="fail"
+      pill="Failed"
+      title="Payment failed"
+      description={
+        hasGatewayFailure
+          ? 'The payment gateway did not approve this transaction.'
+          : 'We could not find an active subscription for this payment.'
+      }
+      icon={<XCircle size={36} className="text-[#7f1d1d]" />}
+    />
   );
 };

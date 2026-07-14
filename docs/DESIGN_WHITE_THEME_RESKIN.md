@@ -10,7 +10,7 @@
 | **Legacy WIP branch** | `feat/dev4-ui-reskin-pilot-demo-pages` (same file tree; messier commits — do not continue) |
 | **Visual reference** | `origin/refactor/fe-next-demo-flow` → `DemoAppShell` + `Demo*Page` |
 | **Related docs** | `docs/DEV4_FE_PROTECTED_SURFACE.md`, `docs/DEV4_UI_RESKIN_PILOT.md` |
-| **Last progress update** | 2026-07-13 — rebased as atomic commits on develop; PR6 included |
+| **Last progress update** | 2026-07-13 — PR7 pricing/payment fidelity on `feat/ui-light-theme-reskin` |
 
 ### Implementation progress (PR tracker)
 
@@ -23,7 +23,7 @@
 | **PR4** | Pilot layout polish vs `Demo*Page` | ✅ **Done** | `369bebf` | **`/dashboard`**, **`/leaderboard`**, **`/quiz/history`** |
 | **PR5** | Auth light + public 403/404 | ✅ **Done** | `d5e1ff6` | **`/login`**, **`/register`**, **`/forgot-password`**, **`/403`** |
 | **PR6** | Quiz take + attempt detail fidelity (timer safe) | ✅ **Done** | `c356005` | **`/quiz/[lessonId]`**, **`/quiz/attempts/[id]`** |
-| **PR7** | Pricing / payment fidelity | ⬜ Pending | — | `/pricing`, callback, mock VNPay |
+| **PR7** | Pricing / payment fidelity | ✅ **Done** | *(see latest style(subscription) commit)* | **`/pricing`**, **`/pricing/callback`**, **`/mock-payment/vnpay`** |
 | **PR8** | Admin quizzes & plans fidelity | ⬜ Pending | — | `/admin/quizzes`, `/admin/plans` |
 | **PR9** | XP widget / profile fidelity | ⬜ Pending | — | `/profile` |
 | **PR10** | Courses / lessons demo fidelity (Dev4 owns after PR6–9) | ⬜ Pending | — | `/courses`, `/lessons/[id]` |
@@ -789,7 +789,7 @@ Resolved into Key Decisions where they blocked PR2/PR3. User decisions (2026-07-
 1. **Who owns PR10** (courses/lessons full demo fidelity) — **Dev4**, after Dev4 pages (PR6–PR9).  
 2. **Bandwidth:** **Keep PR7 and PR8 separate** (recommended). PR6 quiz take always isolated. Contrast bridge (PR3) stays mandatory.  
 3. **Optional later:** Replace grandfathered `/` and `/ide` with real feature pages that do not import `demo-data` — not required for this epic.  
-4. **Next implementation step:** ~~PR1–PR5~~ ✅ · ~~PR6~~ ✅. **Next:** PR7 (pricing fidelity) or PR8 (admin quizzes/plans).
+4. **Next implementation step:** ~~PR1–PR7~~ ✅. **Next:** PR8 (admin quizzes/plans) or PR9 (XP/profile).
 
 ---
 
@@ -896,13 +896,13 @@ These three landed together on the feature branch (single merge-unit commit). In
 6. PR description lists **unchanged** hooks/effects (timer `useEffect`s, `submit` mutation) for reviewers.  
 7. Class edits near timer display only — no logic moves.
 
-### PR7 — Subscription pricing & payment fidelity — ⬜ PENDING
+### PR7 — Subscription pricing & payment fidelity — ✅ DONE
 
 | | |
 |--|--|
-| **Status** | ⬜ Pending |
+| **Status** | ✅ Done — demo-light pricing cards + payment result shells; purchase/poll/mock webhook locked |
 | **Title** | `style(subscription): pricing/payment demo-level light UI` |
-| **Files** | `PricingPage.tsx`, `PricingPlans.tsx`, `PaymentResultPage.tsx`, mock-payment pages |
+| **Files** | `PricingPage.tsx`, `PricingPlans.tsx`, `PaymentResultPage.tsx` |
 | **Depends on** | **PR3** |
 | **Test pages** | `/pricing`, `/pricing/callback`, `/mock-payment/vnpay` |
 | **Description** | Polish beyond contrast (plan cards, lime current plan, black CTA). Keep `subscriptionService`. |

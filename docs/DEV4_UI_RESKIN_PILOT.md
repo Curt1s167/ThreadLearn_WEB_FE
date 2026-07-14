@@ -23,7 +23,7 @@ Xem thêm:
 | PR4 | Pilot layout polish = Demo\*Page | ✅ Done | `369bebf` | `/dashboard`, `/leaderboard`, `/quiz/history` |
 | PR5 | Auth light + 403/404 | ✅ Done | `d5e1ff6` | `/login`, `/register`, `/forgot-password`, `/403` |
 | PR6 | Quiz take + attempt detail fidelity | ✅ Done | `c356005` | `/quiz/[lessonId]`, `/quiz/attempts/[id]` |
-| PR7 | Pricing / payment fidelity | ⬜ Pending | — | `/pricing` |
+| **PR7** | **Pricing / payment fidelity** | ✅ **Done** | *(style(subscription))* | **`/pricing`**, **callback**, **mock VNPay** |
 | PR8 | Admin quizzes / plans fidelity | ⬜ Pending | — | `/admin/quizzes`, `/admin/plans` |
 | PR9 | XP widget / profile | ⬜ Pending | — | `/profile` |
 | PR10 | Courses / lessons demo (Dev4 sau PR6–9) | ⬜ Pending | — | `/courses`, `/lessons/[id]` |
@@ -62,7 +62,8 @@ npm run dev
 
 | Hạng mục | PR |
 |----------|-----|
-| Pricing / payment polish | **PR7 (next)** |
+| ~~Pricing / payment polish~~ | ~~PR7~~ ✅ |
+| Admin quizzes / plans polish | **PR8 (next)** |
 | Admin quizzes / plans polish | PR8 |
 | Profile / XP widget polish | PR9 |
 | Courses list / lesson room full demo | PR10 |
