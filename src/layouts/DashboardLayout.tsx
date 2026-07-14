@@ -4,6 +4,10 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import {
+  MAIN_COLLAPSED_PL,
+  MAIN_EXPANDED_PL,
+} from './shell-metrics';
 import { useAuthStore, useUIStore } from '../store';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useSocket } from '../hooks/useSocket';
@@ -14,10 +18,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
   const { hasHydrated, isAuthenticated } = useAuthStore();
   const router = useRouter();
 
-  // Bootstrap: revalidate user session + load stats
   useAuthBootstrap();
-
-  // Socket.IO: listen for realtime events (UC32, UC45, UC46)
   useSocket();
 
   React.useEffect(() => {
@@ -28,19 +29,19 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
 
   if (!hasHydrated || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="w-7 h-7 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-canvas-cream flex items-center justify-center">
+        <div className="h-10 w-10 rounded-full border-2 border-black/20 border-t-black animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen bg-canvas-cream text-ink">
       <Sidebar />
       <Topbar />
       <main
         className={`pt-14 min-h-screen transition-all duration-200 ${
-          sidebarCollapsed ? 'pl-14' : 'pl-56'
+          sidebarCollapsed ? MAIN_COLLAPSED_PL : MAIN_EXPANDED_PL
         }`}
       >
         <div className="p-6 max-w-7xl mx-auto">
