@@ -5,8 +5,12 @@ import { useQuery } from '@tanstack/react-query';
 import { AlertCircle, BookOpen, Flame, GraduationCap, Star, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { gamificationService } from '../../services';
-import { Card, CountUpNumber, EmptyState, Skeleton } from '../../components/shared';
+import { CountUpNumber, EmptyState, Skeleton } from '../../components/shared';
 
+/**
+ * PR9 — gamification stats widget in demo light language.
+ * LOGIC LOCK: getStats query, level-up pop, toast on error.
+ */
 export const XpLevelStreakWidget: React.FC = () => {
   const previousLevelRef = useRef<number | null>(null);
   const [levelJustChanged, setLevelJustChanged] = useState(false);
@@ -39,9 +43,9 @@ export const XpLevelStreakWidget: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-5">
-        <Skeleton className="h-28 rounded-xl" />
-        <div className="grid grid-cols-2 gap-3">
-          <Skeleton className="h-24 rounded-xl" count={4} />
+        <Skeleton className="h-28 rounded-lg" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Skeleton className="h-24 rounded-lg" count={3} />
         </div>
       </div>
     );
@@ -73,85 +77,95 @@ export const XpLevelStreakWidget: React.FC = () => {
   const lastActiveDate = stats.lastActiveDate
     ? new Date(stats.lastActiveDate).toLocaleDateString()
     : 'No activity yet';
+  const quizzesDone = stats.quizzesCompleted ?? stats.totalQuizzesPassed ?? 0;
 
   const statCards = [
     {
-      icon: <Star size={16} className="text-ink-muted" />,
+      icon: <Star size={16} />,
       label: 'Total XP',
-      value: stats.xp.toLocaleString(),
-      bg: 'bg-brand-lime/40',
+      value: <CountUpNumber value={stats.xp} />,
+      shell: 'bg-[#d9f99d]',
     },
     {
-      icon: <Flame size={16} className="text-amber-400" />,
+      icon: <Flame size={16} />,
       label: 'Current streak',
       value: `${currentStreak} days`,
-      bg: 'bg-amber-500/10',
+      shell: 'bg-[#fde68a]',
     },
     {
-      icon: <BookOpen size={16} className="text-emerald-400" />,
+      icon: <BookOpen size={16} />,
       label: 'Lessons completed',
       value: stats.totalLessonsCompleted.toLocaleString(),
-      bg: 'bg-emerald-500/10',
+      shell: 'bg-[#bfdbfe]',
     },
     {
-      icon: <Trophy size={16} className="text-sky-400" />,
+      icon: <Trophy size={16} />,
       label: 'Quizzes completed',
-      value: (stats.quizzesCompleted ?? stats.totalQuizzesPassed ?? 0).toLocaleString(),
-      bg: 'bg-sky-500/10',
+      value: quizzesDone.toLocaleString(),
+      shell: 'bg-[#f5d0fe]',
     },
   ];
 
   return (
     <div className="flex flex-col gap-5">
-      <Card className={`p-5 transition-shadow duration-200 ${levelJustChanged ? 'border-accent-500/40 shadow-glow motion-safe:animate-level-pop' : ''}`}>
+      <div
+        className={`rounded-lg border border-black/10 bg-white p-6 shadow-sm transition-shadow duration-200 ${
+          levelJustChanged ? 'ring-2 ring-[#d9f99d] motion-safe:animate-level-pop' : ''
+        }`}
+      >
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-brand-lime/40 flex items-center justify-center shrink-0">
-            <GraduationCap size={22} className="text-ink" />
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#d9f99d]">
+            <GraduationCap size={26} className="text-ink" />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <span className="font-mono font-semibold text-ink text-sm">Level {stats.level}</span>
-              <span className="text-xs text-ink-muted font-mono">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="text-sm font-semibold text-ink">Level {stats.level}</span>
+              <span className="text-xs text-black/50">
                 <CountUpNumber value={stats.xp} /> / {nextLevelXp.toLocaleString()} XP
               </span>
             </div>
-            <div className="h-2 bg-black/[0.04] rounded-full overflow-hidden">
+            <div className="h-2 overflow-hidden rounded-full bg-black/5">
               <div
-                className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-200"
+                className="h-full rounded-full bg-black transition-all duration-200"
                 style={{ width: `${levelProgress}%` }}
               />
             </div>
-            <p className="text-xs text-ink-muted font-mono mt-2">Last active: {lastActiveDate}</p>
+            <p className="mt-2 text-xs text-black/45">Last active: {lastActiveDate}</p>
           </div>
         </div>
-      </Card>
+      </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {statCards.map((item) => (
-          <Card key={item.label} className="p-4 flex items-center gap-3 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-black/10">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.bg} ${item.label === 'Current streak' ? 'shadow-sm shadow-amber-400/20' : ''}`}>
+          <div
+            key={item.label}
+            className="rounded-lg border border-black/10 bg-white p-4 shadow-sm transition motion-safe:hover:-translate-y-0.5"
+          >
+            <div
+              className={`mb-3 flex h-8 w-8 items-center justify-center rounded-lg ${item.shell}`}
+            >
               {item.icon}
             </div>
-            <div className="min-w-0">
-              <p className="text-xs text-ink-muted font-mono">{item.label}</p>
-              <p className="text-lg font-mono font-bold text-ink truncate">
-                {item.label === 'Total XP' ? <CountUpNumber value={stats.xp} /> : item.value}
-              </p>
-            </div>
-          </Card>
+            <p className="text-xs text-black/45">{item.label}</p>
+            <p className="mt-1 text-xl font-semibold text-ink">{item.value}</p>
+          </div>
         ))}
       </div>
 
-      <Card className="p-4 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs text-ink-muted font-mono">Highest streak</p>
-          <p className="text-lg font-mono font-bold text-ink">{stats.highestStreak ?? currentStreak} days</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-black/10 bg-[#f7f4ee] p-4">
+          <p className="text-xs text-black/45">Highest streak</p>
+          <p className="mt-1 text-2xl font-semibold text-ink">
+            {stats.highestStreak ?? currentStreak} days
+          </p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-ink-muted font-mono">Courses completed</p>
-          <p className="text-lg font-mono font-bold text-ink">{stats.coursesCompleted ?? 0}</p>
+        <div className="rounded-lg border border-black/10 bg-[#f7f4ee] p-4">
+          <p className="text-xs text-black/45">Courses completed</p>
+          <p className="mt-1 text-2xl font-semibold text-ink">
+            {stats.coursesCompleted ?? 0}
+          </p>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
