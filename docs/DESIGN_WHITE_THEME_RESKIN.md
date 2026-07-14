@@ -26,7 +26,7 @@
 | **PR7** | Pricing / payment fidelity | ✅ **Done** | `4f91d3c` | **`/pricing`**, **`/pricing/callback`**, **`/mock-payment/vnpay`** |
 | **PR8** | Admin quizzes & plans fidelity | ✅ **Done** | `8cf3be0` | **`/admin/quizzes`**, **`/admin/plans`**, **`/admin`** |
 | **PR9** | XP widget / profile fidelity | ✅ **Done** | `04be21b` | **`/profile`** |
-| **PR10** | Courses / lessons demo fidelity | ✅ **Done** | PENDING_HASH | **`/courses`**, **`/courses/[id]`**, **`/lessons/[id]`**, **`/bookmarks`** |
+| **PR10** | Courses / lessons demo fidelity | ✅ **Done** | `5b60ca8` | **`/courses`**, **`/courses/[id]`**, **`/lessons/[id]`**, **`/bookmarks`** |
 
 **History note:** Rebuilt from `origin/develop` (`739319a`) with **one commit per PR** for review. Content matches prior WIP branch `feat/dev4-ui-reskin-pilot-demo-pages`.
 
@@ -935,7 +935,7 @@ These three landed together on the feature branch (single merge-unit commit). In
 
 | | |
 |--|--|
-| **Status** | ✅ Done (hash in follow-up docs commit) |
+| **Status** | ✅ Done (`5b60ca8`) |
 | **Title** | `style(courses): PR10 demo-fidelity catalog, detail, lesson room` |
 | **Files** | `CourseCard`, `CoursesPage.tsx`, `CourseDetailPage.tsx`, `lessons/pages.tsx`, `NotesPanel`, `CommentsSection`, `BookmarksPage` |
 | **Depends on** | PR3 |

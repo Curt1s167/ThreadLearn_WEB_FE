@@ -26,7 +26,7 @@ Xem thêm:
 | PR7 | Pricing / payment fidelity | ✅ Done | `4f91d3c` | `/pricing`, callback, mock VNPay |
 | PR8 | Admin quizzes / plans fidelity | ✅ Done | `8cf3be0` | `/admin/quizzes`, `/admin/plans`, `/admin` |
 | PR9 | XP widget / profile | ✅ Done | `04be21b` | `/profile` |
-| **PR10** | **Courses / lessons demo** | ✅ **Done** | PENDING_HASH | **`/courses`**, **`/courses/[id]`**, **`/lessons/[id]`**, **`/bookmarks`** |
+| **PR10** | **Courses / lessons demo** | ✅ **Done** | `5b60ca8` | **`/courses`**, **`/courses/[id]`**, **`/lessons/[id]`**, **`/bookmarks`** |
 
 ```bash
 git log --oneline origin/develop..feat/ui-light-theme-reskin
