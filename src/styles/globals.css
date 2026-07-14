@@ -4,22 +4,24 @@
 
 @layer base {
   * { box-sizing: border-box; }
+  /* PR5 cutover: global cream + ink (auth + app share one root) */
   html {
-    background-color: theme('colors.canvas.DEFAULT');
-    color: theme('colors.gray.100');
-    font-family: var(--font-jetbrains-mono), monospace;
+    background-color: theme('colors.canvas.cream');
+    color: theme('colors.ink.DEFAULT');
+    font-family: system-ui, var(--font-jetbrains-mono), sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   body {
-    background-color: theme('colors.canvas.DEFAULT');
+    background-color: theme('colors.canvas.cream');
+    color: theme('colors.ink.DEFAULT');
     min-height: 100vh;
     overflow-x: hidden;
   }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: theme('colors.canvas.DEFAULT'); }
-  ::-webkit-scrollbar-thumb { background: theme('colors.surface.border'); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: theme('colors.accent.500'); }
-  ::selection { background: theme('colors.accent.500'); color: theme('colors.white'); }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.28); }
+  ::selection { background: theme('colors.brand.lime'); color: #111; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -31,59 +33,60 @@
 }
 
 @layer components {
+  /* Light-first chrome primitives (demo language) */
   .btn-primary {
-    @apply inline-flex items-center gap-2 bg-accent-600 hover:bg-accent-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+    @apply inline-flex items-center gap-2 bg-black hover:bg-black/85 text-white px-4 py-2 rounded-full font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-black/30 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream;
   }
   .btn-ghost {
-    @apply inline-flex items-center gap-2 bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+    @apply inline-flex items-center gap-2 bg-transparent hover:bg-black/[0.05] text-ink-muted hover:text-ink px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream;
   }
   .btn-outline {
-    @apply inline-flex items-center gap-2 border border-white/10 hover:border-accent-500/50 text-gray-400 hover:text-gray-100 bg-transparent hover:bg-white/5 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+    @apply inline-flex items-center gap-2 border border-black/10 hover:border-black/25 text-ink-muted hover:text-ink bg-transparent hover:bg-black/[0.03] px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream;
   }
   .input-field {
-    @apply w-full bg-surface-muted border border-white/10 focus:border-accent-500/50 text-gray-100 placeholder-gray-600 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-150 focus:ring-1 focus:ring-accent-500/20 font-mono;
+    @apply w-full bg-white border border-black/10 focus:border-black/30 text-ink placeholder:text-black/35 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-150 focus:ring-1 focus:ring-black/10;
   }
   .card {
-    @apply bg-surface border border-white/[0.07] rounded-xl;
+    @apply bg-white border border-black/10 rounded-xl shadow-sm;
   }
   .badge-purple {
-    @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-accent-500/10 text-accent-300 border border-accent-500/20;
+    @apply inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-black/5 text-ink border border-black/10;
   }
   .badge-green {
-    @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+    @apply inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20;
   }
   .badge-amber {
-    @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20;
+    @apply inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20;
   }
   .badge-red {
-    @apply inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20;
+    @apply inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-700 border border-rose-500/20;
   }
   .tag {
-    @apply inline-flex items-center text-xs px-2 py-0.5 rounded font-mono bg-accent-500/10 text-accent-400 border border-accent-500/20;
+    @apply inline-flex items-center text-xs px-2 py-0.5 rounded bg-black/5 text-ink-muted border border-black/10;
   }
   .skeleton {
-    @apply rounded animate-pulse bg-white/5;
+    @apply rounded animate-pulse bg-black/[0.06];
   }
   .sidebar-item {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-gray-200 hover:bg-white/5 transition-all duration-150 cursor-pointer font-mono;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-black/60 hover:text-black hover:bg-black/[0.05] transition-all duration-150 cursor-pointer;
   }
   .sidebar-item-active {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-accent-300 bg-accent-500/10 border border-accent-500/20 font-mono;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white bg-black transition-all duration-150 cursor-pointer;
   }
 }
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, theme('colors.accent.300'), theme('colors.emerald.400'));
+    background: linear-gradient(135deg, #111827, #4b5563);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   .border-glow {
-    box-shadow: 0 0 0 1px rgba(124,106,247,0.3), 0 0 20px rgba(124,106,247,0.1);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04);
   }
   .panel-shadow {
-    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.08);
   }
   .animate-marquee {
     animation: marquee 24s linear infinite;

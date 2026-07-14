@@ -12,10 +12,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses = {
-  primary: 'bg-accent-600 hover:bg-accent-500 text-white border-transparent',
-  ghost: 'bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 border-transparent',
-  outline: 'bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-100 border-white/10 hover:border-accent-500/40',
-  danger: 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/20',
+  primary: 'bg-black hover:bg-black/85 text-white border-transparent rounded-full',
+  ghost: 'bg-transparent hover:bg-black/[0.05] text-ink-muted hover:text-ink border-transparent',
+  outline: 'bg-transparent hover:bg-black/[0.03] text-ink-muted hover:text-ink border-black/10 hover:border-black/25',
+  danger: 'bg-rose-500/10 hover:bg-rose-500/15 text-rose-700 border-rose-500/20',
 };
 
 const sizeClasses = {
@@ -34,7 +34,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => (
   <button
-    className={`inline-flex items-center justify-center font-mono font-medium rounded-lg border transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+    className={`inline-flex items-center justify-center font-medium border transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-black/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
     disabled={disabled || loading}
     {...props}
   >
@@ -55,11 +55,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, prefix, suffix, className = '', ...props }, ref) => (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-xs text-gray-400 font-mono">{label}</label>
+        <label className="text-xs text-ink-muted font-medium">{label}</label>
       )}
       <div className="relative flex items-center">
         {prefix && (
-          <span className="absolute left-3 text-gray-600">{prefix}</span>
+          <span className="absolute left-3 text-ink-faint">{prefix}</span>
         )}
         <input
           ref={ref}
@@ -67,10 +67,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {suffix && (
-          <span className="absolute right-3 text-gray-600">{suffix}</span>
+          <span className="absolute right-3 text-ink-faint">{suffix}</span>
         )}
       </div>
-      {error && <p className="text-xs text-rose-400 font-mono">{error}</p>}
+      {error && <p className="text-xs text-rose-600">{error}</p>}
     </div>
   )
 );
@@ -83,7 +83,7 @@ export const Spinner: React.FC<{ size?: number; className?: string }> = ({
 }) => (
   <Loader2
     size={size}
-    className={`animate-spin text-accent-400 ${className}`}
+    className={`animate-spin text-ink-muted ${className}`}
   />
 );
 
@@ -109,11 +109,11 @@ interface BadgeProps {
 }
 
 const badgeColorClasses: Record<BadgeColor, string> = {
-  purple: 'bg-accent-500/10 text-accent-300 border-accent-500/20',
-  green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  red: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-  gray: 'bg-white/5 text-gray-400 border-white/10',
+  purple: 'bg-black/5 text-ink border-black/10',
+  green: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
+  amber: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
+  red: 'bg-rose-500/10 text-rose-700 border-rose-500/20',
+  gray: 'bg-black/[0.04] text-ink-muted border-black/10',
 };
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -122,7 +122,7 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
 }) => (
   <span
-    className={`inline-flex items-center gap-1 text-xs font-mono px-2 py-0.5 rounded-full border ${badgeColorClasses[color]} ${className}`}
+    className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${badgeColorClasses[color]} ${className}`}
   >
     {children}
   </span>
@@ -133,7 +133,7 @@ export const Card: React.FC<
   React.HTMLAttributes<HTMLDivElement> & { hover?: boolean }
 > = ({ children, className = '', hover = false, ...props }) => (
   <div
-    className={`card ${hover ? 'hover:border-accent-500/20 hover:shadow-glow transition-all duration-200 cursor-pointer' : ''} ${className}`}
+    className={`card ${hover ? 'hover:border-black/20 hover:shadow-glow transition-all duration-200 cursor-pointer' : ''} ${className}`}
     {...props}
   >
     {children}
@@ -194,12 +194,16 @@ const getCourseLevelColor = (level?: CourseLevel): 'green' | 'amber' | 'red' | '
   return courseLevelColors[level] ?? 'gray';
 };
 
+const COURSE_ACCENTS = ['bg-brand-lime', 'bg-brand-pink', 'bg-brand-blue', 'bg-amber-200'];
+
 export const CourseCard: React.FC<{
   course: Course;
   onClick?: () => void;
   compact?: boolean;
   className?: string;
-}> = ({ course, onClick, compact = false, className = '' }) => (
+}> = ({ course, onClick, compact = false, className = '' }) => {
+  const accent = COURSE_ACCENTS[(course.title?.length ?? 0) % COURSE_ACCENTS.length];
+  return (
   <Card
     role={onClick ? 'button' : undefined}
     tabIndex={onClick ? 0 : undefined}
@@ -210,9 +214,9 @@ export const CourseCard: React.FC<{
         onClick();
       }
     }}
-    className={`group overflow-hidden transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-accent-500/30 hover:shadow-glow-sm outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    className={`group overflow-hidden transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:border-black/20 hover:shadow-glow-sm outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream ${onClick ? 'cursor-pointer' : ''} ${className}`}
   >
-    <div className={`${compact ? 'h-24' : 'h-28'} bg-gradient-to-br from-accent-900/30 to-surface-muted flex items-center justify-center border-b border-white/[0.05] relative overflow-hidden`}>
+    <div className={`${compact ? 'h-24' : 'h-28'} ${accent} flex items-center justify-center border-b border-black/5 relative overflow-hidden`}>
       {course.thumbnailUrl ? (
         <Image
           src={course.thumbnailUrl}
@@ -222,9 +226,9 @@ export const CourseCard: React.FC<{
           className="w-full h-full object-cover transition-transform duration-200 motion-safe:group-hover:scale-[1.03]"
         />
       ) : (
-        <BookOpen size={compact ? 24 : 28} className="text-accent-500/60" />
+        <BookOpen size={compact ? 24 : 28} className="text-ink/50" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-surface/70 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-white/40 to-transparent" />
       <div className="absolute top-2 left-2 flex gap-1.5">
         <Badge color={getCourseLevelColor(course.level)}>{course.level?.slice(0, 3) ?? 'N/A'}</Badge>
         {course.isPremium && <Badge color="amber">Premium</Badge>}
@@ -237,16 +241,16 @@ export const CourseCard: React.FC<{
     </div>
 
     <div className={compact ? 'p-3' : 'p-4'}>
-      <h3 className="font-mono font-semibold text-gray-300 text-sm leading-tight line-clamp-2 transition-colors group-hover:text-accent-300">
+      <h3 className="font-semibold text-ink text-sm leading-tight line-clamp-2 transition-colors group-hover:text-black">
         {course.title}
       </h3>
       {course.description && (
-        <p className="text-xs text-gray-500 font-mono line-clamp-2 mt-2">
+        <p className="text-xs text-ink-muted line-clamp-2 mt-2">
           {course.shortDescription || course.description}
         </p>
       )}
 
-      <div className="flex items-center gap-3 text-xs text-gray-500 font-mono mt-3">
+      <div className="flex items-center gap-3 text-xs text-ink-faint mt-3">
         <span className="flex items-center gap-1">
           <BookOpen size={11} />
           {course.totalLessons ?? course.lessonCount ?? 0} lessons
@@ -267,7 +271,8 @@ export const CourseCard: React.FC<{
       )}
     </div>
   </Card>
-);
+  );
+};
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 export const Avatar: React.FC<{
@@ -291,7 +296,7 @@ export const Avatar: React.FC<{
     />
   ) : (
     <div
-      className={`rounded-full bg-gradient-to-br from-accent-600 to-accent-800 flex items-center justify-center font-mono font-medium text-white ${sizeMap[size]} ${className}`}
+      className={`rounded-full bg-brand-lime text-ink flex items-center justify-center font-medium ${sizeMap[size]} ${className}`}
     >
       {initials}
     </div>
@@ -300,7 +305,7 @@ export const Avatar: React.FC<{
 
 // ─── Divider ──────────────────────────────────────────────────────────────────
 export const Divider: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`border-t border-white/[0.06] ${className}`} />
+  <div className={`border-t border-black/10 ${className}`} />
 );
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
@@ -311,11 +316,11 @@ export const EmptyState: React.FC<{
   action?: React.ReactNode;
 }> = ({ icon, title, description, action }) => (
   <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-    {icon && <div className="text-gray-500">{icon}</div>}
+    {icon && <div className="text-ink-faint">{icon}</div>}
     <div>
-      <p className="text-gray-300 font-mono font-medium">{title}</p>
+      <p className="text-ink font-medium">{title}</p>
       {description && (
-        <p className="text-gray-500 text-sm font-mono mt-1">{description}</p>
+        <p className="text-ink-muted text-sm mt-1">{description}</p>
       )}
     </div>
     {action}
