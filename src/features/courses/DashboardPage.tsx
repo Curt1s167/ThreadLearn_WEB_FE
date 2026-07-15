@@ -33,6 +33,7 @@ import {
   UI_PLACEHOLDERS,
   formatXp,
 } from '../ui-reskin/demo-ui';
+import { FALLBACK_COURSES } from '../ui-reskin/demo-fallbacks';
 
 const getCourseId = (enrollment?: Enrollment | null) => {
   if (!enrollment) return '';
@@ -291,17 +292,60 @@ export const DashboardPage: React.FC = () => {
               })}
             </div>
           ) : (
-            <div className="rounded-lg border border-black/10 bg-white p-8 text-center">
-              <BookOpen className="mx-auto text-black/30" size={28} />
-              <p className="mt-3 font-medium text-black">No active courses</p>
-              <p className="mt-1 text-sm text-black/55">Enroll to populate this grid from the API.</p>
-              <Link
-                href="/courses"
-                className="mt-4 inline-flex rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
-              >
-                Explore courses
-              </Link>
-            </div>
+            <>
+              <div className="mb-4 rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
+                Mock course progress preview from the demo flow. Enrollments from BE will replace these cards.
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {FALLBACK_COURSES.slice(0, 2).map((course, index) => {
+                  const accent = COURSE_ACCENT_COLORS[index % COURSE_ACCENT_COLORS.length];
+                  const pct = index === 0 ? 68 : 24;
+                  return (
+                    <motion.div
+                      key={course._id}
+                      whileHover={{ y: -4 }}
+                      transition={{ duration: 0.18 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => router.push('/courses')}
+                        className="group block w-full overflow-hidden rounded-lg border border-black/10 bg-white text-left outline-none focus-visible:ring-2 focus-visible:ring-black/25"
+                      >
+                        <div className={`aspect-video ${accent} p-5`}>
+                          <div className="flex h-full flex-col justify-between rounded-md bg-white/65 p-4">
+                            <div className="flex items-center justify-between">
+                              <Code2 size={26} />
+                              <DemoPill tone={index === 0 ? 'lime' : 'pink'}>
+                                {course.level.toLowerCase()}
+                              </DemoPill>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-black/45">
+                                {course.language}
+                              </p>
+                              <p className="mt-1 text-lg font-semibold text-black line-clamp-2">
+                                {course.title}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="border-t border-black/5 px-4 py-3">
+                          <div className="flex items-center justify-between text-xs text-black/50">
+                            <span className="inline-flex items-center gap-1">
+                              <BookOpen size={12} /> Mock progress
+                            </span>
+                            <span className="font-medium text-black">{pct}%</span>
+                          </div>
+                          <div className="mt-2 h-1.5 rounded-full bg-black/5">
+                            <div className="h-1.5 rounded-full bg-black" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 

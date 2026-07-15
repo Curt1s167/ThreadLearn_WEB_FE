@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AlertCircle, BookOpen, Search } from 'lucide-react';
+import { BookOpen, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { coursesService } from '../../services';
 import { CourseCard, EmptyState, Skeleton } from '../../components/shared';
@@ -16,6 +16,7 @@ import {
   DemoPageRoot,
   DemoPill,
 } from '../ui-reskin/demo-ui';
+import { FALLBACK_COURSES } from '../ui-reskin/demo-fallbacks';
 
 const LEVELS: CourseLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 
@@ -40,9 +41,11 @@ export const CoursesPage: React.FC = () => {
   });
 
   const courses = data?.items ?? [];
+  const useMockCourses = !isLoading && (isError || courses.length === 0);
+  const visibleCourses = useMockCourses ? FALLBACK_COURSES : courses;
 
   useEffect(() => {
-    if (isError) toast.error('Failed to load courses');
+    if (isError) toast.error('Failed to load courses. Showing demo preview.');
   }, [isError]);
 
   return (
@@ -53,7 +56,9 @@ export const CoursesPage: React.FC = () => {
           <div>
             <DemoDisplayTitle>All courses</DemoDisplayTitle>
             <DemoMuted>
-              {data?.total != null
+              {useMockCourses
+                ? 'Demo course previews are shown because the backend has no catalog data yet.'
+                : data?.total != null
                 ? `${data.total} courses available — focused paths for async programming and production-safe backend patterns.`
                 : 'A focused path for async programming, concurrency bugs, and production-safe backend patterns.'}
             </DemoMuted>
@@ -108,28 +113,29 @@ export const CoursesPage: React.FC = () => {
             <Skeleton key={i} className="h-72 rounded-lg" />
           ))}
         </div>
-      ) : isError ? (
-        <EmptyState
-          icon={<AlertCircle size={36} />}
-          title="Could not load courses"
-          description="Please try again in a moment"
-        />
-      ) : courses.length === 0 ? (
+      ) : visibleCourses.length === 0 ? (
         <EmptyState
           icon={<BookOpen size={36} />}
           title="No courses found"
           description="Try adjusting your search or filters"
         />
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {courses.map((course) => (
-            <CourseCard
-              key={course._id}
-              course={course}
-              onClick={() => router.push(`/courses/${course._id}`)}
-            />
-          ))}
-        </div>
+        <>
+          {useMockCourses ? (
+            <div className="rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
+              Mock catalog preview from the demo flow. Connect coursesService.list data to replace these cards.
+            </div>
+          ) : null}
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {visibleCourses.map((course) => (
+              <CourseCard
+                key={course._id}
+                course={course}
+                onClick={useMockCourses ? undefined : () => router.push(`/courses/${course._id}`)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </DemoPageRoot>
   );

@@ -24,6 +24,11 @@ import {
   DemoPageRoot,
   DemoPill,
 } from '../ui-reskin/demo-ui';
+import {
+  buildFallbackLessons,
+  buildFallbackOutcomes,
+  buildFallbackTags,
+} from '../ui-reskin/demo-fallbacks';
 
 const getEnrollmentCourseRef = (enrollment: Enrollment) => {
   if (typeof enrollment.courseId === 'string') {
@@ -65,7 +70,7 @@ export const CourseDetailPage: React.FC = () => {
 
   const course = detail?.course;
   const courseObjectId = course?._id ?? course?.id;
-  const courseLessons = detail?.lessons ?? [];
+  const courseLessons = useMemo(() => detail?.lessons ?? [], [detail?.lessons]);
 
   const { data: myEnrollments = [] } = useQuery({
     queryKey: ['my-enrollments'],
@@ -154,12 +159,20 @@ export const CourseDetailPage: React.FC = () => {
     );
   }
 
+  const hasRealLessons = courseLessons.length > 0;
+  const displayLessons = hasRealLessons
+    ? courseLessons
+    : buildFallbackLessons(courseObjectId ?? courseId ?? 'mock-course', course.language);
+  const displayLessonCount = course.totalLessons ?? displayLessons.length;
+  const tags = course.tags?.length ? course.tags : buildFallbackTags(course.language);
+  const fallbackOutcomes = buildFallbackOutcomes(course.language, displayLessonCount);
   const outcomes = [
     course.shortDescription || course.description,
-    `${course.totalLessons ?? courseLessons.length} structured lessons`,
+    `${displayLessonCount} structured lessons`,
     course.language ? `Hands-on ${course.language} practice` : 'Hands-on coding practice',
     isEnrolled ? 'Resume anytime from your dashboard' : 'Enroll free to unlock lessons',
   ].filter(Boolean) as string[];
+  const displayOutcomes = outcomes.length >= 4 ? outcomes : fallbackOutcomes;
 
   return (
     <DemoPageRoot>
@@ -187,7 +200,7 @@ export const CourseDetailPage: React.FC = () => {
             <div className="mt-5 flex flex-wrap gap-4 text-sm text-black/55">
               <span className="inline-flex items-center gap-1.5">
                 <BookOpen size={15} />
-                {course.totalLessons ?? courseLessons.length} lessons
+                {displayLessonCount} lessons
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Users size={15} />
@@ -207,7 +220,18 @@ export const CourseDetailPage: React.FC = () => {
               <div className="pointer-events-none absolute inset-0 opacity-20">
                 <Image src={course.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
               </div>
-            ) : null}
+            ) : (
+              <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black/[0.04]">
+                <div className="absolute -right-6 top-8 rotate-6 rounded bg-[#d9f99d] px-8 py-6 text-3xl font-light tracking-[0.2em] text-black/25">
+                  {course.language || 'CODE'}
+                </div>
+                <div className="absolute bottom-5 left-5 right-5 rounded-lg bg-white/45 p-3 font-mono text-xs leading-5 text-black/35">
+                  async function learn() {'{'}<br />
+                  &nbsp;&nbsp;await practice();<br />
+                  {'}'}
+                </div>
+              </div>
+            )}
             <div className="relative">
               <p className="text-sm text-black/55">{isEnrolled ? 'Course progress' : 'Ready to start'}</p>
               <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
@@ -239,15 +263,14 @@ export const CourseDetailPage: React.FC = () => {
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="rounded-lg border border-black/10 bg-white p-5">
           <h2 className="text-xl font-semibold">Lessons</h2>
-          {courseLessons.length === 0 ? (
-            <EmptyState
-              icon={<BookOpen size={36} />}
-              title="No lessons yet"
-              description="This course does not have published lessons"
-            />
-          ) : (
+          {!hasRealLessons ? (
+            <p className="mt-2 rounded-lg bg-[#d9f99d]/45 px-3 py-2 text-xs text-black/60">
+              Mock lesson preview from the demo flow. Replace when lessonsService data is available.
+            </p>
+          ) : null}
+          {displayLessons.length > 0 ? (
             <div className="mt-5 divide-y divide-black/10">
-              {courseLessons.map((lesson, index) => {
+              {displayLessons.map((lesson, index) => {
                 const done = completedSet.has(lesson._id);
                 const isCurrent = continueLessonId === lesson._id && isEnrolled && !done;
                 const locked = !!lesson.isLocked && !isEnrolled;
@@ -257,6 +280,10 @@ export const CourseDetailPage: React.FC = () => {
                     key={lesson._id}
                     type="button"
                     onClick={() => {
+                      if (!hasRealLessons) {
+                        toast.info('This is a mock lesson preview. Connect lesson data to open it.');
+                        return;
+                      }
                       if (locked) {
                         toast.error('Enroll to unlock this lesson');
                         return;
@@ -296,22 +323,22 @@ export const CourseDetailPage: React.FC = () => {
                 );
               })}
             </div>
-          )}
+          ) : null}
         </div>
 
         <aside className="rounded-lg border border-black/10 bg-white p-5">
           <h2 className="text-xl font-semibold">What you will learn</h2>
           <div className="mt-5 space-y-3">
-            {outcomes.map((outcome) => (
+            {displayOutcomes.map((outcome) => (
               <div key={outcome} className="flex gap-3 text-sm text-black/65">
                 <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-black" />
                 <span className="line-clamp-3">{outcome}</span>
               </div>
             ))}
           </div>
-          {course.tags?.length ? (
+          {tags.length ? (
             <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-5">
-              {course.tags.map((tag) => (
+              {tags.map((tag) => (
                 <span key={tag} className="rounded bg-black/[0.04] px-2 py-1 text-xs text-black/55">
                   #{tag}
                 </span>

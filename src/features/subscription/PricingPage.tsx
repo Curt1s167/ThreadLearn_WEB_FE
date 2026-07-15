@@ -3,10 +3,10 @@
 import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, Crown, Sparkles } from 'lucide-react';
+import { Crown, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionService } from '../../services';
-import { EmptyState, Skeleton } from '../../components/shared';
+import { Skeleton } from '../../components/shared';
 import {
   DemoDisplayTitle,
   DemoHeroWhite,
@@ -14,6 +14,7 @@ import {
   DemoPageRoot,
   DemoPill,
 } from '../ui-reskin/demo-ui';
+import { FALLBACK_PLANS } from '../ui-reskin/demo-fallbacks';
 
 const PricingPlans = dynamic(
   () => import('./PricingPlans').then((module) => module.PricingPlans),
@@ -69,17 +70,9 @@ export const PricingPage: React.FC = () => {
     );
   }
 
-  if (plansError) {
-    return (
-      <EmptyState
-        icon={<AlertCircle size={36} />}
-        title="Could not load pricing"
-        description="Please try again in a moment"
-      />
-    );
-  }
-
   const activePlans = plans?.filter((plan) => plan.isActive) ?? [];
+  const useMockPlans = plansError || activePlans.length === 0;
+  const visiblePlans = useMockPlans ? FALLBACK_PLANS : activePlans;
 
   return (
     <DemoPageRoot>
@@ -110,7 +103,13 @@ export const PricingPage: React.FC = () => {
         </div>
       ) : null}
 
-      <PricingPlans plans={activePlans} myPlan={myPlan} />
+      {useMockPlans ? (
+        <div className="rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
+          Mock pricing preview from the demo-light system. Real subscription plans will replace these cards.
+        </div>
+      ) : null}
+
+      <PricingPlans plans={visiblePlans} myPlan={myPlan} previewOnly={useMockPlans} />
     </DemoPageRoot>
   );
 };

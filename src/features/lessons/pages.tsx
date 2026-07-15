@@ -8,15 +8,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   Bookmark,
+  Brain,
   CheckCircle2,
+  Code2,
   Clock,
   MessageCircle,
+  Play,
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { bookmarksService, lessonsService } from '../../services';
 import { Button, EmptyState } from '../../components/shared';
 import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
+import {
+  DEMO_AI_RESPONSE,
+  DEMO_CODE_SAMPLE,
+  LESSON_FALLBACK_MARKDOWN,
+} from '../ui-reskin/demo-fallbacks';
 
 const LessonMarkdown = dynamic(
   () => import('./LessonMarkdown').then((module) => module.LessonMarkdown),
@@ -33,6 +41,62 @@ const NotesPanel = dynamic(
 
 const getHttpStatus = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status;
+
+function DemoCodeRunner() {
+  const [code, setCode] = useState(DEMO_CODE_SAMPLE);
+  const [ran, setRan] = useState(false);
+  const output = ran
+    ? [
+        '> node playground.js',
+        '[ true, true ]',
+        'Race warning: both users passed the capacity check before seats was decremented.',
+        'Test 1 capacity invariant: failed',
+        'Test 2 async function resolves: passed',
+      ]
+    : ['Click Run to execute the mock playground.'];
+
+  return (
+    <div className="mt-6 grid gap-4 xl:grid-cols-[1fr_320px]">
+      <section className="overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Code2 size={16} className="text-[#d9f99d]" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/35">ThreadLearn IDE</p>
+              <p className="text-sm font-semibold">playground.js</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRan(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-4 py-2 text-sm font-medium text-black"
+          >
+            <Play size={15} />
+            Run
+          </button>
+        </div>
+        <textarea
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
+          spellCheck={false}
+          className="min-h-72 w-full resize-y bg-[#111827] p-5 font-mono text-sm leading-6 text-[#d9f99d] outline-none"
+        />
+      </section>
+
+      <aside className="rounded-lg border border-black/10 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-ink">Console output</h3>
+          <span className={`rounded-full px-2 py-1 text-xs ${ran ? 'bg-[#fecaca] text-[#7f1d1d]' : 'bg-black/[0.05] text-black/45'}`}>
+            {ran ? '1 failed' : 'idle'}
+          </span>
+        </div>
+        <pre className="mt-4 min-h-40 whitespace-pre-wrap rounded-lg bg-black p-4 font-mono text-xs leading-6 text-[#d9f99d]">
+          {output.join('\n')}
+        </pre>
+      </aside>
+    </div>
+  );
+}
 
 /**
  * PR10 — lesson room mirrors DemoLessonPage (content + sticky aside).
@@ -92,6 +156,8 @@ export const LessonPage: React.FC = () => {
   const duration = lesson?.estimatedTime ?? lesson?.duration ?? 0;
   const order = lesson?.orderIndex ?? lesson?.order;
   const content = lesson?.contentMarkdown ?? lesson?.content ?? '';
+  const displayContent = content.trim() ? content : LESSON_FALLBACK_MARKDOWN;
+  const isMockContent = !content.trim();
   const courseHref =
     typeof lesson?.courseId === 'string' ? `/courses/${lesson.courseId}` : '/courses';
 
@@ -181,9 +247,15 @@ export const LessonPage: React.FC = () => {
                   />
                 </div>
               ) : null}
+              {isMockContent ? (
+                <div className="mb-5 rounded-lg bg-[#d9f99d]/40 px-4 py-3 text-sm text-black/60">
+                  Mock lesson content from the demo flow. Replace when lesson.content is available from BE.
+                </div>
+              ) : null}
               <div className="prose prose-neutral max-w-none text-base leading-8 text-black/70 [&_a]:text-black [&_code]:rounded [&_code]:bg-black/[0.04] [&_code]:px-1 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:bg-[#111827] [&_pre]:p-4 [&_pre]:text-[#d9f99d]">
-                <LessonMarkdown content={content} />
+                <LessonMarkdown content={displayContent} />
               </div>
+              <DemoCodeRunner />
             </div>
 
             <div className="rounded-lg border border-black/10 bg-white p-6 xl:hidden">
@@ -206,6 +278,19 @@ export const LessonPage: React.FC = () => {
           </article>
 
           <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
+            <div className="rounded-lg bg-[#d9f99d] p-5">
+              <Brain size={22} className="text-ink" />
+              <h2 className="mt-4 text-xl font-semibold text-ink">AI race condition hint</h2>
+              <p className="mt-3 text-sm text-black/65">{DEMO_AI_RESPONSE}</p>
+              <button
+                type="button"
+                onClick={() => router.push('/ai')}
+                className="mt-5 rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/90"
+              >
+                Open AI analysis
+              </button>
+            </div>
+
             <div className="rounded-lg bg-[#d9f99d] p-5">
               <Zap size={22} className="text-ink" />
               <h2 className="mt-4 text-xl font-semibold text-ink">Quiz check-in</h2>

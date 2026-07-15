@@ -14,6 +14,7 @@ import {
   DemoWhitePanel,
   UI_PLACEHOLDERS,
 } from '../ui-reskin/demo-ui';
+import type { LeaderboardEntry } from '../../types';
 
 const LeaderboardContent = dynamic(
   () => import('./LeaderboardContent').then((module) => module.LeaderboardContent),
@@ -30,6 +31,13 @@ const LeaderboardContent = dynamic(
     ),
   }
 );
+
+const FALLBACK_LEADERS: LeaderboardEntry[] = [
+  { rank: 1, userId: 'mock-leader-1', name: 'Vo Van Tin', level: 12, xp: 5920 },
+  { rank: 2, userId: 'mock-leader-2', name: 'Nguyen Minh Anh', level: 7, xp: 1840 },
+  { rank: 3, userId: 'mock-leader-3', name: 'Ha Van An', level: 7, xp: 1760 },
+  { rank: 4, userId: 'mock-leader-4', name: 'Tran Khoa', level: 6, xp: 1420 },
+];
 
 export const LeaderboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -55,6 +63,8 @@ export const LeaderboardPage: React.FC = () => {
   });
 
   const entries = leaders ?? [];
+  const useMockLeaders = !isLoading && (isError || entries.length === 0);
+  const visibleEntries = useMockLeaders ? FALLBACK_LEADERS : entries;
 
   return (
     <DemoPageRoot>
@@ -102,24 +112,27 @@ export const LeaderboardPage: React.FC = () => {
           ))}
         </DemoWhitePanel>
       ) : isError ? (
-        <DemoWhitePanel className="p-8 text-center">
-          <AlertCircle className="mx-auto text-rose-500" size={32} />
-          <h2 className="mt-4 text-xl font-semibold text-black">Could not load leaderboard</h2>
-          <p className="mt-2 text-sm text-black/55">Check the API connection and try again.</p>
-          <DemoPrimaryButton className="mt-5" onClick={() => refetch()}>
-            Retry
-          </DemoPrimaryButton>
-        </DemoWhitePanel>
-      ) : entries.length === 0 ? (
-        <DemoWhitePanel className="p-8 text-center">
-          <Trophy className="mx-auto text-black/30" size={32} />
-          <h2 className="mt-4 text-xl font-semibold text-black">No leaderboard data yet</h2>
-          <p className="mt-2 text-sm text-black/55">
-            Complete lessons or pass quizzes to earn XP and appear here.
-          </p>
-        </DemoWhitePanel>
+        <>
+          <DemoWhitePanel className="p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold text-black">Could not load leaderboard</h2>
+                <p className="mt-1 text-sm text-black/55">Showing demo leaderboard preview.</p>
+              </div>
+              <DemoPrimaryButton onClick={() => refetch()}>Retry</DemoPrimaryButton>
+            </div>
+          </DemoWhitePanel>
+          <LeaderboardContent entries={visibleEntries} user={user} myRank={myRank} />
+        </>
+      ) : useMockLeaders ? (
+        <>
+          <DemoWhitePanel className="p-4 text-sm text-black/65">
+            Mock leaderboard preview from the demo flow. Real XP ranks will replace this list.
+          </DemoWhitePanel>
+          <LeaderboardContent entries={visibleEntries} user={user} myRank={myRank} />
+        </>
       ) : (
-        <LeaderboardContent entries={entries} user={user} myRank={myRank} />
+        <LeaderboardContent entries={visibleEntries} user={user} myRank={myRank} />
       )}
     </DemoPageRoot>
   );

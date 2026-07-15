@@ -6,18 +6,33 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCheck, Zap, Trophy, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { notificationsService } from '../../services';
-import { Card, Button, EmptyState, Skeleton } from '../../components/shared';
+import { Button, Skeleton } from '../../components/shared';
 import type { NotificationType } from '../../types';
+import {
+  DemoDisplayTitle,
+  DemoHeroWhite,
+  DemoPageRoot,
+  DemoPill,
+  DemoWhitePanel,
+} from '../ui-reskin/demo-ui';
+import { FALLBACK_NOTIFICATIONS } from '../ui-reskin/demo-fallbacks';
 
 const notifIcons: Partial<Record<NotificationType, React.ReactNode>> = {
-  LEVEL_UP: <Zap size={14} className="text-violet-400" />,
-  QUIZ_PASSED: <CheckCheck size={14} className="text-emerald-400" />,
-  COURSE_COMPLETED: <BookOpen size={14} className="text-blue-400" />,
-  LESSON_COMPLETED: <BookOpen size={14} className="text-blue-400" />,
-  LEADERBOARD: <Trophy size={14} className="text-amber-400" />,
-  ACHIEVEMENT: <Trophy size={14} className="text-amber-400" />,
-  ENROLLMENT: <BookOpen size={14} className="text-blue-400" />,
-  COURSE_ENROLLED: <BookOpen size={14} className="text-blue-400" />,
+  LEVEL_UP: <Zap size={18} />,
+  QUIZ_PASSED: <CheckCheck size={18} />,
+  COURSE_COMPLETED: <BookOpen size={18} />,
+  LESSON_COMPLETED: <BookOpen size={18} />,
+  LEADERBOARD: <Trophy size={18} />,
+  ACHIEVEMENT: <Trophy size={18} />,
+  ENROLLMENT: <BookOpen size={18} />,
+  COURSE_ENROLLED: <BookOpen size={18} />,
+};
+
+const notifTone = (type: NotificationType) => {
+  if (type === 'LEVEL_UP' || type === 'QUIZ_PASSED') return 'bg-[#d9f99d]';
+  if (type === 'LEADERBOARD' || type === 'ACHIEVEMENT') return 'bg-[#f5d0fe]';
+  if (type === 'PAYMENT_SUCCESS') return 'bg-[#bfdbfe]';
+  return 'bg-black/[0.04]';
 };
 
 export const NotificationsPage: React.FC = () => {
@@ -47,81 +62,83 @@ export const NotificationsPage: React.FC = () => {
     onError: () => toast.error('Failed to mark notification as read'),
   });
 
-  const unread = notifications?.filter((n) => !n.isRead).length ?? 0;
+  const realNotifications = notifications ?? [];
+  const useMockNotifications = !isLoading && (isError || realNotifications.length === 0);
+  const visibleNotifications = useMockNotifications ? FALLBACK_NOTIFICATIONS : realNotifications;
+  const unread = visibleNotifications.filter((n) => !n.isRead).length;
 
   useEffect(() => {
-    if (isError) toast.error('Failed to load notifications');
+    if (isError) toast.error('Failed to load notifications. Showing demo preview.');
   }, [isError]);
 
   return (
-    <div className="flex flex-col gap-4 animate-fade-in max-w-2xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Bell size={18} className="text-ink-muted" />
-          <h1 className="font-mono font-bold text-2xl text-ink">Notifications</h1>
-          {unread > 0 && (
-            <span className="text-xs font-mono bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded-full border border-violet-500/20">
-              {unread} new
-            </span>
+    <DemoPageRoot className="mx-auto max-w-4xl">
+      <DemoHeroWhite>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <DemoPill tone="blue">Notifications</DemoPill>
+            <DemoDisplayTitle>Events emitted by learning activity.</DemoDisplayTitle>
+            <p className="mt-3 max-w-2xl text-black/60">
+              Live records from the notification service, including quiz, gamification, course, and payment events.
+            </p>
+          </div>
+          {!useMockNotifications && unread > 0 && (
+            <Button variant="outline" onClick={() => markAll()} className="rounded-full">
+              <CheckCheck size={14} />
+              Mark all read
+            </Button>
           )}
         </div>
-        {unread > 0 && (
-          <Button variant="ghost" onClick={() => markAll()}>
-            <CheckCheck size={14} />
-            Mark all read
-          </Button>
-        )}
-      </div>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <DemoPill tone={unread > 0 ? 'lime' : 'default'}>{unread} unread</DemoPill>
+          <DemoPill tone="pink">{visibleNotifications.length} total</DemoPill>
+          {useMockNotifications ? <DemoPill>Mock preview</DemoPill> : null}
+        </div>
+      </DemoHeroWhite>
 
       {isLoading ? (
-        <div className="flex flex-col gap-2">
+        <div className="grid gap-3">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-14 rounded-xl" />
+            <Skeleton key={i} className="h-24 rounded-lg" />
           ))}
         </div>
-      ) : notifications && notifications.length > 0 ? (
-        <Card className="overflow-hidden divide-y divide-black/10">
-          {notifications.map((notif) => (
+      ) : visibleNotifications.length > 0 ? (
+        <DemoWhitePanel className="divide-y divide-black/10">
+          {visibleNotifications.map((notif) => (
             <div
               key={notif._id}
-              role={!notif.isRead ? 'button' : undefined}
-              tabIndex={!notif.isRead ? 0 : undefined}
-              onClick={() => !notif.isRead && markRead(notif._id)}
+              role={!useMockNotifications && !notif.isRead ? 'button' : undefined}
+              tabIndex={!useMockNotifications && !notif.isRead ? 0 : undefined}
+              onClick={() => !useMockNotifications && !notif.isRead && markRead(notif._id)}
               onKeyDown={(event) => {
-                if (!notif.isRead && (event.key === 'Enter' || event.key === ' ')) {
+                if (!useMockNotifications && !notif.isRead && (event.key === 'Enter' || event.key === ' ')) {
                   event.preventDefault();
                   markRead(notif._id);
                 }
               }}
-              className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-black/[0.03] ${
-                !notif.isRead ? 'bg-violet-500/[0.03] cursor-pointer' : ''
+              className={`grid gap-4 p-5 transition hover:bg-black/[0.025] sm:grid-cols-[44px_1fr_auto] ${
+                !notif.isRead ? `${useMockNotifications ? '' : 'cursor-pointer'} bg-[#d9f99d]/20` : ''
               }`}
             >
-              <div className="w-7 h-7 rounded-lg bg-black/[0.04] flex items-center justify-center shrink-0 mt-0.5">
-                {notifIcons[notif.type] ?? <Bell size={14} className="text-ink-muted" />}
+              <span className={`grid h-11 w-11 place-items-center rounded-full ${notifTone(notif.type)}`}>
+                {notifIcons[notif.type] ?? <Bell size={18} />}
+              </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-semibold">{notif.title}</h2>
+                  <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">{notif.type}</span>
+                  {!notif.isRead && <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">new</span>}
+                  {useMockNotifications ? <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">mock</span> : null}
+                </div>
+                <p className="mt-1 text-sm text-black/60">{notif.message}</p>
               </div>
-              <div className="flex-1">
-                <p className={`text-sm font-mono ${notif.isRead ? 'text-ink-muted' : 'text-ink font-medium'}`}>
-                  {notif.title}
-                </p>
-                <p className="text-xs text-ink-faint font-mono mt-0.5">{notif.message}</p>
-                <p className="text-[10px] text-ink-faint font-mono mt-1">
-                  {new Date(notif.createdAt).toLocaleString()}
-                </p>
-              </div>
-              {!notif.isRead && (
-                <div className="w-2 h-2 rounded-full bg-violet-500 mt-1.5 shrink-0" />
-              )}
+              <p className="text-xs text-black/40 sm:text-right">
+                {new Date(notif.createdAt).toLocaleString()}
+              </p>
             </div>
           ))}
-        </Card>
-      ) : (
-        <EmptyState
-          icon={<Bell size={36} />}
-          title="No notifications yet"
-          description="Learning activity updates will appear here"
-        />
-      )}
-    </div>
+        </DemoWhitePanel>
+      ) : null}
+    </DemoPageRoot>
   );
 };

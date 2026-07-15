@@ -198,10 +198,12 @@ export const CourseCard: React.FC<{
   compact?: boolean;
   className?: string;
 }> = ({ course, onClick, compact = false, className = '' }) => {
+  const [imageFailed, setImageFailed] = useState(false);
   const accent = COURSE_ACCENTS[(course.title?.length ?? 0) % COURSE_ACCENTS.length];
   const lessons = course.totalLessons ?? course.lessonCount ?? 0;
   const learners = course.totalEnrollments ?? course.enrollmentCount ?? 0;
   const duration = course.estimatedDuration;
+  const thumbnailUrl = course.thumbnailUrl && !imageFailed ? course.thumbnailUrl : null;
 
   return (
     <div
@@ -217,16 +219,17 @@ export const CourseCard: React.FC<{
       className={`group block overflow-hidden rounded-lg border border-black/10 bg-white transition-all duration-200 motion-safe:hover:-translate-y-1 hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream ${onClick ? 'cursor-pointer' : ''} ${className}`}
     >
       <div className={`relative overflow-hidden ${compact ? 'aspect-[16/9] max-h-28' : 'aspect-video'} ${accent} p-4 sm:p-5`}>
-        {course.thumbnailUrl ? (
+        {thumbnailUrl ? (
           <Image
-            src={course.thumbnailUrl}
+            src={thumbnailUrl}
             alt={course.title}
             fill
             unoptimized
             className="object-cover transition-transform duration-200 motion-safe:group-hover:scale-[1.03]"
+            onError={() => setImageFailed(true)}
           />
         ) : null}
-        <div className={`relative flex h-full flex-col justify-between rounded-md bg-white/65 p-4 ${course.thumbnailUrl ? 'bg-white/80 backdrop-blur-[1px]' : ''}`}>
+        <div className={`relative flex h-full flex-col justify-between rounded-md bg-white/65 p-4 ${thumbnailUrl ? 'bg-white/80 backdrop-blur-[1px]' : ''}`}>
           <div className="flex items-center justify-between gap-2">
             <Code2 size={compact ? 20 : 26} className="text-ink shrink-0" />
             <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -308,11 +311,13 @@ export const Avatar: React.FC<{
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }> = ({ src, name = '?', size = 'md', className = '' }) => {
+  const [failedSrc, setFailedSrc] = useState<string | undefined>();
   const sizeMap = { sm: 'w-6 h-6 text-xs', md: 'w-8 h-8 text-sm', lg: 'w-10 h-10 text-base', xl: 'w-14 h-14 text-xl' };
   const widthHeightMap = { sm: 24, md: 32, lg: 40, xl: 56 };
   const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+  const showImage = !!src && failedSrc !== src;
 
-  return src ? (
+  return showImage ? (
     <Image
       src={src}
       alt={name}
@@ -320,6 +325,7 @@ export const Avatar: React.FC<{
       height={widthHeightMap[size]}
       className={`rounded-full object-cover ${className}`}
       unoptimized
+      onError={() => setFailedSrc(src)}
     />
   ) : (
     <div
