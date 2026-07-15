@@ -1,36 +1,39 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import {
-  BookOpen, Flame, Star, Trophy, ArrowRight,
-  Zap, TrendingUp, Clock,
+  ArrowRight,
+  BookOpen,
+  Brain,
+  CheckCircle2,
+  Code2,
+  Flame,
+  Play,
+  Trophy,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../store';
-import { gamificationService, enrollmentsService, leaderboardService, studentsService } from '../../services';
-import { Card, Badge, Skeleton, Button } from '../../components/shared';
+import {
+  enrollmentsService,
+  gamificationService,
+  leaderboardService,
+  studentsService,
+} from '../../services';
 import type { Enrollment } from '../../types';
-
-const StatCard: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  sub?: string;
-  color: string;
-}> = ({ icon, label, value, sub, color }) => (
-  <Card className="p-4 flex items-start gap-3">
-    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
-      {icon}
-    </div>
-    <div>
-      <p className="text-xs text-gray-500 font-mono">{label}</p>
-      <p className="text-xl font-mono font-bold text-gray-100 mt-0.5">{value}</p>
-      {sub && <p className="text-xs text-gray-500 font-mono mt-0.5">{sub}</p>}
-    </div>
-  </Card>
-);
+import {
+  COURSE_ACCENT_COLORS,
+  DemoHeroInk,
+  DemoPageRoot,
+  DemoPill,
+  UI_PLACEHOLDERS,
+  formatXp,
+} from '../ui-reskin/demo-ui';
+import { FALLBACK_COURSES } from '../ui-reskin/demo-fallbacks';
 
 const getCourseId = (enrollment?: Enrollment | null) => {
   if (!enrollment) return '';
@@ -39,15 +42,36 @@ const getCourseId = (enrollment?: Enrollment | null) => {
     : enrollment.courseId._id ?? enrollment.courseId.id ?? '';
 };
 
-const getCourseTitle = (enrollment: Enrollment) => (
+const getCourseTitle = (enrollment: Enrollment) =>
   typeof enrollment.courseId === 'string'
     ? `Course #${enrollment.courseId.slice(-6)}`
-    : enrollment.courseId.title ?? `Course #${getCourseId(enrollment).slice(-6)}`
-);
+    : enrollment.courseId.title ?? `Course #${getCourseId(enrollment).slice(-6)}`;
 
+const getCourseLanguage = (enrollment: Enrollment) =>
+  typeof enrollment.courseId === 'string'
+    ? 'Course'
+    : enrollment.courseId.language ?? 'Course';
+
+const getCourseLevelTone = (
+  enrollment: Enrollment
+): 'lime' | 'pink' | 'blue' | 'default' => {
+  if (typeof enrollment.courseId === 'string') return 'default';
+  const level = (enrollment.courseId.level ?? '').toString().toLowerCase();
+  if (level.includes('begin')) return 'lime';
+  if (level.includes('inter')) return 'pink';
+  if (level.includes('adv')) return 'blue';
+  return 'default';
+};
+
+/**
+ * PR4 — layout fidelity to DemoDashboardPage:
+ * [progress hero | streak lime] → 3 stat cards → [my courses grid | AI + activity aside]
+ * All numbers from API; placeholders only where BE has no field.
+ */
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const router = useRouter();
+  const firstName = user?.name?.split(' ')[0] ?? 'learner';
 
   const { data: stats, isLoading: statsLoading, isError: statsError } = useQuery({
     queryKey: ['gamification-stats'],
@@ -73,14 +97,16 @@ export const DashboardPage: React.FC = () => {
     enabled: !!user,
   });
 
-  const levelProgress = stats ? (stats.xp % 1000) / 10 : 0;
   const streak = stats?.currentStreak ?? stats?.streak ?? 0;
+  const progressPercent = stats ? (stats.xp % 1000) / 10 : 0;
   const resumeCourseId = getCourseId(resume);
   const resumeTarget = resume?.lastLessonId
     ? `/lessons/${resume.lastLessonId}`
     : resumeCourseId
       ? `/courses/${resumeCourseId}`
       : '/courses';
+  const resumeProgress = resume?.progressPercent ?? resume?.progress ?? 0;
+  const resumeCoursePath = resumeCourseId ? `/courses/${resumeCourseId}` : '/courses';
 
   useEffect(() => {
     if (statsError) toast.error('Failed to load learning stats');
@@ -90,233 +116,266 @@ export const DashboardPage: React.FC = () => {
   }, [enrollError, rankError, resumeError, statsError]);
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-mono font-bold text-2xl text-gray-100">
-            gm, {user?.name?.split(' ')[0] ?? 'learner'}
+    <DemoPageRoot>
+      <section className="grid gap-5 lg:grid-cols-[1.45fr_0.55fr]">
+        <DemoHeroInk>
+          <p className="text-xs uppercase tracking-[0.18em] text-white/45">Your progress</p>
+          <h1 className="mt-3 text-4xl font-light tracking-tight">
+            Continue learning, {firstName}.
           </h1>
-          <p className="text-gray-500 font-mono text-sm mt-1">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          <p className="mt-4 max-w-2xl text-white/60">
+            {resumeLoading
+              ? 'Loading your resume target…'
+              : resume
+                ? `${getCourseTitle(resume)} · ${resumeProgress}% complete`
+                : 'Pick a course to build a resume target and streak.'}
           </p>
-        </div>
-        <Button onClick={() => router.push('/courses')}>
-          <BookOpen size={14} />
-          Browse courses
-        </Button>
-      </div>
-
-      {/* XP Progress bar */}
-      <Card className="p-4 border-accent-500/10">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-accent-500/20 flex items-center justify-center">
-              <Zap size={14} className="text-accent-400" />
-            </div>
-            <div>
-              <span className="text-sm font-mono font-semibold text-gray-200">
-                Level {stats?.level ?? 1}
-              </span>
-              <span className="text-gray-500 font-mono text-xs ml-2">
-                → Level {(stats?.level ?? 1) + 1}
-              </span>
-            </div>
-          </div>
-          <span className="text-xs font-mono text-gray-400">
-            {stats?.xp ?? 0} XP
-          </span>
-        </div>
-        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-200"
-            style={{ width: `${levelProgress}%` }}
-          />
-        </div>
-        <div className="flex justify-between mt-1.5">
-          <span className="text-[10px] text-gray-500 font-mono">{levelProgress.toFixed(0)}%</span>
-          <span className="text-[10px] text-gray-500 font-mono">
-            {1000 - (stats?.xp ?? 0) % 1000} XP to next level
-          </span>
-        </div>
-      </Card>
-
-      {resumeLoading ? (
-        <Skeleton className="h-24 rounded-xl" />
-      ) : resume ? (
-        <Card className="relative overflow-hidden p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-accent-500/30 bg-accent-500/10 shadow-glow-sm">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-400/60 to-transparent" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-accent-300 font-mono mb-1">Continue learning</p>
-            <p className="text-base font-mono text-gray-100 truncate">{getCourseTitle(resume)}</p>
-            <p className="text-xs text-gray-400 font-mono mt-1">
-              {resume.progressPercent ?? resume.progress ?? 0}% complete
-              {resume.totalLessons ? ` - ${resume.completedLessons.length}/${resume.totalLessons} lessons` : ''}
-            </p>
-            <div className="h-1.5 bg-white/5 rounded-full mt-3 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-accent-600 to-accent-400 rounded-full transition-all duration-200"
-                style={{ width: `${resume.progressPercent ?? resume.progress ?? 0}%` }}
-              />
-            </div>
-          </div>
-          <Button onClick={() => router.push(resumeTarget)} className="shrink-0">
-            <ArrowRight size={14} />
-            Resume
-          </Button>
-        </Card>
-      ) : (
-        <Card className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-white/10 bg-white/[0.03]">
-          <div className="min-w-0">
-            <p className="text-sm font-mono font-semibold text-gray-200">Ready for your first run?</p>
-            <p className="text-xs text-gray-500 font-mono mt-1">
-              Pick a course and your resume card will track the next lesson.
-            </p>
-          </div>
-          <Button variant="outline" onClick={() => router.push('/courses')} className="shrink-0">
-            <BookOpen size={14} />
-            Find a course
-          </Button>
-        </Card>
-      )}
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {statsLoading ? (
-          <>
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-20 rounded-xl" />
-            ))}
-          </>
-        ) : (
-          <>
-            <StatCard
-              icon={<Flame size={16} className="text-amber-400" />}
-              label="Day streak"
-              value={streak}
-              sub="days in a row"
-              color="bg-amber-500/10"
+          <div className="mt-8 h-2 rounded-full bg-white/10">
+            <div
+              className="h-2 rounded-full bg-[#d9f99d] transition-all duration-300"
+              style={{ width: `${Math.min(100, resumeProgress || progressPercent)}%` }}
             />
-            <StatCard
-              icon={<Star size={16} className="text-accent-400" />}
-              label="Total XP"
-              value={(stats?.xp ?? 0).toLocaleString()}
-              sub="experience points"
-              color="bg-accent-500/10"
-            />
-            <StatCard
-              icon={<BookOpen size={16} className="text-emerald-400" />}
-              label="Lessons done"
-              value={stats?.totalLessonsCompleted ?? 0}
-              sub="completed"
-              color="bg-emerald-500/10"
-            />
-            <StatCard
-              icon={<Trophy size={16} className="text-amber-400" />}
-              label="Rank"
-              value={myRank ? `#${myRank.rank}` : '—'}
-              sub="on leaderboard"
-              color="bg-amber-500/10"
-            />
-          </>
-        )}
-      </div>
-
-      {/* Active courses */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-mono font-semibold text-gray-200 text-sm">Active courses</h2>
-          <button
-            onClick={() => router.push('/courses')}
-            className="text-xs text-accent-400 hover:text-accent-300 font-mono flex items-center gap-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas rounded"
-          >
-            View all <ArrowRight size={12} />
-          </button>
-        </div>
-
-        {enrollLoading ? (
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-16 rounded-xl" />
-            <Skeleton className="h-16 rounded-xl" />
           </div>
-        ) : enrollments && enrollments.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {enrollments.slice(0, 4).map((enrollment) => (
-            <Card
-              key={enrollment._id}
-              role="button"
-              tabIndex={0}
-              className="p-3 flex items-center gap-3 hover:border-accent-500/20 transition-all duration-200 motion-safe:hover:-translate-y-0.5 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-              onClick={() => router.push(`/courses/${getCourseId(enrollment)}`)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  router.push(`/courses/${getCourseId(enrollment)}`);
-                }
-              }}
-            >
-                <div className="w-8 h-8 rounded-lg bg-accent-500/10 flex items-center justify-center shrink-0">
-                  <BookOpen size={14} className="text-accent-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm text-gray-200 font-mono truncate">
-                      {getCourseTitle(enrollment)}
-                    </p>
-                    <span className="text-xs text-gray-500 font-mono shrink-0">
-                      {enrollment.progressPercent ?? enrollment.progress}%
-                    </span>
-                  </div>
-                  <div className="h-1 bg-white/5 rounded-full mt-1.5 overflow-hidden">
-                    <div
-                        className="h-full bg-accent-600 rounded-full transition-all duration-200"
-                        style={{ width: `${enrollment.progressPercent ?? enrollment.progress}%` }}
-                    />
-                  </div>
-                </div>
-                {enrollment.completed && (
-                  <Badge color="green">✓</Badge>
-                )}
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="p-8 flex flex-col items-center gap-3 text-center">
-            <BookOpen size={28} className="text-gray-700" />
-            <div>
-              <p className="text-gray-400 font-mono text-sm">No active courses</p>
-              <p className="text-gray-600 font-mono text-xs mt-1">
-                Enroll in a course to start learning
-              </p>
-            </div>
-            <Button variant="outline" onClick={() => router.push('/courses')}>
-              <TrendingUp size={13} />
-              Explore courses
-            </Button>
-          </Card>
-        )}
-      </div>
-
-      {/* Quick actions */}
-      <div>
-        <h2 className="font-mono font-semibold text-gray-200 text-sm mb-3">Quick actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {[
-            { icon: <Trophy size={16} />, label: 'Leaderboard', to: '/leaderboard', color: 'text-amber-400' },
-            { icon: <Zap size={16} />, label: 'AI Advisor', to: '/ai', color: 'text-violet-400' },
-            { icon: <Clock size={16} />, label: 'Quiz history', to: '/quiz/history', color: 'text-emerald-400' },
-          ].map((item) => (
+          <div className="mt-5 flex flex-wrap gap-3">
             <button
-              key={item.to}
-              onClick={() => router.push(item.to)}
-              className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-accent-500/20 hover:bg-white/[0.05] transition-all duration-200 motion-safe:hover:-translate-y-0.5 font-mono text-sm text-gray-400 hover:text-gray-200 outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+              type="button"
+              onClick={() => router.push(resumeTarget)}
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-white/90"
             >
-              <span className={item.color}>{item.icon}</span>
-              {item.label}
+              Resume lesson <Play size={16} />
             </button>
-          ))}
+            <Link
+              href={resumeCoursePath}
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              Course detail <ArrowRight size={16} />
+            </Link>
+          </div>
+        </DemoHeroInk>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
+          className="rounded-lg bg-[#d9f99d] p-6"
+        >
+          <Flame size={26} />
+          <p className="mt-5 text-4xl font-semibold">
+            {statsLoading ? '…' : `${streak} day${streak === 1 ? '' : 's'}`}
+          </p>
+          <p className="mt-2 text-sm text-black/60">
+            Learning streak. Keep one short lesson per day.
+          </p>
+          <div className="mt-6 grid grid-cols-7 gap-1">
+            {UI_PLACEHOLDERS.weekdays.map((day, index) => (
+              <div
+                key={`${day}-${index}`}
+                className={`grid aspect-square place-items-center rounded text-xs ${
+                  index < Math.min(streak, 7)
+                    ? 'bg-black text-white'
+                    : 'bg-white/60 text-black/35'
+                }`}
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      <section className="grid gap-5 md:grid-cols-3">
+        {([
+          {
+            label: 'Level',
+            value: statsLoading ? '…' : String(stats?.level ?? 1),
+            Icon: Trophy,
+            sub: myRank ? `Rank #${myRank.rank}` : '',
+          },
+          {
+            label: 'Total XP',
+            value: statsLoading ? '…' : formatXp(stats?.xp ?? 0).replace(' XP', ''),
+            Icon: Zap,
+            sub: '',
+          },
+          {
+            label: 'Completed lessons',
+            value: statsLoading ? '…' : String(stats?.totalLessonsCompleted ?? 0),
+            Icon: CheckCircle2,
+            sub: '',
+          },
+        ]).map(({ label, value, Icon, sub }, i) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: 0.05 * i }}
+            className="rounded-lg border border-black/10 bg-white p-5"
+          >
+            <Icon size={22} />
+            <p className="mt-4 text-3xl font-semibold">{value}</p>
+            <p className="mt-1 text-sm text-black/50">{label}</p>
+            {sub ? <p className="mt-1 text-xs text-black/40">{sub}</p> : null}
+          </motion.div>
+        ))}
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-black">My courses</h2>
+            <Link href="/courses" className="text-sm font-medium text-black/55 hover:text-black">
+              Browse all
+            </Link>
+          </div>
+
+          {enrollLoading ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="aspect-video animate-pulse rounded-lg border border-black/10 bg-white" />
+              <div className="aspect-video animate-pulse rounded-lg border border-black/10 bg-white" />
+            </div>
+          ) : enrollments && enrollments.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {enrollments.slice(0, 2).map((enrollment, index) => {
+                const courseId = getCourseId(enrollment);
+                const pct = enrollment.progressPercent ?? enrollment.progress ?? 0;
+                const tone = getCourseLevelTone(enrollment);
+                const accent = COURSE_ACCENT_COLORS[index % COURSE_ACCENT_COLORS.length];
+                return (
+                  <motion.div
+                    key={enrollment._id}
+                    whileHover={{ y: -4 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/courses/${courseId}`)}
+                      className="group block w-full overflow-hidden rounded-lg border border-black/10 bg-white text-left outline-none focus-visible:ring-2 focus-visible:ring-black/25"
+                    >
+                      {/* Demo CourseCard-style media block */}
+                      <div className={`aspect-video ${accent} p-5`}>
+                        <div className="flex h-full flex-col justify-between rounded-md bg-white/65 p-4">
+                          <div className="flex items-center justify-between">
+                            <Code2 size={26} />
+                            <DemoPill tone={tone === 'default' ? 'default' : tone}>
+                              {typeof enrollment.courseId === 'string'
+                                ? `${pct}%`
+                                : (enrollment.courseId.level ?? `${pct}%`)}
+                            </DemoPill>
+                          </div>
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.18em] text-black/45">
+                              {getCourseLanguage(enrollment)}
+                            </p>
+                            <p className="mt-1 text-lg font-semibold text-black line-clamp-2">
+                              {getCourseTitle(enrollment)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="border-t border-black/5 px-4 py-3">
+                        <div className="flex items-center justify-between text-xs text-black/50">
+                          <span className="inline-flex items-center gap-1">
+                            <BookOpen size={12} /> Progress
+                          </span>
+                          <span className="font-medium text-black">{pct}%</span>
+                        </div>
+                        <div className="mt-2 h-1.5 rounded-full bg-black/5">
+                          <div
+                            className="h-1.5 rounded-full bg-black transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </button>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              <div className="mb-4 rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
+                Mock course progress preview from the demo flow. Enrollments from BE will replace these cards.
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {FALLBACK_COURSES.slice(0, 2).map((course, index) => {
+                  const accent = COURSE_ACCENT_COLORS[index % COURSE_ACCENT_COLORS.length];
+                  const pct = index === 0 ? 68 : 24;
+                  return (
+                    <motion.div
+                      key={course._id}
+                      whileHover={{ y: -4 }}
+                      transition={{ duration: 0.18 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => router.push('/courses')}
+                        className="group block w-full overflow-hidden rounded-lg border border-black/10 bg-white text-left outline-none focus-visible:ring-2 focus-visible:ring-black/25"
+                      >
+                        <div className={`aspect-video ${accent} p-5`}>
+                          <div className="flex h-full flex-col justify-between rounded-md bg-white/65 p-4">
+                            <div className="flex items-center justify-between">
+                              <Code2 size={26} />
+                              <DemoPill tone={index === 0 ? 'lime' : 'pink'}>
+                                {course.level.toLowerCase()}
+                              </DemoPill>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.18em] text-black/45">
+                                {course.language}
+                              </p>
+                              <p className="mt-1 text-lg font-semibold text-black line-clamp-2">
+                                {course.title}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="border-t border-black/5 px-4 py-3">
+                          <div className="flex items-center justify-between text-xs text-black/50">
+                            <span className="inline-flex items-center gap-1">
+                              <BookOpen size={12} /> Mock progress
+                            </span>
+                            <span className="font-medium text-black">{pct}%</span>
+                          </div>
+                          <div className="mt-2 h-1.5 rounded-full bg-black/5">
+                            <div className="h-1.5 rounded-full bg-black" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
-      </div>
-    </div>
+
+        <aside className="space-y-4">
+          <div className="rounded-lg border border-black/10 bg-white p-5">
+            <div className="flex items-center gap-2">
+              <Brain size={19} />
+              <h3 className="font-semibold text-black">AI Coach</h3>
+            </div>
+            <p className="mt-3 text-sm text-black/60">{UI_PLACEHOLDERS.aiCoachUsageLine}</p>
+            <Link
+              href="/ai"
+              className="mt-4 inline-flex rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
+            >
+              Open AI Coach
+            </Link>
+          </div>
+          <div className="rounded-lg border border-black/10 bg-white p-5">
+            <h3 className="font-semibold text-black">Recent activity</h3>
+            <div className="mt-4 space-y-3">
+              {UI_PLACEHOLDERS.recentActivityFallback.map((item) => (
+                <div key={item} className="flex gap-3 text-sm text-black/60">
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-black" />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </section>
+    </DemoPageRoot>
   );
 };

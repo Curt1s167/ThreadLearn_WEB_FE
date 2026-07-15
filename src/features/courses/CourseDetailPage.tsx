@@ -1,35 +1,34 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   BookOpen,
-  CheckCircle,
+  CheckCircle2,
   Clock,
   Lock,
-  PlayCircle,
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { coursesService, enrollmentsService } from '../../services';
-import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/shared';
+import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { useAuthStore } from '../../store';
 import type { CourseLevel, Enrollment } from '../../types';
-
-const levelColor: Record<CourseLevel, 'green' | 'amber' | 'red'> = {
-  BEGINNER: 'green',
-  INTERMEDIATE: 'amber',
-  ADVANCED: 'red',
-};
-
-const getLevelColor = (level?: CourseLevel): 'green' | 'amber' | 'red' | 'gray' => {
-  if (!level) return 'gray';
-  return levelColor[level] ?? 'gray';
-};
+import {
+  COURSE_ACCENT_COLORS,
+  DemoPageRoot,
+  DemoPill,
+} from '../ui-reskin/demo-ui';
+import {
+  buildFallbackLessons,
+  buildFallbackOutcomes,
+  buildFallbackTags,
+} from '../ui-reskin/demo-fallbacks';
 
 const getEnrollmentCourseRef = (enrollment: Enrollment) => {
   if (typeof enrollment.courseId === 'string') {
@@ -42,6 +41,17 @@ const getEnrollmentCourseRef = (enrollment: Enrollment) => {
   };
 };
 
+const levelTone = (level?: CourseLevel): 'lime' | 'pink' | 'blue' | 'default' => {
+  if (level === 'BEGINNER') return 'lime';
+  if (level === 'INTERMEDIATE') return 'pink';
+  if (level === 'ADVANCED') return 'blue';
+  return 'default';
+};
+
+/**
+ * PR10 — course detail mirrors DemoCourseDetailPage hero + lesson list.
+ * LOGIC LOCK: getById, enrollments, enroll mutation, continue → first lesson.
+ */
 export const CourseDetailPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const router = useRouter();
@@ -60,7 +70,7 @@ export const CourseDetailPage: React.FC = () => {
 
   const course = detail?.course;
   const courseObjectId = course?._id ?? course?.id;
-  const courseLessons = detail?.lessons ?? [];
+  const courseLessons = useMemo(() => detail?.lessons ?? [], [detail?.lessons]);
 
   const { data: myEnrollments = [] } = useQuery({
     queryKey: ['my-enrollments'],
@@ -69,15 +79,34 @@ export const CourseDetailPage: React.FC = () => {
     retry: false,
   });
 
-  const isEnrolled = myEnrollments.some((enrollment) => {
-    const ref = getEnrollmentCourseRef(enrollment);
-    return ref.id === courseObjectId || ref.id === courseId || ref.slug === courseId;
-  });
+  const enrollment = useMemo(
+    () =>
+      myEnrollments.find((item) => {
+        const ref = getEnrollmentCourseRef(item);
+        return ref.id === courseObjectId || ref.id === courseId || ref.slug === courseId;
+      }),
+    [courseId, courseObjectId, myEnrollments],
+  );
+
+  const isEnrolled = !!enrollment;
+  const progress = Math.round(enrollment?.progressPercent ?? enrollment?.progress ?? 0);
+  const completedSet = useMemo(
+    () => new Set(enrollment?.completedLessons ?? []),
+    [enrollment?.completedLessons],
+  );
+
+  const accent =
+    COURSE_ACCENT_COLORS[(course?.title?.length ?? 0) % COURSE_ACCENT_COLORS.length];
+
+  const continueLessonId = useMemo(() => {
+    if (enrollment?.lastLessonId) return enrollment.lastLessonId;
+    const nextOpen = courseLessons.find((lesson) => !completedSet.has(lesson._id) && !lesson.isLocked);
+    return nextOpen?._id ?? courseLessons[0]?._id;
+  }, [completedSet, courseLessons, enrollment?.lastLessonId]);
 
   const handleContinue = () => {
-    const firstLesson = courseLessons[0];
-    if (firstLesson?._id) {
-      router.push(`/lessons/${firstLesson._id}`);
+    if (continueLessonId) {
+      router.push(`/lessons/${continueLessonId}`);
       return;
     }
     router.push('/dashboard');
@@ -104,10 +133,13 @@ export const CourseDetailPage: React.FC = () => {
 
   if (detailLoading) {
     return (
-      <div className="flex flex-col gap-4 animate-fade-in">
-        <Skeleton className="h-48 rounded-xl" />
-        <Skeleton className="h-20 rounded-xl" count={3} />
-      </div>
+      <DemoPageRoot>
+        <Skeleton className="h-56 rounded-lg" />
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <Skeleton className="h-72 rounded-lg" />
+          <Skeleton className="h-48 rounded-lg" />
+        </div>
+      </DemoPageRoot>
     );
   }
 
@@ -127,117 +159,194 @@ export const CourseDetailPage: React.FC = () => {
     );
   }
 
+  const hasRealLessons = courseLessons.length > 0;
+  const displayLessons = hasRealLessons
+    ? courseLessons
+    : buildFallbackLessons(courseObjectId ?? courseId ?? 'mock-course', course.language);
+  const displayLessonCount = course.totalLessons ?? displayLessons.length;
+  const tags = course.tags?.length ? course.tags : buildFallbackTags(course.language);
+  const fallbackOutcomes = buildFallbackOutcomes(course.language, displayLessonCount);
+  const outcomes = [
+    course.shortDescription || course.description,
+    `${displayLessonCount} structured lessons`,
+    course.language ? `Hands-on ${course.language} practice` : 'Hands-on coding practice',
+    isEnrolled ? 'Resume anytime from your dashboard' : 'Enroll free to unlock lessons',
+  ].filter(Boolean) as string[];
+  const displayOutcomes = outcomes.length >= 4 ? outcomes : fallbackOutcomes;
+
   return (
-    <div className="flex flex-col gap-5 animate-fade-in">
-      <button onClick={() => router.back()} className="btn-ghost self-start">
+    <DemoPageRoot>
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="inline-flex items-center gap-2 text-sm text-black/50 transition hover:text-black"
+      >
         <ArrowLeft size={14} />
         Back
       </button>
 
-      <Card className="overflow-hidden border-accent-500/10">
-        <div className="h-52 bg-gradient-to-br from-accent-900/40 to-surface-muted border-b border-white/[0.06] relative">
-          {course.thumbnailUrl ? (
-            <Image src={course.thumbnailUrl} alt={course.title} fill unoptimized className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <BookOpen size={44} className="text-accent-500/50" />
+      <section className={`${accent} rounded-lg p-6 sm:p-8`}>
+        <div className="grid gap-7 lg:grid-cols-[1fr_340px] lg:items-end">
+          <div>
+            <div className="mb-5 flex flex-wrap gap-2">
+              {course.level ? <DemoPill tone={levelTone(course.level)}>{course.level.toLowerCase()}</DemoPill> : null}
+              {course.language ? <DemoPill tone="blue">{course.language}</DemoPill> : null}
+              {course.isPremium ? <DemoPill>Premium</DemoPill> : null}
             </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/30 to-transparent" />
-        </div>
+            <h1 className="max-w-4xl text-4xl font-light tracking-tight sm:text-5xl">{course.title}</h1>
+            <p className="mt-5 max-w-2xl text-black/65">
+              {course.shortDescription || course.description}
+            </p>
+            <div className="mt-5 flex flex-wrap gap-4 text-sm text-black/55">
+              <span className="inline-flex items-center gap-1.5">
+                <BookOpen size={15} />
+                {displayLessonCount} lessons
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Users size={15} />
+                {(course.totalEnrollments ?? 0).toLocaleString()} learners
+              </span>
+              {(course.estimatedDuration ?? 0) > 0 ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock size={15} />
+                  {course.estimatedDuration} min
+                </span>
+              ) : null}
+            </div>
+          </div>
 
-        <div className="p-5 flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <Badge color={getLevelColor(course.level)}>{course.level ?? 'COURSE'}</Badge>
-                {course.language && <span className="tag">{course.language}</span>}
-                {course.isPremium && <Badge color="amber">Premium</Badge>}
+          <div className="relative overflow-hidden rounded-lg bg-white/72 p-5 backdrop-blur-sm">
+            {course.thumbnailUrl ? (
+              <div className="pointer-events-none absolute inset-0 opacity-20">
+                <Image src={course.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
               </div>
-              <h1 className="font-mono font-bold text-2xl text-gray-100">{course.title}</h1>
-              <p className="text-sm text-gray-400 font-mono mt-2 leading-relaxed">
-                {course.shortDescription || course.description}
-              </p>
-            </div>
-            <Button
-              onClick={() => (isEnrolled ? handleContinue() : enroll())}
-              loading={enrolling}
-              disabled={!isEnrolled && !courseObjectId}
-              className="shrink-0"
-            >
-              <CheckCircle size={14} />
-              {isEnrolled ? 'Continue learning' : 'Enroll'}
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3">
-              <BookOpen size={14} className="text-accent-400 mb-2" />
-              <p className="text-lg font-mono font-bold text-gray-100">{course.totalLessons ?? courseLessons.length}</p>
-              <p className="text-xs text-gray-500 font-mono">lessons</p>
-            </div>
-            <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3">
-              <Users size={14} className="text-emerald-400 mb-2" />
-              <p className="text-lg font-mono font-bold text-gray-100">{course.totalEnrollments ?? 0}</p>
-              <p className="text-xs text-gray-500 font-mono">learners</p>
-            </div>
-            <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3">
-              <Clock size={14} className="text-amber-400 mb-2" />
-              <p className="text-lg font-mono font-bold text-gray-100">{course.estimatedDuration ?? 0}</p>
-              <p className="text-xs text-gray-500 font-mono">minutes</p>
-            </div>
-            <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] p-3">
-              <CheckCircle size={14} className="text-blue-400 mb-2" />
-              <p className="text-lg font-mono font-bold text-gray-100">{course.status ?? 'published'}</p>
-              <p className="text-xs text-gray-500 font-mono">status</p>
+            ) : (
+              <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black/[0.04]">
+                <div className="absolute -right-6 top-8 rotate-6 rounded bg-[#d9f99d] px-8 py-6 text-3xl font-light tracking-[0.2em] text-black/25">
+                  {course.language || 'CODE'}
+                </div>
+                <div className="absolute bottom-5 left-5 right-5 rounded-lg bg-white/45 p-3 font-mono text-xs leading-5 text-black/35">
+                  async function learn() {'{'}<br />
+                  &nbsp;&nbsp;await practice();<br />
+                  {'}'}
+                </div>
+              </div>
+            )}
+            <div className="relative">
+              <p className="text-sm text-black/55">{isEnrolled ? 'Course progress' : 'Ready to start'}</p>
+              <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
+              <div className="mt-4 h-2 rounded-full bg-black/10">
+                <div
+                  className="h-2 rounded-full bg-black transition-all"
+                  style={{ width: `${isEnrolled ? progress : 0}%` }}
+                />
+              </div>
+              <Button
+                onClick={() => (isEnrolled ? handleContinue() : enroll())}
+                loading={enrolling}
+                disabled={!isEnrolled && !courseObjectId}
+                className="mt-5 w-full"
+              >
+                {isEnrolled ? (
+                  <>
+                    Continue lesson <ArrowRight size={16} />
+                  </>
+                ) : (
+                  'Enroll'
+                )}
+              </Button>
             </div>
           </div>
         </div>
-      </Card>
+      </section>
 
-      <div>
-        <h2 className="font-mono font-semibold text-gray-200 text-sm mb-3">Lessons</h2>
-        {detailLoading ? (
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-16 rounded-xl" count={3} />
-          </div>
-        ) : courseLessons.length === 0 ? (
-          <EmptyState
-            icon={<BookOpen size={36} />}
-            title="No lessons yet"
-            description="This course does not have published lessons"
-          />
-        ) : (
-          <div className="flex flex-col gap-4">
-            {courseLessons.map((lesson, index) => (
-              <Card
-                key={lesson._id}
-                role="button"
-                tabIndex={0}
-                className="p-3 flex items-center gap-3 hover:border-accent-500/20 transition-all duration-200 motion-safe:hover:-translate-y-0.5 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-                onClick={() => router.push(`/lessons/${lesson._id}`)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    router.push(`/lessons/${lesson._id}`);
-                  }
-                }}
-              >
-                <div className="w-8 h-8 rounded-lg bg-accent-500/10 flex items-center justify-center shrink-0">
-                  {lesson.isLocked ? <Lock size={14} className="text-gray-500" /> : <PlayCircle size={14} className="text-accent-400" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-300 font-mono truncate">{lesson.title}</p>
-                  <p className="text-xs text-gray-500 font-mono">
-                    Lesson {lesson.order ?? index + 1}
-                    {lesson.duration ? ` - ${lesson.duration} min` : ''}
-                  </p>
-                </div>
-              </Card>
+      <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="rounded-lg border border-black/10 bg-white p-5">
+          <h2 className="text-xl font-semibold">Lessons</h2>
+          {!hasRealLessons ? (
+            <p className="mt-2 rounded-lg bg-[#d9f99d]/45 px-3 py-2 text-xs text-black/60">
+              Mock lesson preview from the demo flow. Replace when lessonsService data is available.
+            </p>
+          ) : null}
+          {displayLessons.length > 0 ? (
+            <div className="mt-5 divide-y divide-black/10">
+              {displayLessons.map((lesson, index) => {
+                const done = completedSet.has(lesson._id);
+                const isCurrent = continueLessonId === lesson._id && isEnrolled && !done;
+                const locked = !!lesson.isLocked && !isEnrolled;
+
+                return (
+                  <button
+                    key={lesson._id}
+                    type="button"
+                    onClick={() => {
+                      if (!hasRealLessons) {
+                        toast.info('This is a mock lesson preview. Connect lesson data to open it.');
+                        return;
+                      }
+                      if (locked) {
+                        toast.error('Enroll to unlock this lesson');
+                        return;
+                      }
+                      router.push(`/lessons/${lesson._id}`);
+                    }}
+                    className="flex w-full items-center gap-4 py-4 text-left transition hover:bg-black/[0.02]"
+                  >
+                    <span
+                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-medium ${
+                        done
+                          ? 'bg-black text-white'
+                          : isCurrent
+                            ? 'bg-[#d9f99d] text-ink'
+                            : locked
+                              ? 'bg-black/[0.04] text-black/35'
+                              : 'bg-black/[0.04] text-black/55'
+                      }`}
+                    >
+                      {locked ? <Lock size={16} /> : done ? <CheckCircle2 size={16} /> : index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium text-ink">{lesson.title}</span>
+                      <span className="mt-1 block text-sm text-black/50">
+                        Lesson {lesson.order ?? lesson.orderIndex ?? index + 1}
+                        {lesson.duration || lesson.estimatedTime
+                          ? ` · ${lesson.duration ?? lesson.estimatedTime} min`
+                          : ''}
+                      </span>
+                    </span>
+                    {(lesson.duration ?? lesson.estimatedTime) ? (
+                      <span className="shrink-0 text-sm text-black/45">
+                        {lesson.duration ?? lesson.estimatedTime} min
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+
+        <aside className="rounded-lg border border-black/10 bg-white p-5">
+          <h2 className="text-xl font-semibold">What you will learn</h2>
+          <div className="mt-5 space-y-3">
+            {displayOutcomes.map((outcome) => (
+              <div key={outcome} className="flex gap-3 text-sm text-black/65">
+                <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-black" />
+                <span className="line-clamp-3">{outcome}</span>
+              </div>
             ))}
           </div>
-        )}
-      </div>
-    </div>
+          {tags.length ? (
+            <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-5">
+              {tags.map((tag) => (
+                <span key={tag} className="rounded bg-black/[0.04] px-2 py-1 text-xs text-black/55">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </aside>
+      </section>
+    </DemoPageRoot>
   );
 };

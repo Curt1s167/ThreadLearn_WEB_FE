@@ -2,15 +2,19 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Bell, Sun, Moon, LogOut, Command } from 'lucide-react';
+import { Search, Bell, LogOut, Command } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
 import { notificationsService } from '../services';
+import {
+  TOPBAR_COLLAPSED_LEFT,
+  TOPBAR_EXPANDED_LEFT,
+} from './shell-metrics';
 
 export const Topbar: React.FC = () => {
-  const { user, logout } = useAuthStore();
-  const { theme, toggleTheme, sidebarCollapsed } = useUIStore();
+  const { user, logout, stats } = useAuthStore();
+  const { sidebarCollapsed } = useUIStore();
   const [searchValue, setSearchValue] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
@@ -22,6 +26,9 @@ export const Topbar: React.FC = () => {
   const unreadNotifications =
     notifications?.filter((notification) => !notification.isRead).length ?? 0;
 
+  const level = stats?.level ?? 1;
+  const xp = stats?.xp;
+
   const handleLogout = () => {
     logout();
     router.replace('/login');
@@ -29,16 +36,15 @@ export const Topbar: React.FC = () => {
 
   return (
     <header
-      className={`fixed top-0 right-0 z-20 h-14 flex items-center justify-between px-5 border-b border-white/[0.06] bg-[#0a0a0f]/80 backdrop-blur-xl transition-all duration-200 ${
-        sidebarCollapsed ? 'left-14' : 'left-56'
+      className={`fixed top-0 right-0 z-20 h-14 flex items-center justify-between px-5 border-b border-black/10 bg-white/85 backdrop-blur-xl transition-all duration-200 ${
+        sidebarCollapsed ? TOPBAR_COLLAPSED_LEFT : TOPBAR_EXPANDED_LEFT
       }`}
     >
-      {/* Search */}
       <div className="relative flex items-center gap-2">
         <div className="relative">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
           />
           <input
             type="text"
@@ -50,52 +56,48 @@ export const Topbar: React.FC = () => {
               }
             }}
             placeholder="Search courses..."
-            className="h-8 bg-white/[0.04] border border-white/[0.07] text-gray-300 placeholder-gray-700 rounded-lg pl-8 pr-10 text-xs font-mono w-60 outline-none focus:border-violet-500/30 focus:bg-white/[0.06] transition-all"
+            className="h-8 bg-canvas-cream border border-black/10 text-ink placeholder:text-black/35 rounded-lg pl-8 pr-10 text-xs w-60 outline-none focus:border-black/25 focus:bg-white transition-all"
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-gray-700">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-ink-soft">
             <Command size={10} />
             <span className="text-[10px]">K</span>
           </div>
         </div>
       </div>
 
-      {/* Right actions */}
       <div className="flex items-center gap-1">
-        {/* XP display */}
         {user && (
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 mr-2">
-            <span className="text-violet-400 text-xs font-mono">Lv.</span>
-            <span className="text-violet-300 text-xs font-mono font-semibold">1</span>
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-lime/80 border border-black/5 mr-2">
+            <span className="text-ink/70 text-xs">Lv.</span>
+            <span className="text-ink text-xs font-semibold">{level}</span>
+            {xp != null && (
+              <>
+                <span className="text-ink/30 text-xs">·</span>
+                <span className="text-ink/70 text-xs">{xp.toLocaleString()} XP</span>
+              </>
+            )}
           </div>
         )}
 
-        {/* Theme toggle */}
         <button
-          onClick={toggleTheme}
-          className="p-2 rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
-          title="Toggle theme"
-        >
-          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-        </button>
-
-        {/* Notifications */}
-        <button
+          type="button"
           onClick={() => router.push('/notifications')}
-          className="relative p-2 rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/5 transition-colors"
+          className="relative p-2 rounded-lg text-ink-faint hover:text-ink hover:bg-black/[0.05] transition-colors"
+          aria-label="Notifications"
         >
           <Bell size={15} />
           {unreadNotifications > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-violet-500 text-[10px] leading-4 text-white font-mono text-center">
+            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-black text-[10px] leading-4 text-white text-center">
               {unreadNotifications > 9 ? '9+' : unreadNotifications}
             </span>
           )}
         </button>
 
-        {/* User menu */}
         <div className="relative ml-1">
           <button
+            type="button"
             onClick={() => setShowUserMenu((v) => !v)}
-            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-black/[0.05] transition-colors"
           >
             <Avatar src={user?.avatarUrl} name={user?.name} size="sm" />
           </button>
@@ -106,12 +108,12 @@ export const Topbar: React.FC = () => {
                 className="fixed inset-0 z-10"
                 onClick={() => setShowUserMenu(false)}
               />
-              <div className="absolute right-0 top-10 z-20 w-52 bg-[#111118] border border-white/[0.08] rounded-xl panel-shadow py-1 animate-fade-in">
-                <div className="px-3 py-2.5 border-b border-white/[0.06]">
-                  <p className="text-xs text-gray-200 font-mono font-medium truncate">
+              <div className="absolute right-0 top-10 z-20 w-52 bg-white border border-black/10 rounded-xl panel-shadow py-1 animate-fade-in">
+                <div className="px-3 py-2.5 border-b border-black/10">
+                  <p className="text-xs text-ink font-medium truncate">
                     {user?.name}
                   </p>
-                  <p className="text-[11px] text-gray-600 font-mono truncate">
+                  <p className="text-[11px] text-ink-faint truncate">
                     {user?.email}
                   </p>
                   <div className="mt-1">
@@ -121,14 +123,16 @@ export const Topbar: React.FC = () => {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => { router.push('/profile'); setShowUserMenu(false); }}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 font-mono transition-colors"
+                  className="w-full text-left px-3 py-2 text-sm text-ink-muted hover:text-ink hover:bg-black/[0.04] transition-colors"
                 >
                   Profile settings
                 </button>
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 text-sm text-rose-400 hover:text-rose-300 hover:bg-rose-500/5 font-mono transition-colors flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 text-sm text-rose-600 hover:text-rose-700 hover:bg-rose-500/5 transition-colors flex items-center gap-2"
                 >
                   <LogOut size={13} />
                   Sign out

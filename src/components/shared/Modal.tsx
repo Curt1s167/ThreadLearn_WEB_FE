@@ -48,40 +48,36 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={handleClose}
       />
-      {/* Panel */}
       <div
-        className={`relative w-full ${sizeMap[size]} bg-[#111118] border border-white/[0.08] rounded-2xl panel-shadow animate-slide-in`}
+        className={`relative w-full ${sizeMap[size]} bg-white border border-black/10 rounded-2xl panel-shadow animate-slide-in`}
       >
-        {/* Header */}
         {title && (
-          <div className="flex items-start justify-between p-5 border-b border-white/[0.06]">
+          <div className="flex items-start justify-between p-5 border-b border-black/10">
             <div>
-              <h2 className="font-mono font-semibold text-gray-100">{title}</h2>
+              <h2 className="font-semibold text-ink">{title}</h2>
               {description && (
-                <p className="text-sm text-gray-500 mt-0.5 font-mono">{description}</p>
+                <p className="text-sm text-ink-muted mt-0.5">{description}</p>
               )}
             </div>
             <button
+              type="button"
               onClick={handleClose}
-              className="text-gray-600 hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-white/5"
+              className="text-ink-faint hover:text-ink transition-colors p-1 rounded-lg hover:bg-black/[0.05]"
             >
               <X size={16} />
             </button>
           </div>
         )}
-        {/* Body */}
         <div className="p-5">{children}</div>
       </div>
     </div>
   );
 };
 
-// ─── Confirm Modal ────────────────────────────────────────────────────────────
 export const ConfirmModal: React.FC<{
   name: string;
   title: string;
@@ -95,18 +91,19 @@ export const ConfirmModal: React.FC<{
   return (
     <Modal name={name} title={title} description={description} size="sm">
       <div className="flex gap-3 justify-end mt-2">
-        <button
-          onClick={closeModal}
-          className="btn-ghost text-sm font-mono"
-        >
+        <button type="button" onClick={closeModal} className="btn-ghost text-sm">
           Cancel
         </button>
         <button
-          onClick={() => { onConfirm(); closeModal(); }}
-          className={`px-4 py-2 rounded-lg text-sm font-mono font-medium transition-colors ${
+          type="button"
+          onClick={() => {
+            onConfirm();
+            closeModal();
+          }}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             danger
-              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20'
-              : 'bg-violet-600 hover:bg-violet-500 text-white'
+              ? 'bg-rose-500/10 hover:bg-rose-500/15 text-rose-700 border border-rose-500/20'
+              : 'bg-black hover:bg-black/85 text-white'
           }`}
         >
           {confirmLabel}

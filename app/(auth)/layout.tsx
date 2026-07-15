@@ -15,7 +15,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }, [hasHydrated, isAuthenticated, router]);
 
   if (!hasHydrated || isAuthenticated) {
-    return null;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-canvas-cream">
+        <div className="h-10 w-10 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+      </div>
+    );
   }
 
   return <>{children}</>;

@@ -21,17 +21,17 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-6 p-8">
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
-            <AlertTriangle size={24} className="text-rose-400" />
+            <AlertTriangle size={24} className="text-rose-600" />
           </div>
           <div className="text-center">
-            <p className="font-mono font-semibold text-gray-200">Something went wrong</p>
-            <p className="text-sm text-gray-600 font-mono mt-1">
+            <p className="font-semibold text-ink">Something went wrong</p>
+            <p className="text-sm text-ink-muted mt-1">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
           </div>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="inline-flex items-center gap-2 btn-outline text-sm font-mono"
+            className="inline-flex items-center gap-2 btn-outline text-sm"
           >
             <RefreshCw size={14} />
             Try again

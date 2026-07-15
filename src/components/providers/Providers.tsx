@@ -42,11 +42,12 @@ export const Providers = ({ children }: { children: React.ReactNode }) => {
         position="bottom-right"
         toastOptions={{
           style: {
-            background: '#111118',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: '#e8e8f0',
-            fontFamily: "'JetBrains Mono', monospace",
+            background: '#ffffff',
+            border: '1px solid rgba(0,0,0,0.1)',
+            color: '#111111',
+            fontFamily: 'system-ui, sans-serif',
             fontSize: '13px',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.08)',
           },
         }}
       />

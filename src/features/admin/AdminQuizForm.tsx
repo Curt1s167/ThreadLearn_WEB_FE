@@ -284,7 +284,7 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-gray-400 font-mono">Description</label>
+        <label className="text-xs font-medium text-ink-muted">Description</label>
         <textarea
           value={description}
           onChange={(event) => setDescription(event.target.value)}
@@ -324,8 +324,8 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
 
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-mono font-semibold text-gray-200 text-sm">Questions</h3>
-          {errors.questions && <p className="text-xs text-rose-400 font-mono mt-1">{errors.questions}</p>}
+          <h3 className="text-sm font-semibold text-ink">Questions</h3>
+          {errors.questions && <p className="mt-1 text-xs text-rose-600">{errors.questions}</p>}
         </div>
         <Button
           type="button"
@@ -340,10 +340,10 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
 
       <div className="flex flex-col gap-3 max-h-[50dvh] overflow-y-auto pr-1">
         {questions.map((question, questionIndex) => (
-          <div key={question.localId} className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+          <div key={question.localId} className="rounded-xl border border-black/10 bg-[#f7f4ee]/50 p-4">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex-1">
-                <p className="text-xs text-gray-500 font-mono mb-2">Question {questionIndex + 1}</p>
+                <p className="text-xs font-medium text-ink-muted mb-2">Question {questionIndex + 1}</p>
                 <Input
                   value={question.questionText}
                   onChange={(event) => updateQuestion(question.localId, { questionText: event.target.value })}
@@ -376,10 +376,10 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
                     aria-label={`Mark option ${optionIndex + 1} as correct`}
                     onClick={() => updateQuestion(question.localId, { correctAnswerIndex: optionIndex })}
                     className={cn(
-                      'h-10 px-3 rounded-lg border text-xs font-mono transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas',
+                      'h-10 px-3 rounded-lg border text-xs font-mono transition-colors outline-none focus-visible:ring-2 focus-visible:ring-black/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream',
                       question.correctAnswerIndex === optionIndex
                         ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : 'border-white/10 text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                        : 'border-black/10 text-ink-muted hover:text-ink/80 hover:bg-black/[0.04]'
                     )}
                   >
                     Correct
@@ -389,7 +389,7 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
                     aria-label={`Remove option ${optionIndex + 1}`}
                     onClick={() => removeOption(question.localId, optionIndex)}
                     disabled={question.options.length <= 2}
-                    className="size-10 inline-flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                    className="size-10 inline-flex items-center justify-center rounded-lg border border-black/10 text-ink-muted hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors outline-none focus-visible:ring-2 focus-visible:ring-black/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream"
                   >
                     <X size={14} />
                   </button>
@@ -413,7 +413,7 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
         ))}
       </div>
 
-      <div className="flex justify-end gap-3 border-t border-white/[0.06] pt-4">
+      <div className="flex justify-end gap-3 border-t border-black/10 pt-4">
         <Button type="submit" loading={isSubmitting}>
           <Save size={14} />
           {isEditing ? 'Save changes' : 'Create quiz'}

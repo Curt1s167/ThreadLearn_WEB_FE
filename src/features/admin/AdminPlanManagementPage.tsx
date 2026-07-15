@@ -13,11 +13,19 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge, Button, Card, EmptyState, Input, Skeleton } from '../../components/shared';
+import { Button, EmptyState, Input, Skeleton } from '../../components/shared';
 import { ConfirmModal, Modal } from '../../components/shared/Modal';
 import { subscriptionService } from '../../services';
 import { useUIStore } from '../../store';
 import type { PlanCreatePayload, PlanUpdatePayload, SubscriptionPlan } from '../../types';
+import {
+  DemoDisplayTitle,
+  DemoHeroWhite,
+  DemoMuted,
+  DemoPageRoot,
+  DemoPill,
+  DemoWhitePanel,
+} from '../ui-reskin/demo-ui';
 
 const PLAN_FORM_MODAL = 'admin-plan-form';
 const DEACTIVATE_PLAN_MODAL = 'deactivate-admin-plan';
@@ -158,7 +166,7 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
         <Input
           label="Plan name"
           value={name}
@@ -176,7 +184,7 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-gray-400 font-mono">Description</label>
+        <label className="text-xs font-medium text-ink-muted">Description</label>
         <textarea
           value={description}
           onChange={(event) => setDescription(event.target.value)}
@@ -185,7 +193,7 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
         />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
         <Input
           label="Price"
           type="number"
@@ -205,12 +213,12 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
         />
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-gray-400 font-mono">
+      <label className="flex items-center gap-2 text-sm text-ink-muted">
         <input
           type="checkbox"
           checked={isActive}
           onChange={(event) => setIsActive(event.target.checked)}
-          className="size-4 rounded border-white/10 bg-white/5 accent-violet-500"
+          className="size-4 rounded border-black/20 accent-black"
         />
         Active plan
       </label>
@@ -218,8 +226,10 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="font-mono font-semibold text-gray-200 text-sm">Features</h3>
-            {errors.features && <p className="text-xs text-rose-400 font-mono mt-1">{errors.features}</p>}
+            <h3 className="text-sm font-semibold text-ink">Features</h3>
+            {errors.features && (
+              <p className="mt-1 text-xs text-rose-600">{errors.features}</p>
+            )}
           </div>
           <Button type="button" variant="outline" size="sm" onClick={addFeature}>
             <Plus size={13} />
@@ -227,7 +237,7 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
           </Button>
         </div>
 
-        <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
+        <div className="flex max-h-48 flex-col gap-2 overflow-y-auto pr-1">
           {features.map((feature, index) => (
             <div key={index} className="grid grid-cols-[1fr_auto] gap-2">
               <Input
@@ -239,7 +249,7 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
                 type="button"
                 aria-label={`Remove feature ${index + 1}`}
                 onClick={() => removeFeature(index)}
-                className="size-10 inline-flex items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                className="inline-flex size-10 items-center justify-center rounded-lg border border-black/10 text-ink-muted hover:bg-rose-50 hover:text-rose-700"
               >
                 <X size={14} />
               </button>
@@ -248,7 +258,7 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 border-t border-white/[0.06] pt-4">
+      <div className="flex justify-end gap-3 border-t border-black/10 pt-4">
         <Button type="submit" loading={isSubmitting}>
           <Save size={14} />
           {isEditing ? 'Save changes' : 'Create plan'}
@@ -258,6 +268,10 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
   );
 };
 
+/**
+ * PR8 — admin plan list visual polish.
+ * LOGIC LOCK: listPlans, create/update/deletePlan, modals.
+ */
 export const AdminPlanManagementPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { openModal, closeModal } = useUIStore();
@@ -312,15 +326,10 @@ export const AdminPlanManagementPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-5 animate-fade-in">
-        <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-12 w-72 rounded-xl" />
-          <Skeleton className="h-10 w-32 rounded-lg" />
-        </div>
-        <Card className="p-4">
-          <Skeleton className="h-9 rounded-lg" count={6} />
-        </Card>
-      </div>
+      <DemoPageRoot>
+        <Skeleton className="h-36 rounded-lg" />
+        <Skeleton className="h-64 rounded-lg" />
+      </DemoPageRoot>
     );
   }
 
@@ -343,96 +352,132 @@ export const AdminPlanManagementPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="size-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-            <CreditCard size={18} className="text-amber-400" />
+    <DemoPageRoot>
+      <DemoHeroWhite>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <DemoPill tone="lime">Admin · UC51</DemoPill>
+              <CreditCard size={18} className="text-black/45" />
+            </div>
+            <DemoDisplayTitle>Plan management</DemoDisplayTitle>
+            <DemoMuted>
+              {planList.length} subscription plan{planList.length === 1 ? '' : 's'}
+              {showInactive ? ' (including inactive)' : ' (active only)'}. CRUD via subscription plan APIs.
+            </DemoMuted>
           </div>
-          <div className="min-w-0">
-            <h1 className="font-mono font-bold text-2xl text-gray-100 text-balance">Plan Management</h1>
-            <p className="text-gray-600 font-mono text-sm text-pretty">
-              {planList.length} subscription plans {showInactive ? 'including inactive' : 'active only'}
-            </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-xs text-black/60">
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(event) => setShowInactive(event.target.checked)}
+                className="size-4 rounded border-black/20 accent-black"
+              />
+              Show inactive
+            </label>
+            <button
+              type="button"
+              onClick={openCreateForm}
+              className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-black/90"
+            >
+              <Plus size={14} />
+              New plan
+            </button>
           </div>
         </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-xs text-gray-500 font-mono">
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={(event) => setShowInactive(event.target.checked)}
-              className="size-4 rounded border-white/10 bg-white/5 accent-violet-500"
-            />
-            Show inactive
-          </label>
-          <Button onClick={openCreateForm}>
-            <Plus size={14} />
-            New plan
-          </Button>
-        </div>
-      </div>
+      </DemoHeroWhite>
 
       {planList.length === 0 ? (
-        <Card className="p-6">
+        <DemoWhitePanel className="p-8">
           <EmptyState
             icon={<CreditCard size={36} />}
             title="No subscription plans found"
             description="Create the first plan students can purchase"
             action={(
-              <Button onClick={openCreateForm}>
+              <button
+                type="button"
+                onClick={openCreateForm}
+                className="inline-flex items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
+              >
                 <Plus size={14} />
                 New plan
-              </Button>
+              </button>
             )}
           />
-        </Card>
+        </DemoWhitePanel>
       ) : (
-        <Card className="overflow-hidden">
+        <DemoWhitePanel>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[900px]">
               <thead>
-                <tr className="border-b border-white/[0.05]">
-                  {['Plan', 'Price', 'Duration', 'Features', 'Status', 'Updated', 'Actions'].map((heading) => (
-                    <th key={heading} className="text-left text-xs text-gray-600 font-mono px-4 py-3">
-                      {heading}
-                    </th>
-                  ))}
+                <tr className="border-b border-black/10 bg-[#f7f4ee]/80">
+                  {['Plan', 'Price', 'Duration', 'Features', 'Status', 'Updated', 'Actions'].map(
+                    (heading) => (
+                      <th
+                        key={heading}
+                        className="px-4 py-3 text-left text-xs font-medium uppercase tracking-[0.12em] text-black/45"
+                      >
+                        {heading}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {planList.map((plan) => {
                   const planId = getPlanId(plan);
-                  const isDeactivating = deactivatePlanMutation.isPending &&
-                    planToDeactivate ? getPlanId(planToDeactivate) === planId : false;
+                  const isDeactivating =
+                    deactivatePlanMutation.isPending &&
+                    planToDeactivate != null &&
+                    getPlanId(planToDeactivate) === planId;
 
                   return (
-                    <tr key={planId} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                      <td className="px-4 py-3 min-w-56">
-                        <p className="text-sm text-gray-200 font-mono font-medium truncate max-w-xs">{plan.name}</p>
-                        {plan.description && (
-                          <p className="text-xs text-gray-600 font-mono mt-1 line-clamp-1">{plan.description}</p>
-                        )}
+                    <tr
+                      key={planId}
+                      className="border-b border-black/10 last:border-b-0 hover:bg-black/[0.02] transition-colors"
+                    >
+                      <td className="min-w-56 px-4 py-3">
+                        <p className="max-w-xs truncate text-sm font-medium text-ink">{plan.name}</p>
+                        {plan.description ? (
+                          <p className="mt-0.5 line-clamp-1 text-xs text-black/50">{plan.description}</p>
+                        ) : null}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-300 font-mono tabular-nums">
+                      <td className="px-4 py-3 text-sm tabular-nums text-ink">
                         {formatPrice(plan.price, plan.currency)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-400 font-mono tabular-nums">
+                      <td className="px-4 py-3 text-sm tabular-nums text-black/60">
                         {plan.durationDays} days
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1.5 max-w-xs">
-                          {plan.features.length > 0 ? plan.features.slice(0, 3).map((feature) => (
-                            <span key={feature} className="tag">{feature}</span>
-                          )) : (
-                            <span className="text-xs text-gray-600 font-mono">No features</span>
+                        <div className="flex max-w-xs flex-wrap gap-1.5">
+                          {plan.features.length > 0 ? (
+                            plan.features.slice(0, 3).map((feature) => (
+                              <span
+                                key={feature}
+                                className="rounded-full bg-[#f7f4ee] px-2 py-0.5 text-[11px] text-black/70"
+                              >
+                                {feature}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-black/45">No features</span>
                           )}
-                          {plan.features.length > 3 && <span className="tag">+{plan.features.length - 3}</span>}
+                          {plan.features.length > 3 ? (
+                            <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] text-black/60">
+                              +{plan.features.length - 3}
+                            </span>
+                          ) : null}
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge color={plan.isActive ? 'green' : 'gray'}>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            plan.isActive
+                              ? 'bg-[#d9f99d] text-black'
+                              : 'bg-black/5 text-black/50'
+                          }`}
+                        >
                           {plan.isActive ? (
                             <>
                               <Check size={11} />
@@ -441,27 +486,28 @@ export const AdminPlanManagementPage: React.FC = () => {
                           ) : (
                             'Inactive'
                           )}
-                        </Badge>
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-600 font-mono">
-                        {formatDate(plan.updatedAt)}
-                      </td>
+                      <td className="px-4 py-3 text-xs text-black/45">{formatDate(plan.updatedAt)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openEditForm(plan)}>
-                            <Edit2 size={13} />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => openDeactivateConfirm(plan)}
-                            disabled={!plan.isActive}
-                            loading={isDeactivating}
+                          <button
+                            type="button"
+                            onClick={() => openEditForm(plan)}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 px-3 py-1.5 text-xs font-medium text-ink hover:bg-black/[0.03]"
                           >
-                            <Trash2 size={13} />
+                            <Edit2 size={12} />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openDeactivateConfirm(plan)}
+                            disabled={!plan.isActive || isDeactivating}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Trash2 size={12} />
                             Deactivate
-                          </Button>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -470,13 +516,17 @@ export const AdminPlanManagementPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </Card>
+        </DemoWhitePanel>
       )}
 
       <Modal
         name={PLAN_FORM_MODAL}
         title={editingPlan ? 'Edit plan' : 'Create plan'}
-        description={editingPlan ? 'Update pricing, duration, features, and visibility' : 'Create a subscription plan for students'}
+        description={
+          editingPlan
+            ? 'Update pricing, duration, features, and visibility'
+            : 'Create a subscription plan for students'
+        }
         size="xl"
         onClose={() => setEditingPlan(null)}
       >
@@ -490,7 +540,11 @@ export const AdminPlanManagementPage: React.FC = () => {
       <ConfirmModal
         name={DEACTIVATE_PLAN_MODAL}
         title="Deactivate plan"
-        description={planToDeactivate ? `Deactivate "${planToDeactivate.name}"? Students will no longer see it on pricing.` : 'Deactivate this plan?'}
+        description={
+          planToDeactivate
+            ? `Deactivate "${planToDeactivate.name}"? Students will no longer see it on pricing.`
+            : 'Deactivate this plan?'
+        }
         confirmLabel="Deactivate"
         danger
         onConfirm={() => {
@@ -498,6 +552,6 @@ export const AdminPlanManagementPage: React.FC = () => {
           deactivatePlanMutation.mutate(getPlanId(planToDeactivate));
         }}
       />
-    </div>
+    </DemoPageRoot>
   );
 };
