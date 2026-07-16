@@ -34,6 +34,9 @@ import type {
   Enrollment,
   UserStats,
   User,
+  AdminStudentFilters,
+  AdminStudentCreatePayload,
+  AdminStudentUpdatePayload,
 } from '../types';
 
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
@@ -408,40 +411,69 @@ export const adminService = {
     );
     return data.data;
   },
-  listUsers: async (page = 1, limit = 20) => {
-    const { data } = await apiClient.get<ApiResponse<User[]>>(
-      `/admin/students?page=${page}&limit=${limit}`
+  listUsers: async (pageOrFilters: number | AdminStudentFilters = 1, limit = 20) => {
+    const filters: AdminStudentFilters =
+      typeof pageOrFilters === 'number'
+        ? { page: pageOrFilters, limit }
+        : pageOrFilters;
+    const page = filters.page ?? 1;
+    const pageSize = filters.limit ?? limit;
+    const params = {
+      page,
+      limit: pageSize,
+      search: filters.search || undefined,
+      isActive: filters.isActive,
+      isVerified: filters.isVerified,
+    };
+
+    const { data } = await apiClient.get<ApiResponse<User[] | PaginatedResponse<User>>>(
+      '/admin/students',
+      { params }
     );
     const meta = data.meta;
+    const payload = data.data;
+    const items = Array.isArray(payload) ? payload : payload.items;
 
     return {
-      items: data.data ?? [],
-      total: meta?.total ?? data.data?.length ?? 0,
-      page: meta?.page ?? page,
-      limit: meta?.limit ?? limit,
-      totalPages: meta?.totalPages ?? 1,
+      items: items ?? [],
+      total: meta?.total ?? (Array.isArray(payload) ? payload.length : payload.total) ?? 0,
+      page: meta?.page ?? (Array.isArray(payload) ? page : payload.page) ?? page,
+      limit: meta?.limit ?? (Array.isArray(payload) ? pageSize : payload.limit) ?? pageSize,
+      totalPages: meta?.totalPages ?? (Array.isArray(payload) ? 1 : payload.totalPages) ?? 1,
     } satisfies PaginatedResponse<User>;
   },
-  createStudent: async (payload: { firstName: string; lastName: string; email: string; password?: string }) => {
+  createStudent: async (payload: AdminStudentCreatePayload) => {
     const { data } = await apiClient.post<ApiResponse<User>>(
       '/admin/students',
       payload
     );
     return data.data;
   },
-  updateUser: async (id: string, payload: Partial<User>) => {
+  updateUser: async (id: string, payload: AdminStudentUpdatePayload) => {
     const { data } = await apiClient.patch<ApiResponse<User>>(
       `/admin/students/${id}`,
       payload
     );
     return data.data;
   },
-  toggleUserLock: async (id: string, isLocked: boolean, lockedReason?: string) => {
+  lockStudent: async (id: string, lockedReason?: string) => {
+    const payload = lockedReason?.trim() ? { lockedReason: lockedReason.trim() } : undefined;
     const { data } = await apiClient.patch<ApiResponse<User>>(
-      `/admin/students/${id}/${isLocked ? 'unlock' : 'lock'}`,
-      isLocked ? undefined : { lockedReason }
+      `/admin/students/${id}/lock`,
+      payload
     );
     return data.data;
+  },
+  unlockStudent: async (id: string) => {
+    const { data } = await apiClient.patch<ApiResponse<User>>(
+      `/admin/students/${id}/unlock`
+    );
+    return data.data;
+  },
+  toggleUserLock: async (id: string, isLocked: boolean, lockedReason?: string) => {
+    return isLocked
+      ? adminService.unlockStudent(id)
+      : adminService.lockStudent(id, lockedReason);
   },
   toggleCoursePublish: async (id: string, status: 'published' | 'hidden' | 'draft' = 'published') => {
     const { data } = await apiClient.patch<ApiResponse<Course>>(
