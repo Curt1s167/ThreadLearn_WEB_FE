@@ -16,7 +16,10 @@ export interface User {
   planType: PlanType;
   subscriptionExpiresAt?: string;
   isLocked?: boolean;
+  isActive?: boolean;
+  isVerified?: boolean;
   isEmailVerified?: boolean;
+  lockedReason?: string;
   googleId?: string;
   createdAt: string;
   updatedAt: string;
@@ -43,6 +46,28 @@ export interface RegisterPayload {
   lastName: string;
   email: string;
   password: string;
+}
+
+export interface AdminStudentFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: boolean;
+  isVerified?: boolean;
+}
+
+export interface AdminStudentCreatePayload {
+  email: string;
+  firstName: string;
+  lastName: string;
+  password?: string;
+}
+
+export interface AdminStudentUpdatePayload {
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
+  isVerified?: boolean;
 }
 
 // ─── User Stats & Gamification ───────────────────────────────────────────────
