@@ -16,6 +16,7 @@ import {
 } from '../ui-reskin/demo-ui';
 
 const isActiveSubscription = (status?: string) => status?.toLowerCase() === 'active';
+const SUCCESS_STATUSES = ['success', 'succeeded', 'paid'];
 
 const buildPaymentPayload = (
   searchParams: ReturnType<typeof useSearchParams>,
@@ -34,8 +35,28 @@ const buildPaymentPayload = (
 };
 
 type PaymentResultMode = 'real' | 'mock';
+type PaymentGateway = 'mock' | 'payos' | 'vnpay' | 'live';
 
 const MAX_POLL_ATTEMPTS = 5;
+
+const getPaymentGateway = (
+  mode: PaymentResultMode,
+  gatewayParam: string | null,
+  hasVnpaySignal: boolean
+): PaymentGateway => {
+  if (mode === 'mock') return 'mock';
+  const gateway = gatewayParam?.toLowerCase();
+  if (gateway === 'payos') return 'payos';
+  if (gateway === 'vnpay' || hasVnpaySignal) return 'vnpay';
+  return 'live';
+};
+
+const getGatewayLabel = (gateway: PaymentGateway) => {
+  if (gateway === 'mock') return 'Mock VNPay';
+  if (gateway === 'payos') return 'PayOS';
+  if (gateway === 'vnpay') return 'VNPay';
+  return 'Live';
+};
 
 /**
  * PR7 — payment result visual polish only.
@@ -52,6 +73,8 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   const purchaseId = searchParams.get('purchaseId');
   const transactionId = searchParams.get('transactionId') ?? searchParams.get('vnp_TxnRef');
   const responseCode = searchParams.get('vnp_ResponseCode');
+  const gateway = getPaymentGateway(mode, searchParams.get('gateway'), Boolean(responseCode));
+  const gatewayLabel = getGatewayLabel(gateway);
   const rawStatus = searchParams.get('status')?.toLowerCase();
   const inferredMockStatus =
     isMockPayment && (purchaseId || transactionId) && !responseCode && !rawStatus
@@ -114,7 +137,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   const paymentSucceeded = hasActivePlan || mockPaymentSucceeded;
   const hasGatewayFailure = Boolean(
     (responseCode && responseCode !== '00') ||
-      (rawStatus && !['success', 'succeeded', 'paid'].includes(rawStatus))
+      (rawStatus && !SUCCESS_STATUSES.includes(rawStatus))
   );
   const hasPaymentSignal = Boolean(purchaseId || transactionId || responseCode || rawStatus);
   const isPolling =
@@ -156,11 +179,9 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
         <DemoMuted className={tone === 'success' || tone === 'fail' ? '!text-black/65' : ''}>
           {description}
         </DemoMuted>
-        {mode === 'mock' ? (
-          <p className="mt-3 text-xs uppercase tracking-[0.14em] text-black/40">Mock VNPay callback</p>
-        ) : (
-          <p className="mt-3 text-xs uppercase tracking-[0.14em] text-black/40">Live payment result</p>
-        )}
+        <p className="mt-3 text-xs uppercase tracking-[0.14em] text-black/40">
+          {gatewayLabel} payment result
+        </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <button
             type="button"
@@ -224,6 +245,18 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
         title="Payment successful"
         description="Your premium subscription is active. Gamification and plan access will use the updated subscription."
         icon={<CheckCircle size={36} className="text-black" />}
+      />
+    );
+  }
+
+  if (mode === 'real' && hasPaymentSignal && !hasGatewayFailure) {
+    return (
+      <ResultShell
+        tone="neutral"
+        pill="Processing"
+        title="Payment is being processed"
+        description="Your payment gateway callback was received. We are waiting for the secure server webhook to activate your subscription."
+        icon={<CreditCard size={36} className="text-black/40" />}
       />
     );
   }
