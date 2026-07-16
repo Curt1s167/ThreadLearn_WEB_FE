@@ -454,12 +454,54 @@ export interface AIHistoryLog {
 // ─── Analytics (Admin) ────────────────────────────────────────────────────────
 
 export interface PlatformStats {
-  totalStudents: number;
-  totalCourses: number;
-  totalEnrollments: number;
-  totalQuizAttempts: number;
-  courseCompletionRate: number;
-  quizPassRate: number;
+  totalUsers?: number;
+  totalStudents?: number;
+  totalCourses?: number;
+  totalEnrollments?: number;
+  totalQuizAttempts?: number;
+  courseCompletionRate?: number;
+  quizPassRate?: number;
+}
+
+export type AdminDashboardMetricValue = string | number | boolean | null | undefined;
+
+export interface AdminDashboardSummary {
+  totalUsers?: number;
+  totalStudents?: number;
+  totalCourses?: number;
+  totalEnrollments?: number;
+  totalQuizAttempts?: number;
+  courseCompletionRate?: number;
+  quizPassRate?: number;
+  [key: string]: AdminDashboardMetricValue;
+}
+
+export interface AdminDashboardChartPoint {
+  label?: string;
+  name?: string;
+  date?: string;
+  month?: string;
+  type?: string;
+  status?: string;
+  value?: number;
+  count?: number;
+  total?: number;
+  users?: number;
+  courses?: number;
+  enrollments?: number;
+  attempts?: number;
+  [key: string]: AdminDashboardMetricValue;
+}
+
+export type AdminDashboardChartValue =
+  | AdminDashboardChartPoint[]
+  | Record<string, AdminDashboardMetricValue>
+  | null
+  | undefined;
+
+export interface AdminDashboardStatistics {
+  summary?: AdminDashboardSummary | null;
+  charts?: Record<string, AdminDashboardChartValue> | null;
 }
 
 // ─── API Responses ────────────────────────────────────────────────────────────

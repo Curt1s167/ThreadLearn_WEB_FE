@@ -31,6 +31,7 @@ import type {
   PaymentConfirmationPayload,
   AIHistoryLog,
   PlatformStats,
+  AdminDashboardStatistics,
   Enrollment,
   UserStats,
   User,
@@ -408,6 +409,12 @@ export const adminService = {
   getStats: async () => {
     const { data } = await apiClient.get<ApiResponse<PlatformStats>>(
       '/admin/stats'
+    );
+    return data.data;
+  },
+  getDashboardStatistics: async () => {
+    const { data } = await apiClient.get<ApiResponse<AdminDashboardStatistics>>(
+      '/admin/dashboard/statistics'
     );
     return data.data;
   },
