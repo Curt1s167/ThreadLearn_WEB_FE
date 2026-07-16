@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { Crown, Sparkles } from 'lucide-react';
+import { AlertCircle, Crown, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionService } from '../../services';
 import { Skeleton } from '../../components/shared';
@@ -12,9 +12,10 @@ import {
   DemoHeroWhite,
   DemoMuted,
   DemoPageRoot,
+  DemoPrimaryButton,
   DemoPill,
+  DemoWhitePanel,
 } from '../ui-reskin/demo-ui';
-import { FALLBACK_PLANS } from '../ui-reskin/demo-fallbacks';
 
 const PricingPlans = dynamic(
   () => import('./PricingPlans').then((module) => module.PricingPlans),
@@ -36,6 +37,7 @@ export const PricingPage: React.FC = () => {
     data: plans,
     isLoading: plansLoading,
     isError: plansError,
+    refetch: refetchPlans,
   } = useQuery({
     queryKey: ['subscription-plans'],
     queryFn: subscriptionService.getPlans,
@@ -71,8 +73,6 @@ export const PricingPage: React.FC = () => {
   }
 
   const activePlans = plans?.filter((plan) => plan.isActive) ?? [];
-  const useMockPlans = plansError || activePlans.length === 0;
-  const visiblePlans = useMockPlans ? FALLBACK_PLANS : activePlans;
 
   return (
     <DemoPageRoot>
@@ -103,13 +103,24 @@ export const PricingPage: React.FC = () => {
         </div>
       ) : null}
 
-      {useMockPlans ? (
-        <div className="rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
-          Mock pricing preview from the demo-light system. Real subscription plans will replace these cards.
-        </div>
-      ) : null}
-
-      <PricingPlans plans={visiblePlans} myPlan={myPlan} previewOnly={useMockPlans} />
+      {plansError ? (
+        <DemoWhitePanel className="p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 text-rose-600" size={20} />
+              <div>
+                <h2 className="font-semibold text-black">Could not load subscription plans</h2>
+                <p className="mt-1 text-sm text-black/55">
+                  Check the subscription plan API or create active plans from the admin screen.
+                </p>
+              </div>
+            </div>
+            <DemoPrimaryButton onClick={() => refetchPlans()}>Retry</DemoPrimaryButton>
+          </div>
+        </DemoWhitePanel>
+      ) : (
+        <PricingPlans plans={activePlans} myPlan={myPlan} />
+      )}
     </DemoPageRoot>
   );
 };
