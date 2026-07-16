@@ -9,7 +9,6 @@ import { z } from 'zod';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '../../services/auth.service';
-import { useAuthStore } from '../../store';
 import { Button, Input } from '../../components/shared';
 import { AuthShell } from './AuthShell';
 
@@ -29,7 +28,6 @@ type FormData = z.infer<typeof schema>;
 
 export const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const { setAuth } = useAuthStore();
   const router = useRouter();
 
   const {
@@ -40,10 +38,9 @@ export const RegisterPage: React.FC = () => {
 
   const onSubmit = async ({ firstName, lastName, email, password }: FormData) => {
     try {
-      const result = await authService.register({ firstName, lastName, email, password });
-      setAuth(result.user, result.accessToken, result.refreshToken);
-      toast.success('Account created! Welcome to ThreadLearn.');
-      router.push('/dashboard');
+      await authService.register({ firstName, lastName, email, password });
+      toast.success('Account created. Check your email for the 6-digit code.');
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch {
       toast.error('Registration failed. Email may already be in use.');
     }

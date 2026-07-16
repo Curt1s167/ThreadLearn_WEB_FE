@@ -48,6 +48,11 @@ export interface RegisterPayload {
   password: string;
 }
 
+export interface VerifyEmailPayload {
+  email: string;
+  code: string;
+}
+
 export interface AdminStudentFilters {
   page?: number;
   limit?: number;
