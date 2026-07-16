@@ -22,6 +22,8 @@ export const XpLevelStreakWidget: React.FC = () => {
     queryKey: ['gamification-stats'],
     queryFn: gamificationService.getStats,
   });
+  const hasStats = Boolean(stats);
+  const safeLevel = stats?.level ?? 1;
 
   useEffect(() => {
     if (isError) {
@@ -30,15 +32,15 @@ export const XpLevelStreakWidget: React.FC = () => {
   }, [isError]);
 
   useEffect(() => {
-    if (!stats?.level) return;
-    if (previousLevelRef.current !== null && stats.level > previousLevelRef.current) {
+    if (!hasStats) return;
+    if (previousLevelRef.current !== null && safeLevel > previousLevelRef.current) {
       setLevelJustChanged(true);
       const timeout = window.setTimeout(() => setLevelJustChanged(false), 260);
-      previousLevelRef.current = stats.level;
+      previousLevelRef.current = safeLevel;
       return () => window.clearTimeout(timeout);
     }
-    previousLevelRef.current = stats.level;
-  }, [stats?.level]);
+    previousLevelRef.current = safeLevel;
+  }, [hasStats, safeLevel]);
 
   if (isLoading) {
     return (
@@ -71,19 +73,24 @@ export const XpLevelStreakWidget: React.FC = () => {
     );
   }
 
+  const level = stats.level ?? 1;
+  const xp = stats.xp ?? 0;
   const currentStreak = stats.currentStreak ?? stats.streak ?? 0;
-  const nextLevelXp = Math.max(stats.level, 1) * 1000;
-  const levelProgress = Math.min(100, ((stats.xp % 1000) / 1000) * 100);
+  const totalLessonsCompleted = stats.totalLessonsCompleted ?? 0;
+  const quizzesDone = stats.quizzesCompleted ?? stats.totalQuizzesPassed ?? 0;
+  const highestStreak = stats.highestStreak ?? currentStreak;
+  const coursesCompleted = stats.coursesCompleted ?? 0;
+  const nextLevelXp = Math.max(level, 1) * 1000;
+  const levelProgress = Math.min(100, ((xp % 1000) / 1000) * 100);
   const lastActiveDate = stats.lastActiveDate
     ? new Date(stats.lastActiveDate).toLocaleDateString()
     : 'No activity yet';
-  const quizzesDone = stats.quizzesCompleted ?? stats.totalQuizzesPassed ?? 0;
 
   const statCards = [
     {
       icon: <Star size={16} />,
       label: 'Total XP',
-      value: <CountUpNumber value={stats.xp} />,
+      value: <CountUpNumber value={xp} />,
       shell: 'bg-[#d9f99d]',
     },
     {
@@ -95,7 +102,7 @@ export const XpLevelStreakWidget: React.FC = () => {
     {
       icon: <BookOpen size={16} />,
       label: 'Lessons completed',
-      value: stats.totalLessonsCompleted.toLocaleString(),
+      value: totalLessonsCompleted.toLocaleString(),
       shell: 'bg-[#bfdbfe]',
     },
     {
@@ -119,9 +126,9 @@ export const XpLevelStreakWidget: React.FC = () => {
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-sm font-semibold text-ink">Level {stats.level}</span>
+              <span className="text-sm font-semibold text-ink">Level {level}</span>
               <span className="text-xs text-black/50">
-                <CountUpNumber value={stats.xp} /> / {nextLevelXp.toLocaleString()} XP
+                <CountUpNumber value={xp} /> / {nextLevelXp.toLocaleString()} XP
               </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-black/5">
@@ -156,13 +163,13 @@ export const XpLevelStreakWidget: React.FC = () => {
         <div className="rounded-lg border border-black/10 bg-[#f7f4ee] p-4">
           <p className="text-xs text-black/45">Highest streak</p>
           <p className="mt-1 text-2xl font-semibold text-ink">
-            {stats.highestStreak ?? currentStreak} days
+            {highestStreak} days
           </p>
         </div>
         <div className="rounded-lg border border-black/10 bg-[#f7f4ee] p-4">
           <p className="text-xs text-black/45">Courses completed</p>
           <p className="mt-1 text-2xl font-semibold text-ink">
-            {stats.coursesCompleted ?? 0}
+            {coursesCompleted}
           </p>
         </div>
       </div>
