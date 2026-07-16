@@ -15,7 +15,8 @@ import { AuthShell } from './AuthShell';
 
 const schema = z
   .object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
     email: z.string().email('Invalid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string(),
@@ -37,9 +38,9 @@ export const RegisterPage: React.FC = () => {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
-  const onSubmit = async ({ name, email, password }: FormData) => {
+  const onSubmit = async ({ firstName, lastName, email, password }: FormData) => {
     try {
-      const result = await authService.register({ name, email, password });
+      const result = await authService.register({ firstName, lastName, email, password });
       setAuth(result.user, result.accessToken, result.refreshToken);
       toast.success('Account created! Welcome to ThreadLearn.');
       router.push('/dashboard');
@@ -86,12 +87,20 @@ export const RegisterPage: React.FC = () => {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <Input
-          label="Full name"
+          label="First name"
           type="text"
-          placeholder="Your Name"
+          placeholder="First name"
           prefix={<User size={13} />}
-          error={errors.name?.message}
-          {...register('name')}
+          error={errors.firstName?.message}
+          {...register('firstName')}
+        />
+        <Input
+          label="Last name"
+          type="text"
+          placeholder="Last name"
+          prefix={<User size={13} />}
+          error={errors.lastName?.message}
+          {...register('lastName')}
         />
         <Input
           label="Email"

@@ -15,7 +15,7 @@ type BackendUser = Partial<User> & {
   isVerified?: boolean;
 };
 
-const normalizeUser = (user: BackendUser): User => {
+export const normalizeUser = (user: BackendUser): User => {
   const id = user._id ?? user.id ?? '';
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
   const email = user.email ?? '';
