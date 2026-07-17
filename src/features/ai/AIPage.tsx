@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Send, Code2, Clock, Sparkles, Brain, Play } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Send, Code2, Clock, Sparkles, Brain, Play, Database, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { aiService } from '../../services';
 import { Button, Skeleton } from '../../components/shared';
@@ -13,12 +13,87 @@ import {
   DemoWhitePanel,
 } from '../ui-reskin/demo-ui';
 import { DEMO_AI_RESPONSE, DEMO_CODE_SAMPLE } from '../ui-reskin/demo-fallbacks';
+import { IssueCard } from './IssueCard';
+import { SAMPLE_CASES } from './sampleCases';
+import { PipelineProgress } from './PipelineProgress';
+import { useAnalyzeStream } from './useAnalyzeStream';
+import type { AIHistoryLog } from '../../types';
 
-const LANGUAGES = ['javascript', 'typescript', 'python', 'java', 'go'];
+function severityCounts(log?: AIHistoryLog) {
+  const issues = log?.issues ?? [];
+  return {
+    high: issues.filter((i) => i.severity === 'high').length,
+    medium: issues.filter((i) => i.severity === 'medium').length,
+    low: issues.filter((i) => i.severity === 'low').length,
+  };
+}
+
+const AnalysisResult: React.FC<{ log: AIHistoryLog }> = ({ log }) => {
+  const issues = log.issues ?? [];
+  const docsUsed = log.docsUsed ?? [];
+  const { high, medium, low } = severityCounts(log);
+
+  if (issues.length === 0) {
+    return (
+      <div className="mt-4 rounded-lg bg-[#f7f4ee] p-4">
+        <p className="text-xs uppercase tracking-[0.18em] text-black/45">
+          {(log.language ?? 'code').toUpperCase()} analysis
+        </p>
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-black/65">{log.response}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {log.cached && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/[0.06] px-2.5 py-0.5 text-xs font-medium text-black/60">
+            <Zap size={11} /> cached
+          </span>
+        )}
+        {high > 0 && (
+          <span className="rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-medium text-rose-700">{high} HIGH</span>
+        )}
+        {medium > 0 && (
+          <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700">{medium} MED</span>
+        )}
+        {low > 0 && (
+          <span className="rounded-full bg-black/[0.06] px-2.5 py-0.5 text-xs font-medium text-black/60">{low} LOW</span>
+        )}
+      </div>
+
+      {issues.map((issue, i) => (
+        <IssueCard key={i} issue={issue} index={i} />
+      ))}
+
+      {docsUsed.length > 0 && (
+        <div className="rounded-lg border border-black/10 bg-white p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Database size={13} className="text-black/45" />
+            <p className="text-xs uppercase tracking-[0.14em] text-black/45">Knowledge base references</p>
+          </div>
+          <div className="space-y-1.5">
+            {docsUsed.map((doc, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-black/60">
+                {doc.category && (
+                  <span className="rounded bg-black/[0.06] px-1.5 py-0.5 font-mono text-[10px] uppercase text-black/45">
+                    {doc.category}
+                  </span>
+                )}
+                <span>{doc.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const AIPage: React.FC = () => {
   const [code, setCode] = useState(DEMO_CODE_SAMPLE);
-  const [language, setLanguage] = useState('javascript');
+  const [sampleIdx, setSampleIdx] = useState(-1);
   const queryClient = useQueryClient();
 
   const {
@@ -34,15 +109,31 @@ export const AIPage: React.FC = () => {
     if (historyError) toast.error('Failed to load AI history');
   }, [historyError]);
 
-  const { mutate: analyze, isPending } = useMutation({
-    mutationFn: () => aiService.analyzeCode(code, language),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-history'] });
-      setCode('');
-      toast.success('Code analyzed!');
-    },
-    onError: () => toast.error('Failed to analyze code'),
-  });
+  const { steps, isStreaming, streamError, run } = useAnalyzeStream();
+  const wasStreaming = useRef(false);
+
+  useEffect(() => {
+    if (streamError) toast.error(streamError);
+  }, [streamError]);
+
+  useEffect(() => {
+    if (wasStreaming.current && !isStreaming) {
+      if (!streamError) {
+        queryClient.invalidateQueries({ queryKey: ['ai-history'] });
+        toast.success('Code analyzed!');
+      }
+    }
+    wasStreaming.current = isStreaming;
+  }, [isStreaming, streamError, queryClient]);
+
+  function handleAnalyze() {
+    run(code, 'javascript');
+  }
+
+  function handleSampleChange(idx: number) {
+    setSampleIdx(idx);
+    if (idx >= 0) setCode(SAMPLE_CASES[idx]?.code ?? '');
+  }
 
   const latestLog = history?.[0];
   const showMockHistory = !historyLoading && (!history || history.length === 0);
@@ -57,24 +148,25 @@ export const AIPage: React.FC = () => {
             Send real code to the AI recommendation service, then keep the review history visible for follow-up fixes.
           </p>
 
-          <div className="mt-7 grid gap-3 sm:grid-cols-[180px_1fr] sm:items-end">
+          <div className="mt-7 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
             <label className="block">
-              <span className="text-xs uppercase tracking-[0.18em] text-black/45">Language</span>
+              <span className="text-xs uppercase tracking-[0.18em] text-black/45">Sample code</span>
               <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-black/10 bg-[#f7f4ee] px-3 py-3 text-sm capitalize outline-none transition focus:border-black/30"
+                value={sampleIdx}
+                onChange={(e) => handleSampleChange(Number(e.target.value))}
+                className="mt-2 w-full rounded-lg border border-black/10 bg-[#f7f4ee] px-3 py-3 text-sm outline-none transition focus:border-black/30"
               >
-                {LANGUAGES.map((lang) => (
-                  <option key={lang} value={lang}>{lang}</option>
+                <option value={-1}>— paste your own code —</option>
+                {SAMPLE_CASES.map((sample, i) => (
+                  <option key={i} value={i}>{sample.title}</option>
                 ))}
               </select>
             </label>
 
             <Button
-              onClick={() => analyze()}
-              disabled={!code.trim()}
-              loading={isPending}
+              onClick={handleAnalyze}
+              disabled={!code.trim() || isStreaming}
+              loading={isStreaming}
               size="lg"
               className="h-11 w-full sm:w-fit"
             >
@@ -89,7 +181,7 @@ export const AIPage: React.FC = () => {
                 <Code2 size={16} className="text-[#d9f99d]" />
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-white/35">ThreadLearn analyzer</p>
-                  <p className="text-sm font-semibold">{language}.snippet</p>
+                  <p className="text-sm font-semibold">javascript.snippet</p>
                 </div>
               </div>
               <span className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-3 py-1.5 text-xs font-medium text-black">
@@ -117,34 +209,31 @@ export const AIPage: React.FC = () => {
               <p><strong>History:</strong> persisted by the backend and reloaded through /ai/history.</p>
             </div>
           </div>
-
-          <DemoWhitePanel className="p-5">
-            <div className="flex items-center gap-2">
-              <Sparkles size={18} />
-              <h2 className="font-semibold">Latest result</h2>
-            </div>
-            {historyLoading ? (
-              <Skeleton className="mt-4 h-28 rounded-lg" />
-            ) : latestLog ? (
-              <div className="mt-4 rounded-lg bg-[#f7f4ee] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-black/45">
-                  {(latestLog.language ?? 'code').toUpperCase()} analysis
-                </p>
-                <p className="mt-3 line-clamp-6 whitespace-pre-wrap text-sm leading-6 text-black/65">
-                  {latestLog.response}
-                </p>
-              </div>
-            ) : (
-              <div className="mt-4 rounded-lg bg-[#f7f4ee] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-black/45">
-                  Mock AI review
-                </p>
-                <p className="mt-3 text-sm leading-6 text-black/65">{DEMO_AI_RESPONSE}</p>
-              </div>
-            )}
-          </DemoWhitePanel>
         </aside>
       </section>
+
+      <DemoWhitePanel className="p-5">
+        <div className="flex items-center gap-2">
+          <Sparkles size={18} />
+          <h2 className="font-semibold">{isStreaming ? 'Analyzing…' : 'Latest result'}</h2>
+        </div>
+        {isStreaming ? (
+          <div className="mt-4">
+            <PipelineProgress steps={steps} />
+          </div>
+        ) : historyLoading ? (
+          <Skeleton className="mt-4 h-28 rounded-lg" />
+        ) : latestLog ? (
+          <AnalysisResult log={latestLog} />
+        ) : (
+          <div className="mt-4 rounded-lg bg-[#f7f4ee] p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-black/45">
+              Mock AI review
+            </p>
+            <p className="mt-3 text-sm leading-6 text-black/65">{DEMO_AI_RESPONSE}</p>
+          </div>
+        )}
+      </DemoWhitePanel>
 
       <DemoWhitePanel>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 p-5">
@@ -163,17 +252,15 @@ export const AIPage: React.FC = () => {
         ) : history && history.length > 0 ? (
           <div className="divide-y divide-black/10">
             {history.map((log) => (
-              <article key={log._id} className="grid gap-4 p-5 lg:grid-cols-[220px_1fr]">
-                <div>
+              <article key={log._id} className="p-5">
+                <div className="flex flex-wrap items-center gap-3 mb-1">
                   <p className="font-medium capitalize">{log.language ?? 'code'} analysis</p>
-                  <p className="mt-2 flex items-center gap-1 text-xs text-black/45">
+                  <span className="flex items-center gap-1 text-xs text-black/45">
                     <Clock size={12} />
                     {new Date(log.createdAt).toLocaleString()}
-                  </p>
+                  </span>
                 </div>
-                <div className="rounded-lg bg-[#f7f4ee] p-4">
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-black/65">{log.response}</p>
-                </div>
+                <AnalysisResult log={log} />
               </article>
             ))}
           </div>
