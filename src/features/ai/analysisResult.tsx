@@ -105,15 +105,20 @@ export const AnalysisResult: React.FC<{ view: ResultView; onResolve?: (fixedCode
             <Database size={13} className="text-black/45" />
             <p className="text-xs uppercase tracking-[0.14em] text-black/45">Knowledge base references</p>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             {docsUsed.map((doc, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-black/60">
-                {doc.category && (
-                  <span className="rounded bg-black/[0.06] px-1.5 py-0.5 font-mono text-[10px] uppercase text-black/45">
-                    {doc.category}
-                  </span>
+              <div key={i} className="rounded-lg bg-[#f7f4ee] p-3">
+                <div className="flex items-center gap-2 text-xs text-black/60">
+                  {doc.category && (
+                    <span className="rounded bg-black/[0.06] px-1.5 py-0.5 font-mono text-[10px] uppercase text-black/45">
+                      {doc.category}
+                    </span>
+                  )}
+                  <span className="font-medium text-black/80">{doc.title}</span>
+                </div>
+                {doc.content && (
+                  <p className="mt-1.5 text-xs leading-relaxed text-black/60">{doc.content}</p>
                 )}
-                <span>{doc.title}</span>
               </div>
             ))}
           </div>
