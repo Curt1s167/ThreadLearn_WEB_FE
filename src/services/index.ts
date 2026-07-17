@@ -399,6 +399,10 @@ export const aiService = {
     const { data } = await apiClient.get<ApiResponse<AIHistoryLog[]>>('/ai/history');
     return data.data;
   },
+  getHistoryById: async (id: string) => {
+    const { data } = await apiClient.get<ApiResponse<AIHistoryLog>>(`/ai/history/${id}`);
+    return data.data;
+  },
 };
 
 // ─── Admin (UC10–UC14) ────────────────────────────────────────────────────────

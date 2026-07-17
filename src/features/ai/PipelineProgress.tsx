@@ -46,8 +46,8 @@ const StepDetail: React.FC<{ step: PipelineStep }> = ({ step }) => {
     }
     return (
       <div className="mt-1 flex flex-wrap gap-1.5">
-        {step.found.map((pattern) => (
-          <span key={pattern} className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] text-rose-700">
+        {step.found.map((pattern, i) => (
+          <span key={`${pattern}-${i}`} className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[11px] text-rose-700">
             {pattern.replace(/_/g, ' ')}
           </span>
         ))}
@@ -58,8 +58,8 @@ const StepDetail: React.FC<{ step: PipelineStep }> = ({ step }) => {
     const chips = step.keywords.trim().split(/\s+/);
     return (
       <div className="mt-1 flex flex-wrap gap-1.5">
-        {chips.map((kw) => (
-          <span key={kw} className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[11px] text-black/60">{kw}</span>
+        {chips.map((kw, i) => (
+          <span key={`${kw}-${i}`} className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[11px] text-black/60">{kw}</span>
         ))}
       </div>
     );

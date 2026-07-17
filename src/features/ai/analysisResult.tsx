@@ -1,0 +1,124 @@
+'use client';
+
+import React from 'react';
+import { Database, Zap, CheckCircle2 } from 'lucide-react';
+import { IssueCard } from './IssueCard';
+import type { AIHistoryLog, AIIssue, AIKnowledgeDoc } from '../../types';
+
+export interface ResultView {
+  issues: AIIssue[];
+  docsUsed: AIKnowledgeDoc[];
+  cached?: boolean;
+  explanation?: string;
+  analyzeTimeMs?: number;
+  code: string;
+}
+
+export function severityCounts(issues: AIIssue[]) {
+  return {
+    high: issues.filter((i) => i.severity === 'high').length,
+    medium: issues.filter((i) => i.severity === 'medium').length,
+    low: issues.filter((i) => i.severity === 'low').length,
+  };
+}
+
+export function logToView(log: AIHistoryLog): ResultView {
+  return {
+    issues: log.issues ?? [],
+    docsUsed: log.docsUsed ?? [],
+    cached: log.cached,
+    explanation: log.explanation,
+    code: log.inputCode ?? '',
+  };
+}
+
+export const AnalysisResult: React.FC<{ view: ResultView; onResolve?: (fixedCode: string) => void }> = ({ view, onResolve }) => {
+  const { issues, docsUsed, cached, explanation, analyzeTimeMs, code } = view;
+  const { high, medium, low } = severityCounts(issues);
+  const lines = code.trim().split('\n').length;
+  const chars = code.length;
+
+  return (
+    <div className="mt-4 space-y-3">
+      {/* Code Stats */}
+      <div className="rounded-lg border border-black/10 bg-white p-4">
+        <p className="text-xs uppercase tracking-[0.14em] text-black/45 mb-2">Code stats</p>
+        <div className="flex flex-wrap gap-6">
+          <div>
+            <p className="text-lg font-semibold">{lines}</p>
+            <p className="text-xs text-black/45">lines</p>
+          </div>
+          <div>
+            <p className="text-lg font-semibold">{chars}</p>
+            <p className="text-xs text-black/45">chars</p>
+          </div>
+          <div>
+            <p className="text-lg font-semibold">{issues.length}</p>
+            <p className="text-xs text-black/45">issues</p>
+          </div>
+          {analyzeTimeMs != null && (
+            <div>
+              <p className="text-lg font-semibold">{(analyzeTimeMs / 1000).toFixed(1)}s</p>
+              <p className="text-xs text-black/45">total time</p>
+            </div>
+          )}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {cached && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/[0.06] px-2.5 py-0.5 text-xs font-medium text-black/60">
+              <Zap size={11} /> cached
+            </span>
+          )}
+          {high > 0 && (
+            <span className="rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-medium text-rose-700">{high} HIGH</span>
+          )}
+          {medium > 0 && (
+            <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700">{medium} MED</span>
+          )}
+          {low > 0 && (
+            <span className="rounded-full bg-black/[0.06] px-2.5 py-0.5 text-xs font-medium text-black/60">{low} LOW</span>
+          )}
+        </div>
+      </div>
+
+      {issues.length === 0 ? (
+        <div className="rounded-lg bg-[#f7f4ee] p-6 text-center">
+          <CheckCircle2 size={22} className="mx-auto text-emerald-600" />
+          <p className="mt-2 text-sm text-black/60">No concurrency issues detected.</p>
+        </div>
+      ) : (
+        issues.map((issue, i) => (
+          <IssueCard key={i} issue={issue} index={i} originalCode={code} onResolve={onResolve} />
+        ))
+      )}
+
+      {explanation && (
+        <div className="rounded-lg border border-black/10 bg-white p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-black/45 mb-1">AI explanation</p>
+          <p className="text-sm leading-relaxed text-black/70">{explanation}</p>
+        </div>
+      )}
+
+      {docsUsed.length > 0 && (
+        <div className="rounded-lg border border-black/10 bg-white p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Database size={13} className="text-black/45" />
+            <p className="text-xs uppercase tracking-[0.14em] text-black/45">Knowledge base references</p>
+          </div>
+          <div className="space-y-1.5">
+            {docsUsed.map((doc, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-black/60">
+                {doc.category && (
+                  <span className="rounded bg-black/[0.06] px-1.5 py-0.5 font-mono text-[10px] uppercase text-black/45">
+                    {doc.category}
+                  </span>
+                )}
+                <span>{doc.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
