@@ -10,21 +10,15 @@ import {
   Bookmark,
   Brain,
   CheckCircle2,
-  Code2,
   Clock,
   MessageCircle,
-  Play,
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { bookmarksService, lessonsService } from '../../services';
+import { bookmarksService, enrollmentsService, lessonsService } from '../../services';
 import { Button, EmptyState } from '../../components/shared';
 import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
-import {
-  DEMO_AI_RESPONSE,
-  DEMO_CODE_SAMPLE,
-  LESSON_FALLBACK_MARKDOWN,
-} from '../ui-reskin/demo-fallbacks';
+import type { Enrollment } from '../../types';
 
 const LessonMarkdown = dynamic(
   () => import('./LessonMarkdown').then((module) => module.LessonMarkdown),
@@ -41,62 +35,6 @@ const NotesPanel = dynamic(
 
 const getHttpStatus = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status;
-
-function DemoCodeRunner() {
-  const [code, setCode] = useState(DEMO_CODE_SAMPLE);
-  const [ran, setRan] = useState(false);
-  const output = ran
-    ? [
-        '> node playground.js',
-        '[ true, true ]',
-        'Race warning: both users passed the capacity check before seats was decremented.',
-        'Test 1 capacity invariant: failed',
-        'Test 2 async function resolves: passed',
-      ]
-    : ['Click Run to execute the mock playground.'];
-
-  return (
-    <div className="mt-6 grid gap-4 xl:grid-cols-[1fr_320px]">
-      <section className="overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Code2 size={16} className="text-[#d9f99d]" />
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-white/35">ThreadLearn IDE</p>
-              <p className="text-sm font-semibold">playground.js</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setRan(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-4 py-2 text-sm font-medium text-black"
-          >
-            <Play size={15} />
-            Run
-          </button>
-        </div>
-        <textarea
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
-          spellCheck={false}
-          className="min-h-72 w-full resize-y bg-[#111827] p-5 font-mono text-sm leading-6 text-[#d9f99d] outline-none"
-        />
-      </section>
-
-      <aside className="rounded-lg border border-black/10 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-ink">Console output</h3>
-          <span className={`rounded-full px-2 py-1 text-xs ${ran ? 'bg-[#fecaca] text-[#7f1d1d]' : 'bg-black/[0.05] text-black/45'}`}>
-            {ran ? '1 failed' : 'idle'}
-          </span>
-        </div>
-        <pre className="mt-4 min-h-40 whitespace-pre-wrap rounded-lg bg-black p-4 font-mono text-xs leading-6 text-[#d9f99d]">
-          {output.join('\n')}
-        </pre>
-      </aside>
-    </div>
-  );
-}
 
 /**
  * PR10 — lesson room mirrors DemoLessonPage (content + sticky aside).
@@ -120,6 +58,19 @@ export const LessonPage: React.FC = () => {
   });
 
   const isEnrollmentRequired = getHttpStatus(error) === 403;
+  const lessonCourseId = lesson?.courseId;
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['my-enrollments'],
+    queryFn: enrollmentsService.getMyEnrollments,
+    enabled: Boolean(lessonCourseId),
+    retry: false,
+  });
+  const enrollment = enrollments.find((item) => {
+    const courseId = typeof item.courseId === 'string' ? item.courseId : item.courseId?._id ?? item.courseId?.id;
+    return courseId === lessonCourseId;
+  });
+  const isLessonCompleted = Boolean(enrollment?.completedLessons?.includes(id!));
 
   useEffect(() => {
     if (isError && !isEnrollmentRequired) toast.error('Failed to load lesson');
@@ -145,6 +96,14 @@ export const LessonPage: React.FC = () => {
   const { mutate: completeLesson, isPending: completing } = useMutation({
     mutationFn: () => lessonsService.complete(id!),
     onSuccess: (data) => {
+      if (data.enrollment) {
+        queryClient.setQueryData<Enrollment[]>(['my-enrollments'], (current = []) => {
+          const exists = current.some((item) => item._id === data.enrollment?._id);
+          return exists
+            ? current.map((item) => (item._id === data.enrollment?._id ? data.enrollment! : item))
+            : [...current, data.enrollment!];
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['lesson', id] });
       queryClient.invalidateQueries({ queryKey: ['my-enrollments'] });
       queryClient.invalidateQueries({ queryKey: ['gamification-stats'] });
@@ -156,8 +115,6 @@ export const LessonPage: React.FC = () => {
   const duration = lesson?.estimatedTime ?? lesson?.duration ?? 0;
   const order = lesson?.orderIndex ?? lesson?.order;
   const content = lesson?.contentMarkdown ?? lesson?.content ?? '';
-  const displayContent = content.trim() ? content : LESSON_FALLBACK_MARKDOWN;
-  const isMockContent = !content.trim();
   const courseHref =
     typeof lesson?.courseId === 'string' ? `/courses/${lesson.courseId}` : '/courses';
 
@@ -247,15 +204,17 @@ export const LessonPage: React.FC = () => {
                   />
                 </div>
               ) : null}
-              {isMockContent ? (
-                <div className="mb-5 rounded-lg bg-[#d9f99d]/40 px-4 py-3 text-sm text-black/60">
-                  Mock lesson content from the demo flow. Replace when lesson.content is available from BE.
+              {content.trim() ? (
+                <div className="prose prose-neutral max-w-none text-base leading-8 text-black/70 [&_a]:text-black [&_code]:rounded [&_code]:bg-black/[0.04] [&_code]:px-1 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:bg-[#111827] [&_pre]:p-4 [&_pre]:text-[#d9f99d]">
+                  <LessonMarkdown content={content} />
                 </div>
-              ) : null}
-              <div className="prose prose-neutral max-w-none text-base leading-8 text-black/70 [&_a]:text-black [&_code]:rounded [&_code]:bg-black/[0.04] [&_code]:px-1 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:bg-[#111827] [&_pre]:p-4 [&_pre]:text-[#d9f99d]">
-                <LessonMarkdown content={displayContent} />
-              </div>
-              <DemoCodeRunner />
+              ) : (
+                <EmptyState
+                  icon={<AlertCircle size={32} />}
+                  title="Lesson content is unavailable"
+                  description="This lesson has not been published with learning content yet."
+                />
+              )}
             </div>
 
             <div className="rounded-lg border border-black/10 bg-white p-6 xl:hidden">
@@ -280,8 +239,8 @@ export const LessonPage: React.FC = () => {
           <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
             <div className="rounded-lg bg-[#d9f99d] p-5">
               <Brain size={22} className="text-ink" />
-              <h2 className="mt-4 text-xl font-semibold text-ink">AI race condition hint</h2>
-              <p className="mt-3 text-sm text-black/65">{DEMO_AI_RESPONSE}</p>
+              <h2 className="mt-4 text-xl font-semibold text-ink">Need help with this lesson?</h2>
+              <p className="mt-3 text-sm text-black/65">Open AI Advisor to analyse your own code or ask a focused question.</p>
               <button
                 type="button"
                 onClick={() => router.push('/ai')}
@@ -314,9 +273,9 @@ export const LessonPage: React.FC = () => {
               <h2 className="font-semibold text-ink">Lesson checklist</h2>
               <div className="mt-4 space-y-3 text-sm">
                 {[
-                  { label: 'Read the explanation', done: true },
-                  { label: 'Review the code / video', done: !!content || !!lesson.videoUrl },
-                  { label: 'Mark lesson complete', done: false },
+                  { label: 'Read the explanation', done: Boolean(content.trim()) },
+                  { label: 'Review the code / video', done: Boolean(lesson.codeSnippets?.length || lesson.videoUrl) },
+                  { label: 'Mark lesson complete', done: isLessonCompleted },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3 text-black/70">
                     <span
@@ -335,9 +294,10 @@ export const LessonPage: React.FC = () => {
                 className="mt-5 w-full"
                 onClick={() => completeLesson()}
                 loading={completing}
+                disabled={isLessonCompleted}
               >
                 <CheckCircle2 size={14} />
-                Mark complete
+                {isLessonCompleted ? 'Completed' : 'Mark complete'}
               </Button>
             </div>
 

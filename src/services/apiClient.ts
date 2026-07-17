@@ -6,6 +6,12 @@ import axios, {
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 const UNAUTHORIZED_EVENT = 'threadlearn:unauthorized';
+const DEFAULT_API_TIMEOUT_MS = 5_000;
+
+const configuredTimeout = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS);
+const API_TIMEOUT_MS = Number.isFinite(configuredTimeout)
+  ? Math.min(Math.max(configuredTimeout, 1_000), 30_000)
+  : DEFAULT_API_TIMEOUT_MS;
 
 const isBrowser = typeof window !== 'undefined';
 
@@ -38,7 +44,7 @@ const removeLocalStorageItem = (key: string): void => {
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: API_TIMEOUT_MS,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -105,9 +111,11 @@ apiClient.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refreshToken,
-        });
+        const response = await axios.post(
+          `${BASE_URL}/auth/refresh`,
+          { refreshToken },
+          { timeout: API_TIMEOUT_MS }
+        );
         const { accessToken } = response.data.data;
         setLocalStorageItem('accessToken', accessToken);
         processQueue(null, accessToken);
