@@ -6,9 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import axios from 'axios';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '../../services/auth.service';
+import { extractApiError } from '../../services/apiClient';
 import { useAuthStore } from '../../store';
 import { Button, Input } from '../../components/shared';
 import { AuthShell } from './AuthShell';
@@ -18,6 +20,35 @@ const schema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 type FormData = z.infer<typeof schema>;
+
+const ACCOUNT_LOCKED_MESSAGE = 'Your account has been locked. Please contact support.';
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials. Please try again.';
+
+const getLoginErrorMessage = (error: unknown): string => {
+  const backendMessage = extractApiError(error, '');
+
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const normalizedMessage = backendMessage.toLowerCase();
+
+    if (
+      status === 403 &&
+      (normalizedMessage.includes('locked') || normalizedMessage.includes('inactive'))
+    ) {
+      return ACCOUNT_LOCKED_MESSAGE;
+    }
+
+    if (status === 403 && normalizedMessage.includes('verify')) {
+      return backendMessage || 'Please verify your email before logging in.';
+    }
+
+    if (status === 400 || status === 401) {
+      return backendMessage || INVALID_CREDENTIALS_MESSAGE;
+    }
+  }
+
+  return backendMessage || INVALID_CREDENTIALS_MESSAGE;
+};
 
 export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -38,8 +69,8 @@ export const LoginPage: React.FC = () => {
       setAuth(result.user, result.accessToken, result.refreshToken);
       toast.success('Welcome back!');
       router.replace(from);
-    } catch {
-      toast.error('Invalid credentials. Please try again.');
+    } catch (error) {
+      toast.error(getLoginErrorMessage(error));
     }
   };
 
