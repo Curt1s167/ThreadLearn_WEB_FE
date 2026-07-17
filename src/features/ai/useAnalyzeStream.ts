@@ -11,21 +11,57 @@ interface AnalyzeResultEvent {
   cached: boolean;
 }
 
+export interface AnalyzeResult {
+  issues: import('../../types').AIIssue[];
+  docsUsed: import('../../types').AIKnowledgeDoc[];
+  cached: boolean;
+  explanation: string;
+  analyzeTimeMs: number;
+}
+
+function toCamelIssue(raw: Record<string, unknown>): import('../../types').AIIssue {
+  return {
+    patternId: (raw.pattern_id ?? raw.patternId ?? raw.pattern ?? 'unknown') as string,
+    lineRange: (raw.line_range ?? raw.lineRange ?? 'all') as string,
+    severity: (raw.severity ?? 'medium') as 'high' | 'medium' | 'low',
+    description: (raw.description ?? '') as string,
+    fix: (raw.fix ?? '') as string,
+  };
+}
+
+function toCamelDoc(raw: Record<string, unknown>): import('../../types').AIKnowledgeDoc {
+  return {
+    id: (raw.id ?? '') as string,
+    title: (raw.title ?? '') as string,
+    category: raw.category as string | undefined,
+    score: (raw.bm25_score ?? raw.score) as number | undefined,
+  };
+}
+
+function buildExplanation(issueCount: number, docCount: number): string {
+  if (issueCount === 0) return 'No concurrency issues detected in this code.';
+  return `AI2 detected ${issueCount} issue${issueCount > 1 ? 's' : ''} using RAG retrieval from ${docCount} knowledge-base document${docCount !== 1 ? 's' : ''}. Review each issue card for details and fixes.`;
+}
+
 export function useAnalyzeStream() {
   const [steps, setSteps] = useState<PipelineStep[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [result, setResult] = useState<AnalyzeResult | null>(null);
   const stepsRef = useRef<PipelineStep[]>([]);
+  const startTimeRef = useRef<number>(0);
 
   const reset = useCallback(() => {
     stepsRef.current = [];
     setSteps([]);
     setStreamError(null);
+    setResult(null);
   }, []);
 
   const run = useCallback(async (inputCode: string, language: string): Promise<void> => {
     reset();
     setIsStreaming(true);
+    startTimeRef.current = Date.now();
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
@@ -85,10 +121,21 @@ export function useAnalyzeStream() {
               stepsRef.current = [...stepsRef.current, { ...nextStep, _startTime: now }];
             }
             setSteps([...stepsRef.current]);
+          } else if (evtType === 'result') {
+            const rawIssues = (evtData.issues as Record<string, unknown>[]) ?? [];
+            const rawDocs = (evtData.docs_used as Record<string, unknown>[]) ?? [];
+            const issues = rawIssues.map(toCamelIssue);
+            const docsUsed = rawDocs.map(toCamelDoc);
+            setResult({
+              issues,
+              docsUsed,
+              cached: !!evtData.cached,
+              explanation: buildExplanation(issues.length, docsUsed.length),
+              analyzeTimeMs: Date.now() - startTimeRef.current,
+            });
           } else if (evtType === 'error') {
             setStreamError((evtData.message as string) ?? 'Unknown streaming error');
           }
-          // "result" event is persisted server-side; FE just refetches history after "done".
         }
       }
     } catch (err) {
@@ -98,7 +145,7 @@ export function useAnalyzeStream() {
     }
   }, [reset]);
 
-  return { steps, isStreaming, streamError, run, reset };
+  return { steps, isStreaming, streamError, result, run, reset };
 }
 
 export type { AnalyzeResultEvent };
