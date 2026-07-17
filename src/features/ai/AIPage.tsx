@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Send, Code2, Sparkles, Brain, Play, Cpu, BookOpen, Target } from 'lucide-react';
+import { Send, Code2, Sparkles, Brain, Play, Cpu, BookOpen, Target, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import { aiService } from '../../services';
 import { Button, Skeleton } from '../../components/shared';
@@ -19,6 +19,8 @@ import { useAnalyzeStream } from './useAnalyzeStream';
 import { AnalysisResult, logToView } from './analysisResult';
 import { HistoryList } from './HistoryList';
 import { HistoryTrendChart } from './HistoryTrendChart';
+import { RunOutput } from './RunOutput';
+import { useRunCode } from './useRunCode';
 
 export const AIPage: React.FC = () => {
   const [code, setCode] = useState(DEMO_CODE_SAMPLE);
@@ -38,7 +40,8 @@ export const AIPage: React.FC = () => {
     if (historyError) toast.error('Failed to load AI history');
   }, [historyError]);
 
-  const { steps, isStreaming, streamError, result, run } = useAnalyzeStream();
+  const { steps, isStreaming, streamError, result, run, reset } = useAnalyzeStream();
+  const { logs: runLogs, isRunning, runError, run: runCode, reset: resetRun } = useRunCode();
   const wasStreaming = useRef(false);
 
   useEffect(() => {
@@ -59,9 +62,23 @@ export const AIPage: React.FC = () => {
     run(code, 'javascript');
   }
 
+  function handleRun() {
+    runCode(code);
+  }
+
+  const hasRunOutput = isRunning || runLogs.length > 0 || !!runError;
+
   function handleSampleChange(idx: number) {
     setSampleIdx(idx);
     if (idx >= 0) setCode(SAMPLE_CASES[idx]?.code ?? '');
+    reset();
+    resetRun();
+  }
+
+  function handleCodeChange(value: string) {
+    setCode(value);
+    if (result) reset();
+    resetRun();
   }
 
   const latestLog = history?.[0];
@@ -129,19 +146,36 @@ export const AIPage: React.FC = () => {
               </select>
             </label>
 
-            <Button
-              onClick={handleAnalyze}
-              disabled={!code.trim() || isStreaming}
-              loading={isStreaming}
-              size="lg"
-              className="h-11 w-full sm:w-fit"
-            >
-              <Send size={15} />
-              Analyze code
-            </Button>
+            <div className="flex gap-2 sm:w-fit">
+              <Button
+                onClick={handleRun}
+                disabled={!code.trim() || isRunning}
+                loading={isRunning}
+                variant="outline"
+                size="lg"
+                className="h-11 w-full sm:w-fit"
+              >
+                <Terminal size={15} />
+                Run
+              </Button>
+              <Button
+                onClick={handleAnalyze}
+                disabled={!code.trim() || isStreaming}
+                loading={isStreaming}
+                size="lg"
+                className="h-11 w-full sm:w-fit"
+              >
+                <Send size={15} />
+                Analyze code
+              </Button>
+            </div>
           </div>
 
-          <div className="mt-5 flex flex-1 flex-col overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
+          <div
+            className={`mt-5 flex flex-col overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white ${
+              hasRunOutput ? '' : 'flex-1'
+            }`}
+          >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
               <div className="flex items-center gap-2">
                 <Code2 size={16} className="text-[#d9f99d]" />
@@ -157,12 +191,16 @@ export const AIPage: React.FC = () => {
             </div>
             <textarea
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => handleCodeChange(e.target.value)}
               spellCheck={false}
-              className="min-h-[420px] w-full flex-1 resize-none bg-[#111827] p-5 font-mono text-lg leading-6 text-[#d9f99d] outline-none placeholder:text-white/35"
+              className={`w-full bg-[#111827] p-5 font-mono text-lg leading-6 text-[#d9f99d] outline-none placeholder:text-white/35 ${
+                hasRunOutput ? 'h-[420px] resize-y overflow-auto' : 'min-h-[420px] flex-1 resize-none'
+              }`}
               placeholder="Paste your code here..."
             />
           </div>
+
+          <RunOutput logs={runLogs} isRunning={isRunning} runError={runError} />
         </div>
 
         <div

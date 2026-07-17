@@ -34,6 +34,7 @@ function toCamelDoc(raw: Record<string, unknown>): import('../../types').AIKnowl
     id: (raw.id ?? '') as string,
     title: (raw.title ?? '') as string,
     category: raw.category as string | undefined,
+    content: raw.content as string | undefined,
     score: (raw.bm25_score ?? raw.score) as number | undefined,
   };
 }
