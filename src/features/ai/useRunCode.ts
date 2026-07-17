@@ -58,11 +58,17 @@ export function useRunCode() {
   const [logs, setLogs] = useState<RunLogEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
+  const [hasRun, setHasRun] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const listenerRef = useRef<((e: MessageEvent) => void) | null>(null);
 
   const cleanup = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (listenerRef.current) {
+      window.removeEventListener('message', listenerRef.current);
+      listenerRef.current = null;
+    }
     if (iframeRef.current) {
       iframeRef.current.remove();
       iframeRef.current = null;
@@ -74,6 +80,7 @@ export function useRunCode() {
     setLogs([]);
     setRunError(null);
     setIsRunning(true);
+    setHasRun(true);
 
     const iframe = document.createElement('iframe');
     iframe.setAttribute('sandbox', 'allow-scripts');
@@ -105,12 +112,11 @@ export function useRunCode() {
     }
 
     function finish() {
-      window.removeEventListener('message', onMessage);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsRunning(false);
       cleanup();
     }
 
+    listenerRef.current = onMessage;
     window.addEventListener('message', onMessage);
 
     timeoutRef.current = setTimeout(() => {
@@ -127,7 +133,8 @@ export function useRunCode() {
     setLogs([]);
     setRunError(null);
     setIsRunning(false);
+    setHasRun(false);
   }, [cleanup]);
 
-  return { logs, isRunning, runError, run, reset };
+  return { logs, isRunning, runError, hasRun, run, reset };
 }

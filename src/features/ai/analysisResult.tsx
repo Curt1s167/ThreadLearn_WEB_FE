@@ -28,6 +28,7 @@ export function logToView(log: AIHistoryLog): ResultView {
     docsUsed: log.docsUsed ?? [],
     cached: log.cached,
     explanation: log.explanation,
+    analyzeTimeMs: log.analyzeTimeMs,
     code: log.inputCode ?? '',
   };
 }

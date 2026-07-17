@@ -41,7 +41,7 @@ export const AIPage: React.FC = () => {
   }, [historyError]);
 
   const { steps, isStreaming, streamError, result, run, reset } = useAnalyzeStream();
-  const { logs: runLogs, isRunning, runError, run: runCode, reset: resetRun } = useRunCode();
+  const { logs: runLogs, isRunning, runError, hasRun, run: runCode, reset: resetRun } = useRunCode();
   const wasStreaming = useRef(false);
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export const AIPage: React.FC = () => {
     runCode(code);
   }
 
-  const hasRunOutput = isRunning || runLogs.length > 0 || !!runError;
+  const hasRunOutput = isRunning || hasRun || runLogs.length > 0 || !!runError;
 
   function handleSampleChange(idx: number) {
     setSampleIdx(idx);
@@ -200,7 +200,7 @@ export const AIPage: React.FC = () => {
             />
           </div>
 
-          <RunOutput logs={runLogs} isRunning={isRunning} runError={runError} />
+          <RunOutput logs={runLogs} isRunning={isRunning} runError={runError} hasRun={hasRun} />
         </div>
 
         <div

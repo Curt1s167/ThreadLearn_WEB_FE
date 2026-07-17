@@ -51,8 +51,11 @@ export function useAnalyzeStream() {
   const [result, setResult] = useState<AnalyzeResult | null>(null);
   const stepsRef = useRef<PipelineStep[]>([]);
   const startTimeRef = useRef<number>(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const reset = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
     stepsRef.current = [];
     setSteps([]);
     setStreamError(null);
@@ -64,6 +67,9 @@ export function useAnalyzeStream() {
     setIsStreaming(true);
     startTimeRef.current = Date.now();
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const res = await fetch(`${BASE_URL}/ai/analyze/stream`, {
@@ -73,6 +79,7 @@ export function useAnalyzeStream() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ inputCode, language }),
+        signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {
@@ -87,6 +94,7 @@ export function useAnalyzeStream() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (abortRef.current !== controller) break;
         buffer += decoder.decode(value, { stream: true });
 
         const parts = buffer.split('\n\n');
@@ -140,9 +148,14 @@ export function useAnalyzeStream() {
         }
       }
     } catch (err) {
-      setStreamError(err instanceof Error ? err.message : 'Failed to analyze code');
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (abortRef.current === controller) {
+        setStreamError(err instanceof Error ? err.message : 'Failed to analyze code');
+      }
     } finally {
-      setIsStreaming(false);
+      if (abortRef.current === controller) {
+        setIsStreaming(false);
+      }
     }
   }, [reset]);
 

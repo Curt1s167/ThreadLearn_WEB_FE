@@ -472,6 +472,7 @@ export interface AIHistoryLog {
   issues?: AIIssue[];
   docsUsed?: AIKnowledgeDoc[];
   cached?: boolean;
+  analyzeTimeMs?: number;
   createdAt: string;
 }
 
