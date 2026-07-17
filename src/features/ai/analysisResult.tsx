@@ -32,7 +32,7 @@ export function logToView(log: AIHistoryLog): ResultView {
   };
 }
 
-export const AnalysisResult: React.FC<{ view: ResultView }> = ({ view }) => {
+export const AnalysisResult: React.FC<{ view: ResultView; onResolve?: (fixedCode: string) => void }> = ({ view, onResolve }) => {
   const { issues, docsUsed, cached, explanation, analyzeTimeMs, code } = view;
   const { high, medium, low } = severityCounts(issues);
   const lines = code.trim().split('\n').length;
@@ -87,7 +87,9 @@ export const AnalysisResult: React.FC<{ view: ResultView }> = ({ view }) => {
           <p className="mt-2 text-sm text-black/60">No concurrency issues detected.</p>
         </div>
       ) : (
-        issues.map((issue, i) => <IssueCard key={i} issue={issue} index={i} />)
+        issues.map((issue, i) => (
+          <IssueCard key={i} issue={issue} index={i} originalCode={code} onResolve={onResolve} />
+        ))
       )}
 
       {explanation && (

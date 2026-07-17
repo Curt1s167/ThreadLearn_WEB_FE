@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { AIHistoryLog } from '../../types';
 
 interface Point {
@@ -18,6 +19,7 @@ const PAD_Y = 20;
 
 export const HistoryTrendChart: React.FC<{ history: AIHistoryLog[] }> = ({ history }) => {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const router = useRouter();
 
   const { points, maxIssues, path } = useMemo(() => {
     if (history.length === 0) return { points: [] as Point[], maxIssues: 0, path: '' };
@@ -52,7 +54,7 @@ export const HistoryTrendChart: React.FC<{ history: AIHistoryLog[] }> = ({ histo
         <p className="text-xs uppercase tracking-[0.14em] text-black/45">Issues found over time</p>
         {hovered && (
           <p className="text-xs text-black/50">
-            {new Date(hovered.date).toLocaleDateString()} · {hovered.issueCount} issue{hovered.issueCount !== 1 ? 's' : ''}
+            {new Date(hovered.date).toLocaleDateString()} · {hovered.issueCount} issue{hovered.issueCount !== 1 ? 's' : ''} · click to view
           </p>
         )}
       </div>
@@ -68,7 +70,7 @@ export const HistoryTrendChart: React.FC<{ history: AIHistoryLog[] }> = ({ histo
         <path d={path} fill="none" stroke="#111827" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
 
         {points.map((p, i) => (
-          <g key={i}>
+          <g key={i} onClick={() => router.push(`/ai/history/${p.log._id}`)}>
             <circle
               cx={p.x}
               cy={p.y}

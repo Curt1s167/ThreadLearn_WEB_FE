@@ -208,7 +208,7 @@ export const AIPage: React.FC = () => {
                 <PipelineProgress steps={steps} />
               </div>
             ) : result ? (
-              <AnalysisResult view={{ ...result, code }} />
+              <AnalysisResult view={{ ...result, code }} onResolve={setCode} />
             ) : historyLoading ? (
               <Skeleton className="mt-4 h-28 rounded-lg" />
             ) : latestLog ? (
