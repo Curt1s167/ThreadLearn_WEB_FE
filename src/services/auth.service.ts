@@ -6,6 +6,7 @@ import type {
   RegisterPayload,
   User,
   UserStats,
+  VerifyEmailPayload,
 } from '../types';
 
 type BackendUser = Partial<User> & {
@@ -15,7 +16,7 @@ type BackendUser = Partial<User> & {
   isVerified?: boolean;
 };
 
-const normalizeUser = (user: BackendUser): User => {
+export const normalizeUser = (user: BackendUser): User => {
   const id = user._id ?? user.id ?? '';
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
   const email = user.email ?? '';
@@ -47,7 +48,7 @@ export const authService = {
       '/auth/register',
       payload
     );
-    return normalizeAuthResponse(data.data);
+    return data.data?.user ? normalizeAuthResponse(data.data) : data.data;
   },
 
   // UC04, UC06 — Login with email/password
@@ -83,10 +84,18 @@ export const authService = {
   },
 
   // UC03 — Verify email
-  verifyEmail: async (token: string) => {
+  verifyEmail: async (payload: VerifyEmailPayload) => {
     const { data } = await apiClient.post<ApiResponse<null>>(
       '/auth/verify-email',
-      { token }
+      payload
+    );
+    return data;
+  },
+
+  resendVerification: async (email: string) => {
+    const { data } = await apiClient.post<ApiResponse<null>>(
+      '/auth/resend-verification',
+      { email }
     );
     return data;
   },

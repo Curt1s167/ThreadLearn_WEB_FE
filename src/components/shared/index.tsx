@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { BookOpen, Clock, Code2, Loader2, Star, Users } from 'lucide-react';
 import type { Course, CourseLevel } from '../../types';
+import { normalizeMediaUrl } from '../../utils/media-url';
 
 // ─── Button ───────────────────────────────────────────────────────────────────
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -315,17 +316,18 @@ export const Avatar: React.FC<{
   const sizeMap = { sm: 'w-6 h-6 text-xs', md: 'w-8 h-8 text-sm', lg: 'w-10 h-10 text-base', xl: 'w-14 h-14 text-xl' };
   const widthHeightMap = { sm: 24, md: 32, lg: 40, xl: 56 };
   const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-  const showImage = !!src && failedSrc !== src;
+  const imageSrc = normalizeMediaUrl(src);
+  const showImage = !!imageSrc && failedSrc !== imageSrc;
 
   return showImage ? (
     <Image
-      src={src}
+      src={imageSrc}
       alt={name}
       width={widthHeightMap[size]}
       height={widthHeightMap[size]}
       className={`rounded-full object-cover ${className}`}
       unoptimized
-      onError={() => setFailedSrc(src)}
+      onError={() => setFailedSrc(imageSrc)}
     />
   ) : (
     <div
