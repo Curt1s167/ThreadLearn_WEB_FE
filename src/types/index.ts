@@ -403,6 +403,21 @@ export type PaymentConfirmationPayload = Record<string, string>;
 
 // ─── AI ───────────────────────────────────────────────────────────────────────
 
+export interface AIIssue {
+  patternId: string;
+  lineRange: string;
+  severity: 'high' | 'medium' | 'low';
+  description: string;
+  fix: string;
+}
+
+export interface AIKnowledgeDoc {
+  id: string;
+  title: string;
+  category?: string;
+  score?: number;
+}
+
 export interface AIHistoryLog {
   _id: string;
   userId: string;
@@ -422,6 +437,9 @@ export interface AIHistoryLog {
   feedbackRating?: number;
   status?: string;
   category?: string;
+  issues?: AIIssue[];
+  docsUsed?: AIKnowledgeDoc[];
+  cached?: boolean;
   createdAt: string;
 }
 

@@ -390,7 +390,8 @@ export const aiService = {
   analyzeCode: async (inputCode: string, language: string) => {
     const { data } = await apiClient.post<ApiResponse<AIHistoryLog>>(
       '/ai/recommendation',
-      { inputCode, language }
+      { inputCode, language },
+      { timeout: 120000 } // AI inference can take up to ~1min, especially right after a server restart
     );
     return data.data;
   },
