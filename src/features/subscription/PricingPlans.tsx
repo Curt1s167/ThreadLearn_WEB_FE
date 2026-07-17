@@ -30,11 +30,9 @@ const formatPrice = (amount: number, currency: string) => {
 export function PricingPlans({
   plans,
   myPlan,
-  previewOnly = false,
 }: {
   plans: SubscriptionPlan[];
   myPlan?: UserSubscription | null;
-  previewOnly?: boolean;
 }) {
   const queryClient = useQueryClient();
   const currentPlanId = myPlan?.status === 'active' ? myPlan.planId : null;
@@ -129,10 +127,6 @@ export function PricingPlans({
             <button
               type="button"
               onClick={() => {
-                if (previewOnly) {
-                  toast.info('Mock plan preview. Connect subscription plans to enable purchase.');
-                  return;
-                }
                 purchase({ planId });
               }}
               disabled={isCurrentPlan || isPending}
@@ -142,12 +136,7 @@ export function PricingPlans({
                   : 'bg-black text-white hover:bg-black/90'
               }`}
             >
-              {previewOnly ? (
-                <>
-                  <Crown size={14} />
-                  Mock preview
-                </>
-              ) : isPurchasing ? (
+              {isPurchasing ? (
                 'Creating payment…'
               ) : isCurrentPlan ? (
                 <>
