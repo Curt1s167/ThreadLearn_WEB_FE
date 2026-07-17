@@ -1,7 +1,7 @@
 # ThreadLearn UC Acceptance And BE Handoff
 
-Ngay cap nhat: 2026-07-15  
-Nhanh FE hien tai: `feat/ui-light-theme-reskin`  
+Ngay cap nhat: 2026-07-17  
+Nhanh FE hien tai: `fix/dev1-fe-acceptance` tren nen `feat/ui-light-theme-reskin`  
 Nhanh giao dien tham chieu: `refactor/fe-next-demo-flow`
 
 ## 1. Muc Dich
@@ -65,6 +65,8 @@ Routes:
 - `/register`
 - `/forgot-password`
 - `/reset-password`
+- `/verify-email`
+- `/auth/callback`
 - `/profile`
 
 Services:
@@ -74,11 +76,25 @@ Services:
 - `GET /auth/google` redirect
 - `POST /auth/forgot-password`
 - `POST /auth/reset-password`
-- `POST /auth/verify-email`
+- `POST /auth/verify-email` voi body `{ email, code }`
+- `POST /auth/resend-verification` voi body `{ email }`
 - `POST /auth/refresh`
 - `GET /users/profile`
 - `PATCH /users/profile`
 - `POST /users/avatar`
+
+Email verification flow hien tai da doi sang OTP 6 so:
+
+- Sau register, BE tao OTP 6 so va gui ve email.
+- FE redirect user sang `/verify-email?email=<encoded-email>`.
+- User nhap OTP 6 so tren FE.
+- FE goi `POST /auth/verify-email` voi body `{ email, code }`.
+- OTP het han sau 10 phut.
+- OTP sai qua 5 lan se bi tu choi theo logic BE.
+- Resend verification goi `POST /auth/resend-verification` voi body `{ email }` de tao OTP moi.
+- BE khong gui verify link token nua.
+- FE khong verify bang query `token` nua. Neu URL cu co `token`, FE hien thong bao flow cu khong con dung va yeu cau nhap email + OTP.
+- Reset password van giu flow token link rieng va khong doi sang OTP trong phase nay.
 
 ### Learning
 
@@ -189,6 +205,7 @@ Routes:
 Services:
 
 - `GET /admin/stats`
+- `GET /admin/dashboard/statistics`
 - `GET /admin/students`
 - `POST /admin/students`
 - `PATCH /admin/students/:id`
@@ -197,7 +214,11 @@ Services:
 - `PATCH /courses/:id/publish`
 - `DELETE /courses/:id`
 
-Luu y: `/admin/users` va `/admin/courses` hien moi la placeholder UI, du service wrapper da co san.
+Luu y:
+
+- `/admin/users` da co table/form/action that cho student management UC10-UC13 tren nhanh `fix/dev1-fe-acceptance`.
+- `/admin` da co stats cards va statistics summary/charts UI cho UC14.
+- `/admin/courses` hien van la placeholder UI, du service wrapper da co san.
 
 ## 6. Nghiem Thu Theo Dev Va UC
 
@@ -205,29 +226,43 @@ Luu y: `/admin/users` va `/admin/courses` hien moi la placeholder UI, du service
 
 | UC | Ten UC | FE hien tai | BE/action can chot |
 | --- | --- | --- | --- |
-| UC01 | Register Account | `Done` | Chot response gom `user`, `accessToken`, `refreshToken`; FE normalize `_id/id`, `name`, `role`, `planType`. |
-| UC02 | Register with Google | `Partial` | FE co redirect Google qua BE. Can BE chot luong callback va token return ve FE. |
-| UC03 | Verify Email | `Partial` | Service co `verifyEmail`, nhung route verify email rieng chua thay ro. Can BE chot URL email va FE route can nhan token. |
-| UC04 | Log In | `Done` | Can dam bao locked/unverified user tra error message ro. |
-| UC05 | Log In with Google | `Partial` | Giong UC02, can callback contract. |
-| UC06 | Log Out | `Done` | FE logout qua store/token local. Neu BE co revoke refresh token thi can them endpoint. |
-| UC07 | Forgot Password | `Done` | FE goi `/auth/forgot-password`. Can BE tra message an toan, khong leak email ton tai. |
-| UC08 | Reset Password | `Done` | FE goi `/auth/reset-password`. Can BE chot token expiry/error codes. |
-| UC09 | Update Profile / Upload Avatar | `Done` | FE co `PATCH /users/profile` va `POST /users/avatar`. Can BE tra `avatarUrl` public hop le. |
-| UC10 | Add Student | `Partial` | Service co `POST /admin/students`, nhung `/admin/users` chua co form/table CRUD that. |
-| UC11 | Lock / Unlock Student | `Partial` | Service co lock/unlock, UI admin users con placeholder. |
-| UC12 | View Student List | `Partial` | `/admin` co recent users, `/admin/users` chua co list day du/pagination/filter. |
-| UC13 | Update Student Information | `Partial` | Service co `PATCH /admin/students/:id`, UI chua hoan thien. |
-| UC14 | View Statistics Charts | `Partial` | `/admin` doc stats cards tu `/admin/stats`, chua co chart sau, filter date, trend series. |
+| UC01 | Register Account | `Done` | Register gui `firstName`, `lastName`, `email`, `password`. Sau register, BE gui OTP 6 so ve email; FE redirect sang `/verify-email?email=<encoded-email>`. |
+| UC02 | Register with Google | `Done` | FE co route `/auth/callback`, nhan `accessToken`, `refreshToken`, `user`, `error`, luu auth vao store va redirect khoi URL co token. |
+| UC03 | Verify Email | `Done` | Flow da doi sang OTP 6 so. FE `/verify-email` nhap email + OTP, goi `POST /auth/verify-email` body `{ email, code }`. Resend goi `POST /auth/resend-verification` body `{ email }`. OTP het han sau 10 phut, toi da 5 lan sai. |
+| UC04 | Log In | `Done` | FE goi `/auth/login`, luu `user`, `accessToken`, `refreshToken`. Can dam bao locked/unverified user tra error message ro. |
+| UC05 | Log In with Google | `Done` | FE goi BE Google redirect va xu ly callback tai `/auth/callback`. |
+| UC06 | Log Out | `Done` | FE logout qua store/token local. Neu BE co revoke refresh token thi co the them endpoint sau. |
+| UC07 | Forgot Password | `Done` | FE goi `/auth/forgot-password`. BE tra message an toan, khong leak email ton tai. |
+| UC08 | Reset Password | `Done` | FE goi `/auth/reset-password`. Reset password van dung link token rieng, khong doi sang OTP trong phase nay. |
+| UC09 | Update Profile / Upload Avatar | `Done` | FE co `PATCH /users/profile` va `POST /users/avatar`. Profile/gamification UI da co fallback an toan khi stats thieu field. |
+| UC10 | Add Student | `Done` | `/admin/users` da co UI tao student, body `{ email, firstName, lastName, password? }`. |
+| UC11 | Lock / Unlock Student | `Done` | `/admin/users` da co action lock/unlock, lock body `{ lockedReason? }`, unlock khong can body. |
+| UC12 | View Student List | `Done` | `/admin/users` da co table, pagination, search, filter `isActive`, `isVerified`. |
+| UC13 | Update Student Information | `Done` | `/admin/users` da co update form, chi gui fields duoc phep: `firstName`, `lastName`, `avatarUrl`, `isVerified`. |
+| UC14 | View Statistics Charts | `Done` | `/admin` doc `/admin/stats` va `/admin/dashboard/statistics`, ho tro `summary`, `charts`, fallback rong/loading/error an toan. |
 | UC53 | View Notifications | `Partial` | FE goi notifications va socket, co fallback mock. Can BE chot event payload va notification types. |
 
-Can DEV 1 uu tien:
+Can DEV 1 uu tien / ghi chu sau cap nhat:
 
-- Hoan thien `/admin/users` bang table/form that.
-- Chot Google OAuth callback ve FE.
-- Chot verify email route token.
-- Chot notification payload realtime: `id`, `title`, `message`, `type`, `metadata`, `link`, `createdAt`.
-- Chot response `/admin/stats`: hien FE dang can `totalStudents`, `totalCourses`, `totalEnrollments`, `totalQuizAttempts`, `courseCompletionRate`, `quizPassRate`.
+- `/admin/users` da co table/form/action cho UC10-UC13.
+- Google OAuth callback da chot ve FE route `/auth/callback`.
+- Verify email da doi sang OTP 6 so, khong dung verify link token nua.
+- Can live smoke OTP flow voi SMTP/mailbox:
+  - register account moi
+  - nhan OTP 6 so qua email
+  - verify tai `/verify-email?email=<email>`
+  - login thanh cong sau khi verified
+- Can live smoke `/admin/users` voi admin credential va seed data that.
+- Notification payload realtime van can chot: `id`, `title`, `message`, `type`, `metadata`, `link`, `createdAt`.
+- Response `/admin/stats` can ho tro:
+  - `totalUsers`
+  - `totalCourses`
+  - `totalEnrollments`
+  - `totalQuizAttempts`
+  - optional `courseCompletionRate`
+  - optional `quizPassRate`
+- FE co fallback tam thoi `totalUsers ?? totalStudents ?? 0` de tuong thich du lieu cu.
+- `/admin/dashboard/statistics` can tra `{ summary, charts }`; FE da co UI fallback khi du lieu rong/thieu field.
 
 ### DEV 2 - Course, Lesson And Learning Experience
 
@@ -335,9 +370,11 @@ Can DEV 4 uu tien:
    - Chua co hien quota 10/ngay va 30-40/ngay.
    - Chua co AST visualization hay warning race condition day du trong UI lesson.
 
-3. Admin course/user management con placeholder.
-   - Service wrapper da co.
-   - UI `/admin/users` va `/admin/courses` chua co CRUD table/form that.
+3. Admin course/lesson management con placeholder.
+   - `/admin/users` da co CRUD/action UI cho student management UC10-UC13.
+   - `/admin` da co dashboard stats va statistics/charts UI cho UC14.
+   - `/admin/courses` van con placeholder, chua co CRUD table/form that.
+   - Admin lesson authoring UI chua hoan thien.
 
 4. Course search chua xac nhan Vector Search.
    - FE dang gui filter/search basic.
@@ -378,6 +415,81 @@ Can DEV 4 uu tien:
 - Date tra ISO string.
 - Error tra message ro trong `message`.
 
+### Auth Contract Sau Cap Nhat OTP
+
+Register:
+
+```http
+POST /auth/register
+```
+
+Request:
+
+```json
+{
+  "firstName": "Hoang",
+  "lastName": "Nguyen",
+  "email": "user@example.com",
+  "password": "password"
+}
+```
+
+Expected behavior:
+
+- BE tao user unverified.
+- BE tao OTP 6 so.
+- BE luu hash OTP, expiry, attempts, last sent timestamp.
+- BE gui email OTP.
+- BE khong tra OTP, verification token, password hash trong response.
+- FE redirect sang `/verify-email?email=<encoded-email>`.
+
+Verify email:
+
+```http
+POST /auth/verify-email
+```
+
+Request:
+
+```json
+{
+  "email": "user@example.com",
+  "code": "123456"
+}
+```
+
+Expected behavior:
+
+- `email` required va valid email.
+- `code` required, exactly 6 digits.
+- OTP het han sau 10 phut.
+- Sai OTP tang attempt count.
+- Toi da 5 lan sai.
+- Thanh cong thi set `isVerified=true` va clear OTP hash/expiry/attempt/last-sent fields.
+- Already verified user co the tra success safe message.
+- Khong log OTP/code/token/password.
+
+Resend verification:
+
+```http
+POST /auth/resend-verification
+```
+
+Request:
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+Expected behavior:
+
+- BE tao OTP moi va thay the OTP cu.
+- BE gui email OTP moi.
+- Existing unverified users theo token cu can bam resend verification de nhan OTP moi.
+- Khong leak user existence neu policy bao mat yeu cau message an toan.
+
 ### Seed Data Can Co De Demo Khong Dung Mock
 
 - It nhat 3 courses published:
@@ -391,15 +503,44 @@ Can DEV 4 uu tien:
 - It nhat 2 subscription plans.
 - It nhat 3 notification mau cho user demo.
 - It nhat 1 enrollment co progress de dashboard hien that.
+- It nhat 1 admin account de smoke `/admin`, `/admin/users`, `/admin/dashboard/statistics`.
+- It nhat 2-3 student accounts co trang thai khac nhau:
+  - verified/unverified
+  - active/locked
 
 ### Endpoint/Flow Uu Tien Cao
 
-1. `/admin/users` data/action day du cho UC10-UC13.
-2. `/admin/courses` va lesson authoring cho UC15-UC22.
-3. `/code-executions/run` hoac endpoint tuong duong cho UC44-UC45.
-4. AI quota/history response day du cho UC46-UC47.
-5. Payment purchase/callback/webhook that cho UC52.
-6. Public/guest access policy cho course detail va free lesson.
+1. Verify live OTP email verification flow:
+   - register account moi
+   - nhan OTP 6 so qua email
+   - verify bang `/verify-email?email=<email>`
+   - login thanh cong sau khi verified
+
+2. Verify live `/admin/users` data/action UC10-UC13 voi admin credential va seed data that:
+   - list
+   - search
+   - filter `isActive`
+   - filter `isVerified`
+   - create
+   - update
+   - lock
+   - unlock
+
+3. Verify live `/admin/stats` va `/admin/dashboard/statistics` UC14 voi admin credential:
+   - cards
+   - summary
+   - charts
+   - empty/loading/error fallback
+
+4. `/admin/courses` va lesson authoring cho UC15-UC22.
+
+5. `/code-executions/run` hoac endpoint tuong duong cho UC44-UC45.
+
+6. AI quota/history response day du cho UC46-UC47.
+
+7. Payment purchase/callback/webhook that cho UC52.
+
+8. Public/guest access policy cho course detail va free lesson.
 
 ## 9. Ghi Chu Ve Use Case List
 
@@ -413,12 +554,33 @@ Danh sach UC user dua co mot so diem can sua lai truoc khi dua vao SRS/final rep
   - DEV4 owner subscription/payment flow.
   - DEV1 ho tro user plan state va notification payment.
 - Mo ta ban dau co 4 phan he chinh, nhung final UC da tach thanh 4 dev theo ownership. Khi update BE nen lay UC table lam source of truth.
+- Email verification da doi tu verify link token sang OTP 6 so. Neu SRS/final report con ghi token link thi can update lai de tranh lech contract.
 
 ## 10. Ket Luan Nghiem Thu Hien Tai
 
-FE hien tai da co bo route chinh va giao dien light-theme cho phan Student/Pricing/Leaderboard/AI/Course/Lesson, dong thoi van giu cac API call da tich hop BE. Tuy nhien muc do hoan thien full product chua dat 100% vi con cac khoang trong lon:
+FE hien tai da co bo route chinh va giao dien light-theme cho phan Student/Pricing/Leaderboard/AI/Course/Lesson, dong thoi van giu cac API call da tich hop BE.
 
-- Admin users/courses/lessons chua CRUD UI day du.
+Sau cap nhat gan nhat tren nhanh `fix/dev1-fe-acceptance`, DEV1 FE acceptance da dat muc `PASS WITH CAVEATS`:
+
+- Auth register/login/logout/forgot/reset da co UI va service.
+- Google OAuth callback da co route `/auth/callback`.
+- Verify email da doi tu verify link token sang OTP 6 so.
+- Profile/avatar co UI va profile/gamification fallback an toan.
+- Admin users UC10-UC13 da co UI day du tren `/admin/users`, nhung can live smoke voi admin credential.
+- Admin dashboard statistics UC14 da co stats cards, summary va charts/fallback UI, nhung can live smoke voi admin credential.
+
+Email verification flow moi:
+
+- BE gui OTP 6 so qua email sau register/resend.
+- FE hien `/verify-email` voi email input va 6 o OTP.
+- FE goi `POST /auth/verify-email` body `{ email, code }`.
+- OTP het han sau 10 phut va toi da 5 lan sai.
+- Existing unverified users theo token cu can bam resend verification de nhan OTP moi.
+- Reset password van dung reset token link rieng va khong thay doi trong phase nay.
+
+Tuy nhien muc do hoan thien full product chua dat 100% vi con cac khoang trong lon:
+
+- Admin courses/lessons chua CRUD UI day du.
 - IDE/Judge0 chua production.
 - AI quota/deep analysis chua day du.
 - Guest/contact/free lesson policy chua ro.

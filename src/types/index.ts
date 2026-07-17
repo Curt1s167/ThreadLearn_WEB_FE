@@ -16,7 +16,10 @@ export interface User {
   planType: PlanType;
   subscriptionExpiresAt?: string;
   isLocked?: boolean;
+  isActive?: boolean;
+  isVerified?: boolean;
   isEmailVerified?: boolean;
+  lockedReason?: string;
   googleId?: string;
   createdAt: string;
   updatedAt: string;
@@ -39,9 +42,37 @@ export interface LoginPayload {
 }
 
 export interface RegisterPayload {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
+}
+
+export interface VerifyEmailPayload {
+  email: string;
+  code: string;
+}
+
+export interface AdminStudentFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: boolean;
+  isVerified?: boolean;
+}
+
+export interface AdminStudentCreatePayload {
+  email: string;
+  firstName: string;
+  lastName: string;
+  password?: string;
+}
+
+export interface AdminStudentUpdatePayload {
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
+  isVerified?: boolean;
 }
 
 // ─── User Stats & Gamification ───────────────────────────────────────────────
@@ -446,12 +477,54 @@ export interface AIHistoryLog {
 // ─── Analytics (Admin) ────────────────────────────────────────────────────────
 
 export interface PlatformStats {
-  totalStudents: number;
-  totalCourses: number;
-  totalEnrollments: number;
-  totalQuizAttempts: number;
-  courseCompletionRate: number;
-  quizPassRate: number;
+  totalUsers?: number;
+  totalStudents?: number;
+  totalCourses?: number;
+  totalEnrollments?: number;
+  totalQuizAttempts?: number;
+  courseCompletionRate?: number;
+  quizPassRate?: number;
+}
+
+export type AdminDashboardMetricValue = string | number | boolean | null | undefined;
+
+export interface AdminDashboardSummary {
+  totalUsers?: number;
+  totalStudents?: number;
+  totalCourses?: number;
+  totalEnrollments?: number;
+  totalQuizAttempts?: number;
+  courseCompletionRate?: number;
+  quizPassRate?: number;
+  [key: string]: AdminDashboardMetricValue;
+}
+
+export interface AdminDashboardChartPoint {
+  label?: string;
+  name?: string;
+  date?: string;
+  month?: string;
+  type?: string;
+  status?: string;
+  value?: number;
+  count?: number;
+  total?: number;
+  users?: number;
+  courses?: number;
+  enrollments?: number;
+  attempts?: number;
+  [key: string]: AdminDashboardMetricValue;
+}
+
+export type AdminDashboardChartValue =
+  | AdminDashboardChartPoint[]
+  | Record<string, AdminDashboardMetricValue>
+  | null
+  | undefined;
+
+export interface AdminDashboardStatistics {
+  summary?: AdminDashboardSummary | null;
+  charts?: Record<string, AdminDashboardChartValue> | null;
 }
 
 // ─── API Responses ────────────────────────────────────────────────────────────
