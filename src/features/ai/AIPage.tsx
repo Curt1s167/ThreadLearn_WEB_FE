@@ -66,6 +66,8 @@ export const AIPage: React.FC = () => {
     runCode(code);
   }
 
+  const hasRunOutput = isRunning || runLogs.length > 0 || !!runError;
+
   function handleSampleChange(idx: number) {
     setSampleIdx(idx);
     if (idx >= 0) setCode(SAMPLE_CASES[idx]?.code ?? '');
@@ -169,7 +171,11 @@ export const AIPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-1 flex-col overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
+          <div
+            className={`mt-5 flex flex-col overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white ${
+              hasRunOutput ? '' : 'flex-1'
+            }`}
+          >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
               <div className="flex items-center gap-2">
                 <Code2 size={16} className="text-[#d9f99d]" />
@@ -187,7 +193,9 @@ export const AIPage: React.FC = () => {
               value={code}
               onChange={(e) => handleCodeChange(e.target.value)}
               spellCheck={false}
-              className="min-h-[420px] w-full flex-1 resize-none bg-[#111827] p-5 font-mono text-lg leading-6 text-[#d9f99d] outline-none placeholder:text-white/35"
+              className={`w-full bg-[#111827] p-5 font-mono text-lg leading-6 text-[#d9f99d] outline-none placeholder:text-white/35 ${
+                hasRunOutput ? 'h-[420px] resize-y overflow-auto' : 'min-h-[420px] flex-1 resize-none'
+              }`}
               placeholder="Paste your code here..."
             />
           </div>

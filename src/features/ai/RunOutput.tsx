@@ -26,13 +26,13 @@ export const RunOutput: React.FC<{
   if (!isRunning && logs.length === 0 && !runError) return null;
 
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-black/10 bg-[#0b1120] text-white">
+    <div className="mt-3 flex flex-1 flex-col overflow-hidden rounded-lg border border-black/10 bg-[#0b1120] text-white">
       <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5">
         <Terminal size={14} className="text-black/40" />
         <p className="text-xs uppercase tracking-[0.18em] text-white/35">Console output</p>
         {isRunning && <Loader2 size={13} className="ml-auto animate-spin text-white/40" />}
       </div>
-      <div className="max-h-64 overflow-auto p-3 font-mono text-xs leading-6">
+      <div className="min-h-[80px] flex-1 overflow-auto p-3 font-mono text-xs leading-6">
         {logs.length === 0 && !isRunning && !runError && (
           <p className="text-white/30">No output.</p>
         )}

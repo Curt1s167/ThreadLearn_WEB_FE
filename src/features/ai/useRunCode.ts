@@ -38,11 +38,16 @@ const SANDBOX_HTML = `
       );
       const result = await asyncWrapped();
       if (result !== undefined) send('result', [result]);
-      parent.postMessage({ __sandbox: true, done: true }, '*');
     } catch (err) {
       send('error', [err]);
-      parent.postMessage({ __sandbox: true, done: true }, '*');
     }
+    // Code often fires promises without awaiting them (e.g. .then(console.log)
+    // with no return/await) — give pending microtasks/macrotasks a chance to
+    // flush their console output before signalling done, otherwise those logs
+    // never reach the parent.
+    setTimeout(() => {
+      parent.postMessage({ __sandbox: true, done: true }, '*');
+    }, 300);
   });
 
   parent.postMessage({ __sandbox: true, ready: true }, '*');
@@ -71,8 +76,12 @@ export function useRunCode() {
     setIsRunning(true);
 
     const iframe = document.createElement('iframe');
-    iframe.sandbox.add('allow-scripts');
-    iframe.style.display = 'none';
+    iframe.setAttribute('sandbox', 'allow-scripts');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.left = '-9999px';
     iframeRef.current = iframe;
 
     const collected: RunLogEntry[] = [];
@@ -109,8 +118,8 @@ export function useRunCode() {
       finish();
     }, RUN_TIMEOUT_MS);
 
-    iframe.srcdoc = SANDBOX_HTML;
     document.body.appendChild(iframe);
+    iframe.srcdoc = SANDBOX_HTML;
   }, [cleanup]);
 
   const reset = useCallback(() => {
