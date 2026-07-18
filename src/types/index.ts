@@ -440,6 +440,7 @@ export interface AIIssue {
   severity: 'high' | 'medium' | 'low';
   description: string;
   fix: string;
+  codeSnippet?: string;
 }
 
 export interface AIKnowledgeDoc {
@@ -472,6 +473,7 @@ export interface AIHistoryLog {
   issues?: AIIssue[];
   docsUsed?: AIKnowledgeDoc[];
   cached?: boolean;
+  analyzeTimeMs?: number;
   createdAt: string;
 }
 

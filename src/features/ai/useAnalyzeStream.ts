@@ -17,6 +17,13 @@ export interface AnalyzeResult {
   cached: boolean;
   explanation: string;
   analyzeTimeMs: number;
+  patternsChecked?: number;
+}
+
+export interface LlmIssueProgress {
+  done: number;
+  total: number;
+  currentPattern: string | null;
 }
 
 function toCamelIssue(raw: Record<string, unknown>): import('../../types').AIIssue {
@@ -26,6 +33,7 @@ function toCamelIssue(raw: Record<string, unknown>): import('../../types').AIIss
     severity: (raw.severity ?? 'medium') as 'high' | 'medium' | 'low',
     description: (raw.description ?? '') as string,
     fix: (raw.fix ?? '') as string,
+    codeSnippet: (raw.code_snippet ?? raw.codeSnippet) as string | undefined,
   };
 }
 
@@ -49,20 +57,30 @@ export function useAnalyzeStream() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
+  const [llmProgress, setLlmProgress] = useState<LlmIssueProgress | null>(null);
+  const [partialIssues, setPartialIssues] = useState<import('../../types').AIIssue[]>([]);
   const stepsRef = useRef<PipelineStep[]>([]);
   const startTimeRef = useRef<number>(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const reset = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
     stepsRef.current = [];
     setSteps([]);
     setStreamError(null);
     setResult(null);
+    setLlmProgress(null);
+    setPartialIssues([]);
   }, []);
 
   const run = useCallback(async (inputCode: string, language: string): Promise<void> => {
     reset();
     setIsStreaming(true);
     startTimeRef.current = Date.now();
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
@@ -73,6 +91,7 @@ export function useAnalyzeStream() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ inputCode, language }),
+        signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {
@@ -87,6 +106,7 @@ export function useAnalyzeStream() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (abortRef.current !== controller) break;
         buffer += decoder.decode(value, { stream: true });
 
         const parts = buffer.split('\n\n');
@@ -133,6 +153,27 @@ export function useAnalyzeStream() {
               cached: !!evtData.cached,
               explanation: buildExplanation(issues.length, docsUsed.length),
               analyzeTimeMs: Date.now() - startTimeRef.current,
+              patternsChecked: evtData.patterns_checked as number | undefined,
+            });
+          } else if (evtType === 'llm_issue_progress') {
+            setLlmProgress({
+              done: (evtData.done as number) ?? 0,
+              total: (evtData.total as number) ?? 0,
+              currentPattern: (evtData.current_pattern as string | null) ?? null,
+            });
+          } else if (evtType === 'issue_ready') {
+            const rawIssue = evtData.issue as Record<string, unknown>;
+            const issue = toCamelIssue(rawIssue);
+            setPartialIssues((prev) => {
+              const idx = prev.findIndex(
+                (p) => p.patternId === issue.patternId && p.lineRange === issue.lineRange
+              );
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = issue;
+                return next;
+              }
+              return [...prev, issue];
             });
           } else if (evtType === 'error') {
             setStreamError((evtData.message as string) ?? 'Unknown streaming error');
@@ -140,13 +181,18 @@ export function useAnalyzeStream() {
         }
       }
     } catch (err) {
-      setStreamError(err instanceof Error ? err.message : 'Failed to analyze code');
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (abortRef.current === controller) {
+        setStreamError(err instanceof Error ? err.message : 'Failed to analyze code');
+      }
     } finally {
-      setIsStreaming(false);
+      if (abortRef.current === controller) {
+        setIsStreaming(false);
+      }
     }
   }, [reset]);
 
-  return { steps, isStreaming, streamError, result, run, reset };
+  return { steps, isStreaming, streamError, result, llmProgress, partialIssues, run, reset };
 }
 
 export type { AnalyzeResultEvent };

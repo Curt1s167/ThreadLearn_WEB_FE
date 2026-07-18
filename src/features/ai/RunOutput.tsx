@@ -22,8 +22,9 @@ export const RunOutput: React.FC<{
   logs: RunLogEntry[];
   isRunning: boolean;
   runError: string | null;
-}> = ({ logs, isRunning, runError }) => {
-  if (!isRunning && logs.length === 0 && !runError) return null;
+  hasRun?: boolean;
+}> = ({ logs, isRunning, runError, hasRun }) => {
+  if (!isRunning && !hasRun && logs.length === 0 && !runError) return null;
 
   return (
     <div className="mt-3 flex flex-1 flex-col overflow-hidden rounded-lg border border-black/10 bg-[#0b1120] text-white">
@@ -34,7 +35,7 @@ export const RunOutput: React.FC<{
       </div>
       <div className="min-h-[80px] flex-1 overflow-auto p-3 font-mono text-xs leading-6">
         {logs.length === 0 && !isRunning && !runError && (
-          <p className="text-white/30">No output.</p>
+          <p className="text-white/30">Code ran with no console output (nothing logged, no errors).</p>
         )}
         {logs.map((entry, i) => (
           <div key={i} className={`whitespace-pre-wrap break-words ${LEVEL_CLASSES[entry.level]}`}>
