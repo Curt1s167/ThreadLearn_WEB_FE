@@ -112,6 +112,8 @@ export function useRunCode() {
     }
 
     function finish() {
+      window.removeEventListener('message', onMessage);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setIsRunning(false);
       cleanup();
     }

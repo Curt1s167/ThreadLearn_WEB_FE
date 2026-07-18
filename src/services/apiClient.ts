@@ -127,14 +127,16 @@ apiClient.interceptors.response.use(
 );
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-export const extractApiError = (error: unknown): string => {
+export const extractApiError = (
+  error: unknown,
+  fallback = 'An unexpected error occurred'
+): string => {
   if (axios.isAxiosError(error)) {
     return (
       error.response?.data?.message ||
       error.response?.data?.error ||
-      error.message ||
-      'An unexpected error occurred'
+      fallback
     );
   }
-  return 'An unexpected error occurred';
+  return error instanceof Error && error.message ? error.message : fallback;
 };
