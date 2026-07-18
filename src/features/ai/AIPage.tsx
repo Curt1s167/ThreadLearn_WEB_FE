@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Send, Code2, Sparkles, Brain, Play, Cpu, BookOpen, Target, Terminal } from 'lucide-react';
+import { Send, Code2, Sparkles, Brain, Play, Cpu, BookOpen, Target, Terminal, Undo2, Redo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { aiService } from '../../services';
 import { Button, Skeleton } from '../../components/shared';
@@ -17,13 +17,16 @@ import { SAMPLE_CASES } from './sampleCases';
 import { PipelineProgress } from './PipelineProgress';
 import { useAnalyzeStream } from './useAnalyzeStream';
 import { AnalysisResult, logToView } from './analysisResult';
+import { IssueCard } from './IssueCard';
 import { HistoryList } from './HistoryList';
 import { HistoryTrendChart } from './HistoryTrendChart';
 import { RunOutput } from './RunOutput';
 import { useRunCode } from './useRunCode';
+import { CodeEditor } from './CodeEditor';
+import { useCodeHistory } from './useCodeHistory';
 
 export const AIPage: React.FC = () => {
-  const [code, setCode] = useState(DEMO_CODE_SAMPLE);
+  const { code, setCode, undo, redo, resetCode, canUndo, canRedo } = useCodeHistory(DEMO_CODE_SAMPLE);
   const [sampleIdx, setSampleIdx] = useState(-1);
   const queryClient = useQueryClient();
 
@@ -40,7 +43,7 @@ export const AIPage: React.FC = () => {
     if (historyError) toast.error('Failed to load AI history');
   }, [historyError]);
 
-  const { steps, isStreaming, streamError, result, run, reset } = useAnalyzeStream();
+  const { steps, isStreaming, streamError, result, llmProgress, partialIssues, run, reset } = useAnalyzeStream();
   const { logs: runLogs, isRunning, runError, hasRun, run: runCode, reset: resetRun } = useRunCode();
   const wasStreaming = useRef(false);
 
@@ -70,7 +73,7 @@ export const AIPage: React.FC = () => {
 
   function handleSampleChange(idx: number) {
     setSampleIdx(idx);
-    if (idx >= 0) setCode(SAMPLE_CASES[idx]?.code ?? '');
+    if (idx >= 0) resetCode(SAMPLE_CASES[idx]?.code ?? '');
     reset();
     resetRun();
   }
@@ -184,19 +187,36 @@ export const AIPage: React.FC = () => {
                   <p className="text-sm font-semibold">javascript.snippet</p>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-3 py-1.5 text-xs font-medium text-black">
-                <Play size={13} />
-                Live API
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={undo}
+                  disabled={!canUndo}
+                  title="Undo (quay lại code trước đó)"
+                  className="rounded-full bg-white p-1.5 text-black shadow-sm transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-black/30"
+                >
+                  <Undo2 size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={redo}
+                  disabled={!canRedo}
+                  title="Redo (tiến tới code sau đó)"
+                  className="rounded-full bg-white p-1.5 text-black shadow-sm transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-black/30"
+                >
+                  <Redo2 size={14} />
+                </button>
+                <span className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-3 py-1.5 text-xs font-medium text-black">
+                  <Play size={13} />
+                  Live API
+                </span>
+              </div>
             </div>
-            <textarea
+            <CodeEditor
               value={code}
-              onChange={(e) => handleCodeChange(e.target.value)}
-              spellCheck={false}
-              className={`w-full bg-[#111827] p-5 font-mono text-lg leading-6 text-[#d9f99d] outline-none placeholder:text-white/35 ${
-                hasRunOutput ? 'h-[420px] resize-y overflow-auto' : 'min-h-[420px] flex-1 resize-none'
-              }`}
+              onChange={handleCodeChange}
               placeholder="Paste your code here..."
+              className={hasRunOutput ? 'h-[420px]' : 'min-h-[420px] flex-1'}
             />
           </div>
 
@@ -242,8 +262,11 @@ export const AIPage: React.FC = () => {
               <h2 className="font-semibold">{isStreaming ? 'Analyzing…' : 'Latest result'}</h2>
             </div>
             {isStreaming ? (
-              <div className="mt-4">
-                <PipelineProgress steps={steps} />
+              <div className="mt-4 space-y-3">
+                <PipelineProgress steps={steps} llmProgress={llmProgress} />
+                {partialIssues.map((issue, i) => (
+                  <IssueCard key={`${issue.patternId}-${issue.lineRange}`} issue={issue} index={i} originalCode={code} onResolve={setCode} />
+                ))}
               </div>
             ) : result ? (
               <AnalysisResult view={{ ...result, code }} onResolve={setCode} />

@@ -17,6 +17,17 @@ function extractFixCode(fix: string): { code: string; isCodeBlock: boolean } {
   return { code: fix, isCodeBlock: false };
 }
 
+// Sample/demo snippets inline their own fake db/fs/app/process mocks so "Run"
+// produces visible output. The AI fix is generated against the *real* API shape
+// (Promise.all/allSettled over real DB drivers), not these mocks, so applying it
+// can break the mock's specific shape (e.g. array-of-promises vs array-of-thunks).
+// Detect that pattern and warn before Resolve, since this only affects sample
+// code — a user's own real code has no such inline mock to clash with.
+const MOCK_MARKER_RE = /\bconst\s+(db|fs|app|process|cache|payment|email|emailService|zlib)\s*=\s*\{/;
+function hasInlineMock(code?: string): boolean {
+  return !!code && MOCK_MARKER_RE.test(code);
+}
+
 export const IssueCard: React.FC<{
   issue: AIIssue;
   index: number;
@@ -27,8 +38,17 @@ export const IssueCard: React.FC<{
   const [resolved, setResolved] = useState(false);
   const canDiff = isCodeBlock && !!originalCode;
   const isUnchanged = canDiff && originalCode!.trim() === code.trim();
+  const originalHasMock = hasInlineMock(originalCode);
 
   function handleResolve() {
+    if (originalHasMock) {
+      const confirmed = window.confirm(
+        'Code này chứa mock demo (db/fs/app...) chỉ để Run thử ra output. ' +
+        'AI fix được sinh theo API thật, có thể không khớp shape của mock và gây lỗi khi Run lại. ' +
+        'Vẫn muốn áp dụng fix?'
+      );
+      if (!confirmed) return;
+    }
     onResolve?.(code);
     setResolved(true);
   }
@@ -50,6 +70,17 @@ export const IssueCard: React.FC<{
         <p className="leading-relaxed">{issue.description}</p>
       </div>
 
+      {issue.codeSnippet && (
+        <div className="mb-3">
+          <p className="text-xs uppercase tracking-[0.14em] text-black/45 mb-1">
+            Original code (line {issue.lineRange})
+          </p>
+          <pre className="max-h-48 overflow-auto rounded-lg bg-[#111827] p-3">
+            <code className="text-xs font-mono text-rose-300 whitespace-pre-wrap break-words">{issue.codeSnippet}</code>
+          </pre>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <p className="text-xs uppercase tracking-[0.14em] text-black/45">
@@ -58,6 +89,14 @@ export const IssueCard: React.FC<{
           {isUnchanged && (
             <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[10px] font-medium text-black/45">
               no changes suggested
+            </span>
+          )}
+          {originalHasMock && !isUnchanged && (
+            <span
+              className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700"
+              title="Code chứa mock demo — AI fix có thể không khớp shape mock, có thể lỗi khi Run lại sau Resolve"
+            >
+              demo mock — resolve có thể lỗi Run
             </span>
           )}
         </div>

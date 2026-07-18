@@ -18,31 +18,22 @@ interface SeverityPoint extends Point {
   low: number;
 }
 
-const WIDTH = 640;
+const WIDTH = 1200;
 const HEIGHT = 200;
 const PAD_X = 16;
 const PAD_Y = 20;
 const GRID_LINES = 4;
 
-const SEVERITY_COLORS = {
-  high: '#f43f5e',
-  medium: '#f59e0b',
-  low: '#6b7280',
-} as const;
-
 export const HistoryTrendChart: React.FC<{ history: AIHistoryLog[] }> = ({ history }) => {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const router = useRouter();
 
-  const { points, maxIssues, totalPath, highPath, mediumPath, lowPath, cachedCount } = useMemo(() => {
+  const { points, maxIssues, totalPath, cachedCount } = useMemo(() => {
     if (history.length === 0) {
       return {
         points: [] as SeverityPoint[],
         maxIssues: 0,
         totalPath: '',
-        highPath: '',
-        mediumPath: '',
-        lowPath: '',
         cachedCount: 0,
       };
     }
@@ -88,9 +79,6 @@ export const HistoryTrendChart: React.FC<{ history: AIHistoryLog[] }> = ({ histo
       points: pts,
       maxIssues: max,
       totalPath: buildPath((p) => p.y),
-      highPath: buildPath((p) => yFor(p.high)),
-      mediumPath: buildPath((p) => yFor(p.medium)),
-      lowPath: buildPath((p) => yFor(p.low)),
       cachedCount: chrono.filter((log) => log.cached).length,
     };
   }, [history]);
@@ -99,8 +87,15 @@ export const HistoryTrendChart: React.FC<{ history: AIHistoryLog[] }> = ({ histo
 
   const hovered = hoverIdx != null ? points[hoverIdx] : null;
   const innerH = HEIGHT - PAD_Y * 2;
-  const gridValues = Array.from({ length: GRID_LINES + 1 }, (_, i) =>
-    Math.round((maxIssues * (GRID_LINES - i)) / GRID_LINES)
+  // Cap grid lines to maxIssues so small counts (e.g. max=2) don't produce
+  // duplicate rounded labels like "2, 2, 1, 1, 0" from Math.round bucketing.
+  const gridCount = Math.min(GRID_LINES, maxIssues);
+  const gridValues = Array.from(
+    new Set(
+      Array.from({ length: gridCount + 1 }, (_, i) =>
+        Math.round((maxIssues * (gridCount - i)) / gridCount)
+      )
+    )
   );
   const cachedPct = points.length > 0 ? Math.round((cachedCount / points.length) * 100) : 0;
 
@@ -108,18 +103,7 @@ export const HistoryTrendChart: React.FC<{ history: AIHistoryLog[] }> = ({ histo
     <div className="rounded-lg border border-black/10 bg-white p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs uppercase tracking-[0.14em] text-black/45">Issues found over time</p>
-        <div className="flex items-center gap-3 text-xs text-black/50">
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: SEVERITY_COLORS.high }} /> high
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: SEVERITY_COLORS.medium }} /> medium
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: SEVERITY_COLORS.low }} /> low
-          </span>
-          <span className="border-l border-black/10 pl-3">{cachedPct}% cached</span>
-        </div>
+        <span className="text-xs text-black/50">{cachedPct}% cached</span>
       </div>
 
       {hovered && (
@@ -135,19 +119,16 @@ export const HistoryTrendChart: React.FC<{ history: AIHistoryLog[] }> = ({ histo
         preserveAspectRatio="none"
         style={{ height: 200 }}
       >
-        {gridValues.map((val, i) => {
-          const y = PAD_Y + (innerH * i) / GRID_LINES;
+        {gridValues.map((val) => {
+          const y = maxIssues > 0 ? PAD_Y + innerH - (val / maxIssues) * innerH : PAD_Y + innerH;
           return (
-            <g key={i}>
+            <g key={val}>
               <line x1={PAD_X} y1={y} x2={WIDTH - PAD_X} y2={y} stroke="#00000010" strokeWidth={1} />
               <text x={0} y={y + 3} fontSize={9} fill="#00000055">{val}</text>
             </g>
           );
         })}
 
-        <path d={lowPath} fill="none" stroke={SEVERITY_COLORS.low} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 3" opacity={0.7} />
-        <path d={mediumPath} fill="none" stroke={SEVERITY_COLORS.medium} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 3" opacity={0.7} />
-        <path d={highPath} fill="none" stroke={SEVERITY_COLORS.high} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 3" opacity={0.7} />
         <path d={totalPath} fill="none" stroke="#111827" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
 
         {points.map((p, i) => (
