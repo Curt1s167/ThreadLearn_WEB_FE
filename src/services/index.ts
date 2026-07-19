@@ -11,6 +11,7 @@ import type {
   LessonCompleteResult,
   Quiz,
   QuizAttempt,
+  PaginationMeta,
   QuizSubmitResult,
   QuizCreatePayload,
   QuizUpdatePayload,
@@ -149,6 +150,16 @@ export const studentsService = {
 };
 
 // ─── Quiz (UC26–UC29, UC41–UC43, UC49) ───────────────────────────────────────
+export interface QuizAttemptHistoryQuery {
+  page?: number;
+  limit?: number;
+}
+
+export interface QuizAttemptHistoryResult {
+  items: QuizAttempt[];
+  meta?: PaginationMeta;
+}
+
 export const quizService = {
   listAll: async () => {
     const { data } = await apiClient.get<ApiResponse<Quiz[]>>('/quiz');
@@ -213,12 +224,20 @@ export const quizService = {
     );
     return data.data;
   },
-  getMyAttempts: async () => {
-    // UC49
-    const { data } = await apiClient.get<ApiResponse<QuizAttempt[]>>(
-      '/quiz/attempts/me'
-    );
+  getMyAttempts: async (query?: QuizAttemptHistoryQuery): Promise<QuizAttempt[]> => {
+    const { data } = await apiClient.get<ApiResponse<QuizAttempt[]>>('/quiz/attempts/me', {
+      params: query?.page || query?.limit ? query : undefined,
+    });
     return data.data;
+  },
+  getMyAttemptsPage: async (query: Required<QuizAttemptHistoryQuery>): Promise<QuizAttemptHistoryResult> => {
+    const { data } = await apiClient.get<ApiResponse<QuizAttempt[]>>('/quiz/attempts/me', {
+      params: query,
+    });
+    return {
+      items: data.data,
+      meta: data.meta,
+    };
   },
 };
 
