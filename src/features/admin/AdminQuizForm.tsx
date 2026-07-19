@@ -40,6 +40,9 @@ const makeLocalId = () =>
 
 const getQuizId = (quiz: Quiz) => quiz.id ?? quiz._id;
 const getQuestionId = (question: { id?: string; _id: string }) => question.id ?? question._id;
+const normalizeOptionValue = (option: string) => option.trim().replace(/\s+/g, ' ').toLowerCase();
+const clampCorrectAnswerIndex = (index: number, optionCount: number) =>
+  Math.min(Math.max(index, 0), Math.max(optionCount - 1, 0));
 
 const createBlankQuestion = (): DraftQuestion => ({
   localId: makeLocalId(),
@@ -48,18 +51,23 @@ const createBlankQuestion = (): DraftQuestion => ({
   correctAnswerIndex: 0,
 });
 
-const toDraftQuestion = (question: Quiz['questions'][number]): DraftQuestion => ({
-  id: getQuestionId(question),
-  localId: getQuestionId(question),
-  questionText: question.questionText,
-  options: question.options.length >= 2 ? question.options : ['', ''],
-  correctAnswerIndex: question.correctAnswerIndex ?? 0,
-});
+const toDraftQuestion = (question: Quiz['questions'][number]): DraftQuestion => {
+  const options = question.options.length >= 2 ? [...question.options] : ['', ''];
+  const questionId = getQuestionId(question);
+
+  return {
+    id: questionId,
+    localId: questionId,
+    questionText: question.questionText,
+    options,
+    correctAnswerIndex: clampCorrectAnswerIndex(question.correctAnswerIndex ?? 0, options.length),
+  };
+};
 
 const cleanQuestion = (question: DraftQuestion): QuestionPayload => ({
   questionText: question.questionText.trim(),
   options: question.options.map((option) => option.trim()),
-  correctAnswerIndex: question.correctAnswerIndex,
+  correctAnswerIndex: clampCorrectAnswerIndex(question.correctAnswerIndex, question.options.length),
 });
 
 export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) => {
@@ -171,6 +179,10 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
         nextErrors.questionErrors[question.localId] = `Question ${index + 1} must have 2-6 filled options`;
         return;
       }
+      if (new Set(trimmedOptions.map(normalizeOptionValue)).size !== trimmedOptions.length) {
+        nextErrors.questionErrors[question.localId] = `Question ${index + 1} options must be unique`;
+        return;
+      }
       if (question.correctAnswerIndex < 0 || question.correctAnswerIndex >= question.options.length) {
         nextErrors.questionErrors[question.localId] = `Question ${index + 1} correct answer is invalid`;
       }
@@ -190,9 +202,10 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
     event.preventDefault();
     if (!validate()) return;
 
+    const cleanedDescription = description.trim();
     const basePayload = {
       title: title.trim(),
-      description: description.trim() || undefined,
+      description: isEditing ? cleanedDescription : cleanedDescription || undefined,
       passingScorePercent: Number(passingScorePercent),
       timeLimitSeconds: timeLimitSeconds ? Number(timeLimitSeconds) : undefined,
       xpReward: Number(xpReward),
@@ -220,9 +233,11 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
           ? {
               ...question,
               ...patch,
-              correctAnswerIndex: patch.options && question.correctAnswerIndex >= patch.options.length
-                ? Math.max(0, patch.options.length - 1)
-                : patch.correctAnswerIndex ?? question.correctAnswerIndex,
+              correctAnswerIndex:
+                patch.correctAnswerIndex ??
+                (patch.options
+                  ? clampCorrectAnswerIndex(question.correctAnswerIndex, patch.options.length)
+                  : question.correctAnswerIndex),
             }
           : question
       )
@@ -255,7 +270,15 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
       current.map((question) => {
         if (question.localId !== localId || question.options.length <= 2) return question;
         const options = question.options.filter((_, index) => index !== optionIndex);
-        const correctAnswerIndex = Math.min(question.correctAnswerIndex, options.length - 1);
+        const correctAnswerIndex =
+          question.correctAnswerIndex === optionIndex
+            ? clampCorrectAnswerIndex(optionIndex, options.length)
+            : clampCorrectAnswerIndex(
+                question.correctAnswerIndex > optionIndex
+                  ? question.correctAnswerIndex - 1
+                  : question.correctAnswerIndex,
+                options.length
+              );
         return { ...question, options, correctAnswerIndex };
       })
     );
