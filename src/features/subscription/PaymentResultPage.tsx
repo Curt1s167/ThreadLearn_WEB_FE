@@ -96,6 +96,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     isLoading: isLoadingPlan,
     isError: isPlanError,
     isFetching: isFetchingPlan,
+    refetch: refetchMyPlan,
   } = useQuery({
     queryKey: ['my-subscription'],
     queryFn: subscriptionService.getMyPlan,
@@ -117,9 +118,9 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     mutationFn: subscriptionService.confirmPayment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-subscription'] });
-      toast.success('Payment result confirmed');
+      toast.success('Đã xác nhận kết quả thanh toán');
     },
-    onError: () => toast.error('Failed to confirm payment result'),
+    onError: () => toast.error('Không thể xác nhận kết quả thanh toán'),
   });
 
   useEffect(() => {
@@ -154,12 +155,14 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     title,
     description,
     icon,
+    onRetry,
   }: {
     tone: 'success' | 'fail' | 'neutral';
     pill: string;
     title: string;
     description: string;
     icon: React.ReactNode;
+    onRetry?: () => void;
   }) => (
     <DemoPageRoot className="max-w-xl mx-auto">
       <section
@@ -180,23 +183,32 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
           {description}
         </DemoMuted>
         <p className="mt-3 text-xs uppercase tracking-[0.14em] text-black/40">
-          {gatewayLabel} payment result
+          Kết quả thanh toán qua {gatewayLabel}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex items-center gap-2 rounded-full border border-black/15 bg-white/80 px-5 py-2.5 text-sm font-medium text-ink hover:bg-white"
+            >
+              Kiểm tra lại
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => router.push('/pricing')}
             className="inline-flex items-center gap-2 rounded-full border border-black/15 bg-white/80 px-5 py-2.5 text-sm font-medium text-ink hover:bg-white"
           >
             <CreditCard size={14} />
-            Pricing
+            Xem gói dịch vụ
           </button>
           <button
             type="button"
             onClick={() => router.push('/dashboard')}
             className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white hover:bg-black/90"
           >
-            Dashboard
+            Về trang chủ
             <ArrowRight size={14} />
           </button>
         </div>
@@ -208,7 +220,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     return (
       <DemoPageRoot className="max-w-xl mx-auto">
         <Skeleton className="h-64 rounded-lg" />
-        <p className="text-center text-sm text-black/50">Verifying payment…</p>
+        <p className="text-center text-sm text-black/50">Đang kiểm tra trạng thái thanh toán...</p>
       </DemoPageRoot>
     );
   }
@@ -217,10 +229,11 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     return (
       <ResultShell
         tone="fail"
-        pill="Error"
-        title="Could not verify payment"
-        description="Please check your subscription again in a moment."
+        pill="Lỗi xác minh"
+        title="Không thể kiểm tra thanh toán"
+        description="Hãy kiểm tra lại gói dịch vụ của bạn sau ít phút."
         icon={<AlertCircle size={36} className="text-[#7f1d1d]" />}
+        onRetry={() => refetchMyPlan()}
       />
     );
   }
@@ -229,9 +242,9 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     return (
       <ResultShell
         tone="neutral"
-        pill="No result"
-        title="No payment result found"
-        description="Start from the pricing page to create a new payment request."
+        pill="Chưa có kết quả"
+        title="Không tìm thấy yêu cầu thanh toán"
+        description="Hãy bắt đầu từ trang gói dịch vụ để tạo yêu cầu thanh toán mới."
         icon={<CreditCard size={36} className="text-black/40" />}
       />
     );
@@ -241,9 +254,9 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     return (
       <ResultShell
         tone="success"
-        pill="Succeeded"
-        title="Payment successful"
-        description="Your premium subscription is active. Gamification and plan access will use the updated subscription."
+        pill="Thành công"
+        title="Thanh toán thành công"
+        description="Gói Premium của bạn đã được kích hoạt. Các quyền truy cập sẽ được cập nhật ngay sau đó."
         icon={<CheckCircle size={36} className="text-black" />}
       />
     );
@@ -253,10 +266,11 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     return (
       <ResultShell
         tone="neutral"
-        pill="Processing"
-        title="Payment is being processed"
-        description="Your payment gateway callback was received. We are waiting for the secure server webhook to activate your subscription."
+        pill="Đang xử lý"
+        title="Thanh toán đang được xử lý"
+        description="Hệ thống đã nhận kết quả trả về và đang chờ xác thực an toàn từ cổng thanh toán để kích hoạt gói của bạn."
         icon={<CreditCard size={36} className="text-black/40" />}
+        onRetry={() => refetchMyPlan()}
       />
     );
   }
@@ -264,12 +278,12 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   return (
     <ResultShell
       tone="fail"
-      pill="Failed"
-      title="Payment failed"
+      pill="Không thành công"
+      title="Thanh toán không thành công"
       description={
         hasGatewayFailure
-          ? 'The payment gateway did not approve this transaction.'
-          : 'We could not find an active subscription for this payment.'
+          ? 'Cổng thanh toán không phê duyệt giao dịch này.'
+          : 'Chưa tìm thấy gói dịch vụ được kích hoạt cho giao dịch này.'
       }
       icon={<XCircle size={36} className="text-[#7f1d1d]" />}
     />
