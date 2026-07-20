@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { Check, CreditCard, ExternalLink, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -13,7 +14,7 @@ const getPlanId = (plan: SubscriptionPlan) => plan.id ?? plan._id;
 
 const formatPrice = (amount: number, currency: string) => {
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(currency.toUpperCase() === 'VND' ? 'vi-VN' : 'en-US', {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,
@@ -30,10 +31,13 @@ const formatPrice = (amount: number, currency: string) => {
 export function PricingPlans({
   plans,
   myPlan,
+  isSignedIn,
 }: {
   plans: SubscriptionPlan[];
   myPlan?: UserSubscription | null;
+  isSignedIn: boolean;
 }) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const currentPlanId = myPlan?.status === 'active' ? myPlan.planId : null;
 
@@ -42,21 +46,21 @@ export function PricingPlans({
     onSuccess: (purchaseResult) => {
       queryClient.invalidateQueries({ queryKey: ['my-subscription'] });
       if (purchaseResult.paymentUrl) {
-        toast.success('Payment request created');
+        toast.success('Đã tạo yêu cầu thanh toán');
         window.location.assign(purchaseResult.paymentUrl);
         return;
       }
-      toast.success('Purchase request created');
+      toast.success('Đã tạo yêu cầu mua gói');
     },
-    onError: () => toast.error('Failed to create purchase request'),
+    onError: () => toast.error('Không thể tạo yêu cầu thanh toán'),
   });
 
   if (plans.length === 0) {
     return (
       <EmptyState
         icon={<Crown size={36} />}
-        title="No plans available"
-        description="There are no active subscription plans right now"
+        title="Chưa có gói dịch vụ khả dụng"
+        description="Vui lòng quay lại sau hoặc liên hệ quản trị viên."
       />
     );
   }
@@ -87,7 +91,7 @@ export function PricingPlans({
               <div className="min-w-0">
                 {isFeatured && !isCurrentPlan ? (
                   <span className="inline-flex rounded-full bg-[#d9f99d] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-black">
-                    Popular
+                    Phổ biến
                   </span>
                 ) : null}
                 <h2 className={`text-xl font-semibold text-ink truncate ${isFeatured && !isCurrentPlan ? 'mt-2' : ''}`}>
@@ -99,7 +103,7 @@ export function PricingPlans({
               </div>
               {isCurrentPlan ? (
                 <span className="shrink-0 rounded-full bg-[#d9f99d] px-3 py-1 text-xs font-semibold text-black">
-                  Current
+                  Đang dùng
                 </span>
               ) : null}
             </div>
@@ -108,7 +112,7 @@ export function PricingPlans({
               <p className="text-4xl font-light tracking-tight text-ink">
                 {formatPrice(plan.price, plan.currency)}
               </p>
-              <p className="mt-1 text-sm text-black/50">{plan.durationDays} days access</p>
+              <p className="mt-1 text-sm text-black/50">Quyền truy cập trong {plan.durationDays} ngày</p>
             </div>
 
             <ul className="mt-6 flex flex-1 flex-col gap-2.5">
@@ -120,33 +124,42 @@ export function PricingPlans({
                   </li>
                 ))
               ) : (
-                <li className="text-sm text-black/50">Premium access for this plan duration.</li>
+                <li className="text-sm text-black/50">Quyền truy cập Premium trong thời hạn gói.</li>
               )}
             </ul>
 
             <button
               type="button"
               onClick={() => {
+                if (!isSignedIn) {
+                  router.push('/login');
+                  return;
+                }
                 purchase({ planId });
               }}
-              disabled={isCurrentPlan || isPending}
+              disabled={isPending}
               className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                 isCurrentPlan
-                  ? 'border border-black/10 bg-[#f7f4ee] text-black'
+                  ? 'border border-black bg-[#d9f99d] text-black hover:bg-[#c8ef80]'
                   : 'bg-black text-white hover:bg-black/90'
               }`}
             >
               {isPurchasing ? (
-                'Creating payment…'
+                'Đang tạo thanh toán...'
               ) : isCurrentPlan ? (
                 <>
-                  <Check size={14} />
-                  Active plan
+                  <CreditCard size={14} />
+                  Gia hạn gói
+                </>
+              ) : !isSignedIn ? (
+                <>
+                  <CreditCard size={14} />
+                  Đăng nhập để mua
                 </>
               ) : (
                 <>
                   <CreditCard size={14} />
-                  Purchase
+                  Chọn gói này
                   <ExternalLink size={13} />
                 </>
               )}
