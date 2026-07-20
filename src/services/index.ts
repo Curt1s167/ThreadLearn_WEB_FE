@@ -399,6 +399,12 @@ export const subscriptionService = {
     );
     return data.data;
   },
+  getPurchase: async (purchaseId: string) => {
+    const { data } = await apiClient.get<ApiResponse<SubscriptionPurchase>>(
+      `/subscription/purchases/${purchaseId}`
+    );
+    return data.data;
+  },
   confirmPayment: async (payload: PaymentConfirmationPayload) => {
     const { data } = await apiClient.post<ApiResponse<SubscriptionPurchase>>(
       '/subscription/webhook/payment',

@@ -7,6 +7,7 @@ import { AlertCircle, ArrowRight, CheckCircle, CreditCard, XCircle } from 'lucid
 import { toast } from 'sonner';
 import { subscriptionService } from '../../services';
 import { Skeleton } from '../../components/shared';
+import { useAuthStore } from '../../store';
 import type { PaymentConfirmationPayload } from '../../types';
 import {
   DemoDisplayTitle,
@@ -16,7 +17,7 @@ import {
 } from '../ui-reskin/demo-ui';
 
 const isActiveSubscription = (status?: string) => status?.toLowerCase() === 'active';
-const SUCCESS_STATUSES = ['success', 'succeeded', 'paid'];
+const FAILURE_STATUSES = ['cancelled', 'failed'];
 
 const buildPaymentPayload = (
   searchParams: ReturnType<typeof useSearchParams>,
@@ -37,7 +38,7 @@ const buildPaymentPayload = (
 type PaymentResultMode = 'real' | 'mock';
 type PaymentGateway = 'mock' | 'payos' | 'vnpay' | 'live';
 
-const MAX_POLL_ATTEMPTS = 5;
+const MAX_POLL_ATTEMPTS = 8;
 
 const getPaymentGateway = (
   mode: PaymentResultMode,
@@ -66,8 +67,11 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { user, setUser } = useAuthStore();
   const hasSubmittedConfirmation = useRef(false);
-  const pollAttempts = useRef(0);
+  const purchasePollAttempts = useRef(0);
+  const subscriptionPollAttempts = useRef(0);
+  const hasSyncedProfile = useRef(false);
 
   const isMockPayment = mode === 'mock';
   const purchaseId = searchParams.get('purchaseId');
@@ -91,6 +95,37 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     [searchParams, inferredMockStatus]
   );
 
+  const hasPaymentSignal = Boolean(purchaseId || transactionId || responseCode || rawStatus);
+  const hasGatewayFailure = Boolean(
+    (responseCode && responseCode !== '00') ||
+      (rawStatus && FAILURE_STATUSES.includes(rawStatus))
+  );
+  const returnTo = useMemo(() => {
+    if (typeof window === 'undefined') return '/pricing';
+    const savedPath = sessionStorage.getItem('threadlearn-payment-return-to');
+    return savedPath === '/pricing' ? savedPath : '/pricing';
+  }, []);
+
+  const {
+    data: purchase,
+    isLoading: isLoadingPurchase,
+    isError: isPurchaseError,
+    isFetching: isFetchingPurchase,
+    refetch: refetchPurchase,
+  } = useQuery({
+    queryKey: ['subscription-purchase', purchaseId],
+    queryFn: () => subscriptionService.getPurchase(purchaseId!),
+    enabled: Boolean(purchaseId),
+    refetchInterval: (query) => {
+      if (!purchaseId || query.state.data?.status !== 'pending') return false;
+      if (purchasePollAttempts.current >= MAX_POLL_ATTEMPTS) return false;
+      purchasePollAttempts.current += 1;
+      return 2000;
+    },
+  });
+
+  const purchaseSucceeded = purchase?.status === 'succeeded';
+
   const {
     data: myPlan,
     isLoading: isLoadingPlan,
@@ -100,24 +135,25 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   } = useQuery({
     queryKey: ['my-subscription'],
     queryFn: subscriptionService.getMyPlan,
+    enabled: !purchaseId || purchaseSucceeded,
     refetchInterval: (query) => {
-      if (mode !== 'real') return false;
+      if (!purchaseSucceeded || mode !== 'real') return false;
       if (isActiveSubscription(query.state.data?.status)) return false;
-      if (pollAttempts.current >= MAX_POLL_ATTEMPTS) return false;
-      pollAttempts.current += 1;
+      if (subscriptionPollAttempts.current >= MAX_POLL_ATTEMPTS) return false;
+      subscriptionPollAttempts.current += 1;
       return 2000;
     },
   });
 
   const {
     mutate: confirmPayment,
-    data: confirmResult,
     isPending: isConfirmingPayment,
     isError: isConfirmError,
   } = useMutation({
     mutationFn: subscriptionService.confirmPayment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription-purchase', purchaseId] });
       toast.success('Đã xác nhận kết quả thanh toán');
     },
     onError: () => toast.error('Không thể xác nhận kết quả thanh toán'),
@@ -134,20 +170,36 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   }, [confirmPayment, paymentPayload, shouldConfirmPayment]);
 
   const hasActivePlan = isActiveSubscription(myPlan?.status);
-  const mockPaymentSucceeded = isMockPayment && confirmResult?.status === 'succeeded';
-  const paymentSucceeded = hasActivePlan || mockPaymentSucceeded;
-  const hasGatewayFailure = Boolean(
-    (responseCode && responseCode !== '00') ||
-      (rawStatus && !SUCCESS_STATUSES.includes(rawStatus))
-  );
-  const hasPaymentSignal = Boolean(purchaseId || transactionId || responseCode || rawStatus);
-  const isPolling =
-    mode === 'real' &&
-    isFetchingPlan &&
-    hasPaymentSignal &&
-    !hasActivePlan &&
-    pollAttempts.current < MAX_POLL_ATTEMPTS;
-  const isChecking = !paymentSucceeded && (isLoadingPlan || isConfirmingPayment || isPolling);
+  const paymentSucceeded = purchaseSucceeded && hasActivePlan && !hasGatewayFailure;
+  const isPurchasePending = purchase?.status === 'pending';
+  const isWaitingForSubscription = purchaseSucceeded && !hasActivePlan;
+  const isPollingPurchase = isPurchasePending && purchasePollAttempts.current < MAX_POLL_ATTEMPTS;
+  const isPollingSubscription =
+    isWaitingForSubscription && subscriptionPollAttempts.current < MAX_POLL_ATTEMPTS;
+  const isChecking =
+    !hasGatewayFailure &&
+    Boolean(purchaseId) &&
+    (isLoadingPurchase ||
+      isConfirmingPayment ||
+      isPollingPurchase ||
+      (isPollingSubscription && (isLoadingPlan || isFetchingPlan)) ||
+      (isFetchingPurchase && !purchase));
+
+  useEffect(() => {
+    if (!paymentSucceeded || !user || !myPlan || hasSyncedProfile.current) return;
+    hasSyncedProfile.current = true;
+    setUser({
+      ...user,
+      planType: 'PREMIUM',
+      subscriptionExpiresAt: myPlan.expiresAt,
+    });
+  }, [myPlan, paymentSucceeded, setUser, user]);
+
+  useEffect(() => {
+    if (!paymentSucceeded) return;
+    const timeout = window.setTimeout(() => router.replace(returnTo), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [paymentSucceeded, returnTo, router]);
 
   const ResultShell = ({
     tone,
@@ -197,11 +249,11 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
           ) : null}
           <button
             type="button"
-            onClick={() => router.push('/pricing')}
+            onClick={() => router.replace(returnTo)}
             className="inline-flex items-center gap-2 rounded-full border border-black/15 bg-white/80 px-5 py-2.5 text-sm font-medium text-ink hover:bg-white"
           >
             <CreditCard size={14} />
-            Xem gói dịch vụ
+            Quay lại gói dịch vụ
           </button>
           <button
             type="button"
@@ -225,7 +277,23 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     );
   }
 
-  if ((isPlanError || isConfirmError) && !paymentSucceeded) {
+  if (purchase?.status === 'failed' || hasGatewayFailure) {
+    return (
+      <ResultShell
+        tone="fail"
+        pill="Không thành công"
+        title="Thanh toán không thành công"
+        description={
+          hasGatewayFailure
+            ? 'Cổng thanh toán không phê duyệt giao dịch này.'
+            : 'Giao dịch không được xác nhận. Gói hiện tại của bạn không bị thay đổi.'
+        }
+        icon={<XCircle size={36} className="text-[#7f1d1d]" />}
+      />
+    );
+  }
+
+  if ((isPurchaseError || isPlanError || isConfirmError) && !paymentSucceeded) {
     return (
       <ResultShell
         tone="fail"
@@ -233,12 +301,15 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
         title="Không thể kiểm tra thanh toán"
         description="Hãy kiểm tra lại gói dịch vụ của bạn sau ít phút."
         icon={<AlertCircle size={36} className="text-[#7f1d1d]" />}
-        onRetry={() => refetchMyPlan()}
+        onRetry={() => {
+          refetchPurchase();
+          refetchMyPlan();
+        }}
       />
     );
   }
 
-  if (!hasPaymentSignal && !paymentSucceeded) {
+  if (!purchaseId && !hasPaymentSignal) {
     return (
       <ResultShell
         tone="neutral"
@@ -256,13 +327,13 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
         tone="success"
         pill="Thành công"
         title="Thanh toán thành công"
-        description="Gói Premium của bạn đã được kích hoạt. Các quyền truy cập sẽ được cập nhật ngay sau đó."
+        description="Gói Premium và quyền truy cập của bạn đã được cập nhật. Bạn sẽ quay lại trang gói dịch vụ sau vài giây."
         icon={<CheckCircle size={36} className="text-black" />}
       />
     );
   }
 
-  if (mode === 'real' && hasPaymentSignal && !hasGatewayFailure) {
+  if (purchaseId && !hasGatewayFailure) {
     return (
       <ResultShell
         tone="neutral"
@@ -270,22 +341,13 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
         title="Thanh toán đang được xử lý"
         description="Hệ thống đã nhận kết quả trả về và đang chờ xác thực an toàn từ cổng thanh toán để kích hoạt gói của bạn."
         icon={<CreditCard size={36} className="text-black/40" />}
-        onRetry={() => refetchMyPlan()}
+        onRetry={() => {
+          refetchPurchase();
+          refetchMyPlan();
+        }}
       />
     );
   }
 
-  return (
-    <ResultShell
-      tone="fail"
-      pill="Không thành công"
-      title="Thanh toán không thành công"
-      description={
-        hasGatewayFailure
-          ? 'Cổng thanh toán không phê duyệt giao dịch này.'
-          : 'Chưa tìm thấy gói dịch vụ được kích hoạt cho giao dịch này.'
-      }
-      icon={<XCircle size={36} className="text-[#7f1d1d]" />}
-    />
-  );
+  return null;
 };
