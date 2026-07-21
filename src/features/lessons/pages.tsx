@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
+  ArrowLeft,
+  ArrowRight,
   Bookmark,
   Brain,
   CheckCircle2,
@@ -17,14 +19,20 @@ import {
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { bookmarksService, codeExecutionService, enrollmentsService, lessonsService } from '../../services';
+import {
+  bookmarksService,
+  codeExecutionService,
+  coursesService,
+  enrollmentsService,
+  lessonsService,
+} from '../../services';
 import { Button, EmptyState } from '../../components/shared';
 import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
 import type { CodeExecutionResult, Enrollment } from '../../types';
 
-const LessonMarkdown = dynamic(
-  () => import('./LessonMarkdown').then((module) => module.LessonMarkdown),
-  { loading: () => <div className="h-32 skeleton rounded-lg" /> },
+const LessonReader = dynamic(
+  () => import('./LessonReader').then((module) => module.LessonReader),
+  { loading: () => <div className="h-48 skeleton rounded-lg" /> },
 );
 const CommentsSection = dynamic(
   () => import('./CommentsSection').then((module) => module.CommentsSection),
@@ -193,6 +201,28 @@ export const LessonPage: React.FC = () => {
   });
   const isLessonCompleted = Boolean(enrollment?.completedLessons?.includes(id!));
 
+  const { data: courseDetail } = useQuery({
+    queryKey: ['course-detail', lessonCourseId],
+    queryFn: () => coursesService.getById(lessonCourseId!),
+    enabled: Boolean(lessonCourseId),
+    retry: false,
+  });
+
+  const { prevLesson, nextLesson } = useMemo(() => {
+    const lessons = (courseDetail?.lessons ?? [])
+      .slice()
+      .sort(
+        (a, b) =>
+          (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0),
+      );
+    const idx = lessons.findIndex((item) => item._id === id);
+    if (idx < 0) return { prevLesson: undefined, nextLesson: undefined };
+    return {
+      prevLesson: idx > 0 ? lessons[idx - 1] : undefined,
+      nextLesson: idx < lessons.length - 1 ? lessons[idx + 1] : undefined,
+    };
+  }, [courseDetail?.lessons, id]);
+
   useEffect(() => {
     if (isError && !isEnrollmentRequired) toast.error('Failed to load lesson');
   }, [isEnrollmentRequired, isError]);
@@ -329,14 +359,12 @@ export const LessonPage: React.FC = () => {
                 </div>
               ) : null}
               {content.trim() ? (
-                <div className="prose prose-neutral max-w-none text-base leading-8 text-black/70 [&_a]:text-black [&_code]:rounded [&_code]:bg-black/[0.04] [&_code]:px-1 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:bg-[#111827] [&_pre]:p-4 [&_pre]:text-[#d9f99d]">
-                  <LessonMarkdown content={content} />
-                </div>
+                <LessonReader content={content} />
               ) : (
                 <EmptyState
                   icon={<AlertCircle size={32} />}
                   title="Lesson content is unavailable"
-                  description="This lesson has not been published with learning content yet."
+                  description="This lesson has not been published with learning content yet. Body must be Markdown (contentMarkdown)."
                 />
               )}
               {runnableSnippet ? (
@@ -347,6 +375,39 @@ export const LessonPage: React.FC = () => {
                   language={runnableSnippet.language}
                   initialCode={runnableSnippet.code}
                 />
+              ) : null}
+
+              {(prevLesson || nextLesson) ? (
+                <div className="mt-8 flex flex-wrap items-stretch justify-between gap-3 border-t border-black/10 pt-6">
+                  {prevLesson ? (
+                    <Link
+                      href={`/lessons/${prevLesson._id}`}
+                      className="group min-w-[200px] flex-1 rounded-lg border border-black/10 bg-[#fafafa] px-4 py-3 transition hover:border-black/20 hover:bg-white"
+                    >
+                      <span className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.14em] text-black/40">
+                        <ArrowLeft size={12} /> Bài trước
+                      </span>
+                      <span className="mt-1 block text-sm font-medium text-ink group-hover:underline">
+                        {prevLesson.title}
+                      </span>
+                    </Link>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+                  {nextLesson ? (
+                    <Link
+                      href={`/lessons/${nextLesson._id}`}
+                      className="group min-w-[200px] flex-1 rounded-lg border border-black/10 bg-black px-4 py-3 text-right text-white transition hover:bg-black/90"
+                    >
+                      <span className="inline-flex items-center justify-end gap-1 text-xs uppercase tracking-[0.14em] text-white/50">
+                        Bài tiếp <ArrowRight size={12} />
+                      </span>
+                      <span className="mt-1 block text-sm font-medium">{nextLesson.title}</span>
+                    </Link>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+                </div>
               ) : null}
             </div>
 
