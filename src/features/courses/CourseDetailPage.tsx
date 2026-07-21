@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { coursesService, enrollmentsService } from '../../services';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { useAuthStore } from '../../store';
-import type { CourseLevel, CourseSection, Enrollment, Lesson } from '../../types';
+import type { CourseLevel, CourseSection, Enrollment, Lesson, User } from '../../types';
 import {
   COURSE_ACCENT_COLORS,
   DemoPageRoot,
@@ -48,6 +48,29 @@ const levelTone = (level?: CourseLevel): 'lime' | 'pink' | 'blue' | 'default' =>
   return 'default';
 };
 
+const hasPremiumCourseAccess = (user: User | null): boolean => {
+  if (user?.role === 'ADMIN') return true;
+  if (user?.planType !== 'PREMIUM') return false;
+
+  const expiresAt = user.subscriptionExpiresAt ? Date.parse(user.subscriptionExpiresAt) : NaN;
+  if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) return false;
+
+  // Legacy Premium accounts were granted before feature-level entitlements existed.
+  const features = user.subscriptionFeatures;
+  return !features || features.length === 0 || features.includes('PREMIUM_COURSES');
+};
+
+const isLessonAccessible = (
+  lesson: Lesson,
+  isEnrolled: boolean,
+  isPremiumCourse: boolean,
+  canAccessPremiumCourses: boolean,
+) => {
+  if (lesson.isLocked || lesson.status === 'locked') return false;
+  if (lesson.isPreview) return true;
+  return isEnrolled && (!isPremiumCourse || canAccessPremiumCourses);
+};
+
 /**
  * PR10 — course detail mirrors DemoCourseDetailPage hero + lesson list.
  * LOGIC LOCK: getById, enrollments, enroll mutation, continue → first lesson.
@@ -56,7 +79,7 @@ export const CourseDetailPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   const {
     data: detail,
@@ -89,6 +112,9 @@ export const CourseDetailPage: React.FC = () => {
   );
 
   const isEnrolled = !!enrollment;
+  const isPremiumCourse = Boolean(course?.isPremium);
+  const canAccessPremiumCourses = hasPremiumCourseAccess(user);
+  const requiresPremium = isPremiumCourse && !canAccessPremiumCourses;
   const progress = Math.round(enrollment?.progressPercent ?? enrollment?.progress ?? 0);
   const completedSet = useMemo(
     () => new Set(enrollment?.completedLessons ?? []),
@@ -99,17 +125,28 @@ export const CourseDetailPage: React.FC = () => {
     COURSE_ACCENT_COLORS[(course?.title?.length ?? 0) % COURSE_ACCENT_COLORS.length];
 
   const continueLessonId = useMemo(() => {
-    if (enrollment?.lastLessonId) return enrollment.lastLessonId;
-    const nextOpen = courseLessons.find((lesson) => !completedSet.has(lesson._id) && !lesson.isLocked);
-    return nextOpen?._id ?? courseLessons[0]?._id;
-  }, [completedSet, courseLessons, enrollment?.lastLessonId]);
+    const canOpen = (lesson: Lesson) =>
+      isLessonAccessible(lesson, isEnrolled, isPremiumCourse, canAccessPremiumCourses);
+    const lastLesson = courseLessons.find((lesson) => lesson._id === enrollment?.lastLessonId);
+    if (lastLesson && canOpen(lastLesson)) return lastLesson._id;
+
+    const nextOpen = courseLessons.find((lesson) => !completedSet.has(lesson._id) && canOpen(lesson));
+    return nextOpen?._id ?? courseLessons.find(canOpen)?._id;
+  }, [
+    canAccessPremiumCourses,
+    completedSet,
+    courseLessons,
+    enrollment?.lastLessonId,
+    isEnrolled,
+    isPremiumCourse,
+  ]);
 
   const handleContinue = () => {
     if (continueLessonId) {
       router.push(`/lessons/${continueLessonId}`);
       return;
     }
-    router.push('/dashboard');
+    toast.info('Không có bài học nào đang mở để tiếp tục.');
   };
 
   const { mutate: enroll, isPending: enrolling } = useMutation({
@@ -170,7 +207,11 @@ export const CourseDetailPage: React.FC = () => {
     course.shortDescription || course.description,
     `${displayLessonCount} structured lessons`,
     course.language ? `Hands-on ${course.language} practice` : 'Hands-on coding practice',
-    isEnrolled ? 'Resume anytime from your dashboard' : 'Enroll free to unlock lessons',
+    requiresPremium
+      ? 'Premium course: upgrade to unlock the full curriculum'
+      : isEnrolled
+        ? 'Resume anytime from your dashboard'
+        : 'Enroll free to unlock lessons',
   ].filter(Boolean) as string[];
   const displayOutcomes = outcomes.length >= 4 ? outcomes : fallbackOutcomes;
 
@@ -291,7 +332,9 @@ export const CourseDetailPage: React.FC = () => {
               </div>
             )}
             <div className="relative">
-              <p className="text-sm text-black/55">{isEnrolled ? 'Course progress' : 'Ready to start'}</p>
+              <p className="text-sm text-black/55">
+                {requiresPremium ? 'Premium access required' : isEnrolled ? 'Course progress' : 'Ready to start'}
+              </p>
               <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
               <div className="mt-4 h-2 rounded-full bg-black/10">
                 <div
@@ -300,12 +343,26 @@ export const CourseDetailPage: React.FC = () => {
                 />
               </div>
               <Button
-                onClick={() => (isEnrolled ? handleContinue() : enroll())}
+                onClick={() => {
+                  if (requiresPremium) {
+                    router.push('/pricing');
+                    return;
+                  }
+                  if (isEnrolled) {
+                    handleContinue();
+                    return;
+                  }
+                  enroll();
+                }}
                 loading={enrolling}
-                disabled={!isEnrolled && !courseObjectId}
+                disabled={!courseObjectId || (isEnrolled && !continueLessonId)}
                 className="mt-5 w-full"
               >
-                {isEnrolled ? (
+                {requiresPremium ? (
+                  <>
+                    Unlock Premium <Lock size={16} />
+                  </>
+                ) : isEnrolled ? (
                   <>
                     Continue lesson <ArrowRight size={16} />
                   </>
@@ -364,7 +421,17 @@ export const CourseDetailPage: React.FC = () => {
                           .reduce((sum, m) => sum + m.lessons.length, 0) + index;
                       const done = completedSet.has(lesson._id);
                       const isCurrent = continueLessonId === lesson._id && isEnrolled && !done;
-                      const locked = !!lesson.isLocked && !isEnrolled;
+                      const locked = !isLessonAccessible(
+                        lesson,
+                        isEnrolled,
+                        isPremiumCourse,
+                        canAccessPremiumCourses,
+                      );
+                      const lockMessage = lesson.isLocked || lesson.status === 'locked'
+                        ? 'Lesson locked by instructor'
+                        : requiresPremium && !lesson.isPreview
+                          ? 'Premium required'
+                          : 'Enroll to unlock';
 
                       return (
                         <button
@@ -375,13 +442,11 @@ export const CourseDetailPage: React.FC = () => {
                               toast.info('This is a mock lesson preview. Connect lesson data to open it.');
                               return;
                             }
-                            if (locked) {
-                              toast.error('Enroll to unlock this lesson');
-                              return;
-                            }
                             router.push(`/lessons/${lesson._id}`);
                           }}
-                          className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition hover:bg-black/[0.02]"
+                          disabled={locked}
+                          title={locked ? lockMessage : undefined}
+                          className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition hover:bg-black/[0.02] disabled:cursor-not-allowed disabled:opacity-55"
                         >
                           <span
                             className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-medium ${
@@ -406,6 +471,7 @@ export const CourseDetailPage: React.FC = () => {
                                 ? ` · ${lesson.duration ?? lesson.estimatedTime} phút`
                                 : ''}
                               {lesson.isPreview ? ' · Preview' : ''}
+                              {locked ? ` · ${lockMessage}` : ''}
                             </span>
                           </span>
                           {(lesson.duration ?? lesson.estimatedTime) ? (
