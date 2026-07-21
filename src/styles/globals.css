@@ -148,7 +148,169 @@
   .sidebar-item-active {
     @apply flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#102b26] shadow-[0_8px_18px_rgb(16_43_38_/_0.16)] transition-all duration-150 cursor-pointer;
   }
+  .lesson-header,
+  .lesson-surface {
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-panel-radius);
+    background: var(--tl-surface);
+    box-shadow: var(--tl-card-shadow);
+  }
+  .lesson-header {
+    background:
+      radial-gradient(circle at 95% 0%, rgb(217 249 157 / 0.48), transparent 17rem),
+      var(--tl-surface);
+  }
+  .lesson-assist-card {
+    border: 1px solid rgb(16 43 38 / 0.1);
+    border-radius: var(--tl-panel-radius);
+    background: linear-gradient(145deg, #d9f99d, #c9efad);
+    box-shadow: 0 12px 28px rgb(16 43 38 / 0.09);
+  }
+  .lesson-reader {
+    color: var(--tl-text-muted);
+    font-size: 1.0625rem;
+    line-height: 1.85;
+  }
+  .lesson-reader > :first-child { margin-top: 0; }
+  .lesson-reader > :last-child { margin-bottom: 0; }
+  .lesson-heading {
+    color: var(--tl-text);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+  .lesson-heading-1 {
+    margin: 3.5rem 0 1.1rem;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+  }
+  .lesson-heading-2 {
+    margin: 2.75rem 0 0.9rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--tl-border);
+    font-size: clamp(1.35rem, 2vw, 1.7rem);
+  }
+  .lesson-heading-3 {
+    margin: 2rem 0 0.7rem;
+    font-size: 1.15rem;
+  }
+  .lesson-paragraph {
+    max-width: 74ch;
+    margin: 1rem 0;
+  }
+  .lesson-list {
+    max-width: 74ch;
+    margin: 1.25rem 0;
+    padding-left: 1.4rem;
+  }
+  .lesson-list li { padding-left: 0.35rem; margin: 0.5rem 0; }
+  .lesson-list-unordered li::marker { color: var(--tl-teal-700); }
+  .lesson-list-ordered li::marker { color: var(--tl-teal-700); font-weight: 700; }
+  .lesson-callout {
+    max-width: 74ch;
+    margin: 1.5rem 0;
+    padding: 1rem 1.1rem;
+    border-left: 3px solid var(--tl-teal-700);
+    border-radius: 0 var(--tl-control-radius) var(--tl-control-radius) 0;
+    background: rgb(11 118 104 / 0.07);
+    color: var(--tl-text);
+  }
+  .lesson-link { color: var(--tl-teal-700); font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
+  .lesson-inline-code {
+    border: 1px solid rgb(16 43 38 / 0.12);
+    border-radius: 0.4rem;
+    background: rgb(16 43 38 / 0.07);
+    padding: 0.1rem 0.35rem;
+    color: #0b5e54;
+    font-size: 0.88em;
+  }
+  .lesson-reader pre {
+    overflow-x: auto;
+    margin: 1.75rem 0;
+    border: 1px solid rgb(217 249 157 / 0.13);
+    border-radius: 1rem;
+    background: #101827;
+    padding: 1.25rem 1.4rem;
+    color: #d9f99d;
+    box-shadow: 0 12px 28px rgb(16 24 39 / 0.16);
+  }
+  .lesson-reader pre code { background: transparent; padding: 0; color: inherit; font-size: 0.9rem; line-height: 1.75; }
+  .lesson-table-wrap { overflow-x: auto; margin: 1.75rem 0; border: 1px solid var(--tl-border); border-radius: 1rem; }
+  .lesson-reader table { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+  .lesson-reader th { background: rgb(16 43 38 / 0.07); color: var(--tl-text); font-weight: 700; }
+  .lesson-reader th, .lesson-reader td { padding: 0.8rem 1rem; border-bottom: 1px solid var(--tl-border); text-align: left; vertical-align: top; }
+  .lesson-reader tr:last-child td { border-bottom: 0; }
 }
+
+html.dark {
+  color-scheme: dark;
+  --tl-page-bg: #08130f;
+  --tl-surface: #10211c;
+  --tl-surface-subtle: #0c1a15;
+  --tl-text: #edf7ef;
+  --tl-text-muted: rgb(220 237 225 / 0.78);
+  --tl-text-faint: rgb(220 237 225 / 0.56);
+  --tl-border: rgb(217 249 157 / 0.14);
+  --tl-border-strong: rgb(217 249 157 / 0.25);
+  --tl-focus: #bef264;
+  --tl-card-shadow: 0 1px 2px rgb(0 0 0 / 0.18), 0 16px 36px rgb(0 0 0 / 0.22);
+}
+
+html.dark body {
+  background:
+    radial-gradient(circle at 94% -16%, rgb(11 118 104 / 0.34), transparent 26rem),
+    var(--tl-page-bg);
+}
+
+html.dark .shell-sidebar,
+html.dark .shell-topbar,
+html.dark .shell-popover,
+html.dark .card,
+html.dark .lesson-header,
+html.dark .lesson-surface,
+html.dark .bg-white,
+html.dark [class~='bg-white'] {
+  background-color: #10211c !important;
+  border-color: var(--tl-border) !important;
+}
+
+html.dark .shell-sidebar { background-color: #0c1a15 !important; }
+html.dark .shell-topbar { background-color: rgb(12 26 21 / 0.92) !important; }
+html.dark .lesson-header {
+  background:
+    radial-gradient(circle at 95% 0%, rgb(11 118 104 / 0.3), transparent 18rem),
+    #10211c !important;
+}
+html.dark .lesson-assist-card {
+  background: linear-gradient(145deg, #163d33, #102b26);
+  border-color: rgb(217 249 157 / 0.18);
+  color: #edf7ef;
+}
+html.dark .bg-canvas-cream,
+html.dark [class*='bg-black/'] { background-color: rgb(255 255 255 / 0.07); }
+html.dark .text-ink,
+html.dark .text-black,
+html.dark [class*='text-black/'] { color: #edf7ef !important; }
+html.dark .text-ink-muted,
+html.dark .text-ink-faint,
+html.dark [class*='text-ink-'] { color: var(--tl-text-muted) !important; }
+html.dark .border-black\/10,
+html.dark .border-black\/5,
+html.dark .divide-black\/10 > :not([hidden]) ~ :not([hidden]) { border-color: var(--tl-border) !important; }
+html.dark .sidebar-item { color: rgb(237 247 239 / 0.68); }
+html.dark .sidebar-item:hover { color: #102b26; }
+html.dark .sidebar-item-active { background: #d9f99d; color: #102b26; }
+html.dark .input-field,
+html.dark input,
+html.dark textarea,
+html.dark select { background-color: #0c1a15; color: #edf7ef; border-color: var(--tl-border); }
+html.dark .lesson-reader { color: var(--tl-text-muted); }
+html.dark .lesson-heading,
+html.dark .lesson-callout,
+html.dark .lesson-reader th { color: #edf7ef; }
+html.dark .lesson-callout { background: rgb(217 249 157 / 0.08); }
+html.dark .lesson-inline-code { background: rgb(217 249 157 / 0.11); border-color: rgb(217 249 157 / 0.17); color: #d9f99d; }
+html.dark .lesson-table-wrap { border-color: var(--tl-border); }
+html.dark .lesson-reader th { background: rgb(217 249 157 / 0.08); }
 
 @layer utilities {
   .text-gradient {

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Bell, LogOut, Command, Menu, CheckCheck, BookOpen, Trophy, Zap } from 'lucide-react';
+import { Search, Bell, LogOut, Command, Menu, CheckCheck, BookOpen, Trophy, Zap, Moon, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
@@ -36,7 +36,7 @@ const formatNotificationTime = (createdAt: string) => {
 
 export const Topbar: React.FC = () => {
   const { user, logout, stats } = useAuthStore();
-  const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { sidebarCollapsed, toggleSidebar, theme, setTheme } = useUIStore();
   const [searchValue, setSearchValue] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotificationMenu, setShowNotificationMenu] = useState(false);
@@ -147,6 +147,16 @@ export const Topbar: React.FC = () => {
             )}
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="icon-button"
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+        >
+          {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+        </button>
 
         <div ref={notificationMenuRef} className="relative">
           <button

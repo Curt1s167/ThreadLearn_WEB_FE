@@ -146,8 +146,8 @@ export const LessonPage: React.FC = () => {
       ) : lesson ? (
         <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
           <article className="space-y-5">
-            <div className="rounded-lg bg-white p-6 sm:p-8">
-              <Link href={courseHref} className="text-sm text-black/50 hover:text-black">
+            <div className="lesson-header p-6 sm:p-8">
+              <Link href={courseHref} className="text-sm font-medium text-black/55 hover:text-black">
                 Back to course
               </Link>
               <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
@@ -164,7 +164,7 @@ export const LessonPage: React.FC = () => {
                     ) : null}
                     {lesson.videoUrl ? <DemoPill tone="pink">Video</DemoPill> : null}
                   </div>
-                  <h1 className="text-4xl font-light tracking-tight text-ink">{lesson.title}</h1>
+                  <h1 className="max-w-3xl text-3xl font-semibold leading-[1.08] tracking-[-0.04em] text-ink sm:text-4xl">{lesson.title}</h1>
                   {lesson.attachmentUrl ? (
                     <a
                       href={lesson.attachmentUrl}
@@ -181,7 +181,7 @@ export const LessonPage: React.FC = () => {
                   onClick={() => toggleBookmark()}
                   disabled={bookmarking}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
-                    isBookmarked ? 'bg-[#d9f99d] text-ink' : 'bg-black text-white hover:bg-black/90'
+                    isBookmarked ? 'bg-[#d9f99d] text-ink' : 'bg-[#102b26] text-white hover:bg-[#16433a]'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -192,7 +192,7 @@ export const LessonPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-lg border border-black/10 bg-white p-6 sm:p-8">
+            <div className="lesson-surface p-6 sm:p-8">
               {lesson.videoUrl ? (
                 <div className="mb-6 aspect-video overflow-hidden rounded-lg border border-black/10 bg-black">
                   <iframe
@@ -205,7 +205,7 @@ export const LessonPage: React.FC = () => {
                 </div>
               ) : null}
               {content.trim() ? (
-                <div className="prose prose-neutral max-w-none text-base leading-8 text-black/70 [&_a]:text-black [&_code]:rounded [&_code]:bg-black/[0.04] [&_code]:px-1 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:bg-[#111827] [&_pre]:p-4 [&_pre]:text-[#d9f99d]">
+                <div className="lesson-reader">
                   <LessonMarkdown content={content} />
                 </div>
               ) : (
@@ -217,7 +217,7 @@ export const LessonPage: React.FC = () => {
               )}
             </div>
 
-            <div className="rounded-lg border border-black/10 bg-white p-6 xl:hidden">
+            <div className="lesson-surface p-6 xl:hidden">
               <div className="mb-4 flex gap-2">
                 {(['notes', 'comments'] as const).map((panel) => (
                   <button
@@ -237,20 +237,20 @@ export const LessonPage: React.FC = () => {
           </article>
 
           <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-            <div className="rounded-lg bg-[#d9f99d] p-5">
+            <div className="lesson-assist-card p-5">
               <Brain size={22} className="text-ink" />
               <h2 className="mt-4 text-xl font-semibold text-ink">Need help with this lesson?</h2>
               <p className="mt-3 text-sm text-black/65">Open AI Advisor to analyse your own code or ask a focused question.</p>
               <button
                 type="button"
                 onClick={() => router.push('/ai')}
-                className="mt-5 rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/90"
+                className="mt-5 rounded-full bg-[#102b26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#16433a]"
               >
                 Open AI analysis
               </button>
             </div>
 
-            <div className="rounded-lg bg-[#d9f99d] p-5">
+            <div className="lesson-assist-card p-5">
               <Zap size={22} className="text-ink" />
               <h2 className="mt-4 text-xl font-semibold text-ink">Quiz check-in</h2>
               <p className="mt-3 text-sm text-black/65">
@@ -259,17 +259,17 @@ export const LessonPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => router.push(`/quiz/${id}`)}
-                className="mt-5 rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/90"
+                className="mt-5 rounded-full bg-[#102b26] px-4 py-2 text-sm font-semibold text-white hover:bg-[#16433a]"
               >
                 Take quiz
               </button>
             </div>
 
-            <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
+            <div className="lesson-surface hidden p-5 xl:block">
               <NotesPanel lessonId={id!} />
             </div>
 
-            <div className="rounded-lg border border-black/10 bg-white p-5">
+            <div className="lesson-surface p-5">
               <h2 className="font-semibold text-ink">Lesson checklist</h2>
               <div className="mt-4 space-y-3 text-sm">
                 {[
@@ -301,7 +301,7 @@ export const LessonPage: React.FC = () => {
               </Button>
             </div>
 
-            <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
+            <div className="lesson-surface hidden p-5 xl:block">
               <div className="mb-4 flex items-center gap-2">
                 <MessageCircle size={18} />
                 <h2 className="font-semibold text-ink">Discussion</h2>

@@ -6,7 +6,6 @@ import { persist } from 'zustand/middleware';
 interface UIState {
   sidebarOpen: boolean;
   sidebarCollapsed: boolean;
-  /** Product is light-only; field retained for partialized migrate from v1 */
   theme: 'dark' | 'light';
   activeModal: string | null;
   modalData: unknown;
@@ -34,11 +33,10 @@ export const useUIStore = create<UIState>()(
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       toggleSidebarCollapse: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setTheme: (theme) => {
-        // Light-only product: always clear dark class
         if (typeof document !== 'undefined') {
-          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.toggle('dark', theme === 'dark');
         }
-        set({ theme: theme === 'dark' ? 'light' : theme });
+        set({ theme });
       },
       openModal: (name, data = null) => set({ activeModal: name, modalData: data }),
       closeModal: () => set({ activeModal: null, modalData: null }),
@@ -46,7 +44,7 @@ export const useUIStore = create<UIState>()(
     {
       name: 'threadlearn-ui-v2',
       partialize: (state) => ({
-        theme: 'light' as const,
+        theme: state.theme,
         sidebarCollapsed: state.sidebarCollapsed,
       }),
     }
