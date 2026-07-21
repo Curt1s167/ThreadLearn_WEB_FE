@@ -23,8 +23,6 @@ import {
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar } from '../components/shared';
-import { coursesService, enrollmentsService, notificationsService } from '../services';
-import { useQueryClient } from '@tanstack/react-query';
 import { BrandLogo } from '../components/shared/BrandLogo';
 import {
   SIDEBAR_COLLAPSED_CLASS,
@@ -95,9 +93,9 @@ export const Sidebar: React.FC = () => {
   const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
   const pathname = usePathname();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN';
   const navGroups = isAdmin ? adminNavGroups : studentNavGroups;
+  const warmRoute = (route: string) => router.prefetch(route);
 
   return (
     <aside
