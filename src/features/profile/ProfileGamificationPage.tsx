@@ -159,9 +159,9 @@ export const ProfileGamificationPage: React.FC = () => {
           </div>
 
           <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-ink">User stats</h2>
+            <h2 className="text-xl font-semibold text-ink">Tiến độ học tập</h2>
             <p className="mt-1 text-sm text-black/50">
-              Live data from GET /gamification/stats (UC48–UC49).
+              XP, cấp độ và chuỗi học tập của bạn được cập nhật sau mỗi hoạt động hợp lệ.
             </p>
             <div className="mt-5">
               <XpLevelStreakWidget />

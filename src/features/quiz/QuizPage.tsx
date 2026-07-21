@@ -9,6 +9,8 @@ import {
   ArrowRight,
   CheckCircle,
   Clock,
+  FileText,
+  History,
   Trophy,
   XCircle,
   Zap,
@@ -31,17 +33,22 @@ const formatRemainingTime = (seconds: number) => {
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 };
 
-/**
- * PR6 — DemoQuizPage layout fidelity (2-col: questions + aside).
- * LOGIC LOCK: timer tick, autoSubmittedRef, submit payload, invalidations unchanged.
- */
+type QuizResultSummary = {
+  attemptId?: string;
+  score: number;
+  passed: boolean;
+  xpRewarded: number;
+  passingScorePercent: number;
+  isTimeout: boolean;
+};
+
 export const QuizPage: React.FC = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [startTime] = useState(new Date().toISOString());
-  const [result, setResult] = useState<{ score: number; passed: boolean; xpRewarded: number } | null>(null);
+  const [result, setResult] = useState<QuizResultSummary | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const autoSubmittedRef = useRef(false);
 
@@ -66,11 +73,18 @@ export const QuizPage: React.FC = () => {
         startTime,
       }),
     onSuccess: (data) => {
+      const attemptId = data.attempt.id ?? data.attempt._id;
       setResult({
+        attemptId,
         score: data.score,
         passed: data.passed,
         xpRewarded: data.xpRewarded,
+        passingScorePercent: data.passingScorePercent,
+        isTimeout: data.isTimeout,
       });
+      if (attemptId) {
+        queryClient.setQueryData(['quiz-attempt', attemptId], data.attempt);
+      }
       queryClient.invalidateQueries({ queryKey: ['quiz-attempts-me'] });
       queryClient.invalidateQueries({ queryKey: ['gamification-stats'] });
     },
@@ -171,22 +185,26 @@ export const QuizPage: React.FC = () => {
   const isTimeWarning = typeof displayRemainingSeconds === 'number' && displayRemainingSeconds <= 60;
   const isTimedOut = displayRemainingSeconds === 0;
 
-  // ── Result screen (demo aside language) ───────────────────────────────────
+  // ── Result screen ─────────────────────────────────────────────────────────
   if (result) {
+    const detailPath = result.attemptId ? `/quiz/attempts/${result.attemptId}` : null;
+
     return (
       <DemoPageRoot>
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <section className="rounded-lg bg-white p-6 sm:p-8">
             <DemoPill tone={result.passed ? 'lime' : 'pink'}>
-              {result.passed ? 'Passed' : 'Not passed'}
+              {result.passed ? 'Đạt' : 'Chưa đạt'}
             </DemoPill>
             <h1 className="mt-5 text-4xl font-light tracking-tight text-ink">
-              {result.passed ? 'Quiz passed!' : 'Attempt submitted'}
+              {result.passed ? 'Bạn đã vượt qua quiz' : 'Đã ghi nhận lượt làm bài'}
             </h1>
             <p className="mt-3 text-black/60">
-              Score{' '}
+              Điểm của bạn là{' '}
               <span className="font-semibold text-ink">{result.score.toFixed(0)}%</span>
-              {result.xpRewarded > 0 ? ` · +${result.xpRewarded} XP earned` : null}
+              {` · Ngưỡng đạt ${result.passingScorePercent}%`}
+              {result.xpRewarded > 0 ? ` · +${result.xpRewarded} XP` : null}
+              {result.isTimeout ? ' · Nộp khi hết giờ' : null}
             </p>
             <div className="mt-8 h-2 overflow-hidden rounded-full bg-black/5">
               <div
@@ -201,15 +219,25 @@ export const QuizPage: React.FC = () => {
                 className="inline-flex items-center gap-2 rounded-full border border-black/10 px-5 py-3 text-sm font-medium text-ink hover:bg-black/[0.03]"
               >
                 <ArrowLeft size={16} />
-                Back to lesson
+                Quay lại bài học
               </button>
+              {detailPath ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(detailPath)}
+                  className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+                >
+                  Xem chi tiết
+                  <ArrowRight size={16} />
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => router.push('/quiz/history')}
-                className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-medium text-white"
+                className="inline-flex items-center gap-2 rounded-full border border-black/10 px-5 py-3 text-sm font-medium text-ink hover:bg-black/[0.03]"
               >
-                View history
-                <ArrowRight size={16} />
+                <History size={16} />
+                Lịch sử quiz
               </button>
             </div>
           </section>
@@ -226,17 +254,25 @@ export const QuizPage: React.FC = () => {
               </p>
               <p className="mt-2 text-sm text-black/65">
                 {result.passed
-                  ? `Passed.${result.xpRewarded > 0 ? ` +${result.xpRewarded} XP, leaderboard may update.` : ''}`
-                  : 'Not passed yet. Review the lesson and try again.'}
+                  ? `Đạt yêu cầu.${result.xpRewarded > 0 ? ` +${result.xpRewarded} XP đã được ghi nhận.` : ''}`
+                  : 'Chưa đạt yêu cầu. Hãy ôn lại bài học rồi thử lại.'}
               </p>
             </div>
             <div className="rounded-lg border border-black/10 bg-white p-5">
-              <h2 className="font-semibold text-ink">After submit (API)</h2>
+              <h2 className="font-semibold text-ink">Sau khi nộp bài</h2>
               <div className="mt-4 space-y-3 text-sm text-black/65">
-                <p>POST /quiz/submit</p>
-                <p>Invalidate quiz-attempts-me</p>
-                <p>Invalidate gamification-stats</p>
-                <p>XP / rank via BE events when passed</p>
+                <p className="flex items-center gap-2">
+                  <FileText size={14} className="text-black/40" />
+                  Lượt làm bài đã được lưu vào lịch sử.
+                </p>
+                <p className="flex items-center gap-2">
+                  <Zap size={14} className="text-black/40" />
+                  XP và xếp hạng sẽ cập nhật khi đủ điều kiện.
+                </p>
+                <p className="flex items-center gap-2">
+                  <Clock size={14} className="text-black/40" />
+                  Thời gian làm bài được giữ trong trang chi tiết.
+                </p>
               </div>
             </div>
           </aside>

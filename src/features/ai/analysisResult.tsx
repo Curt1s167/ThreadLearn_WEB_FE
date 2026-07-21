@@ -1,9 +1,29 @@
 'use client';
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Database, Zap, CheckCircle2 } from 'lucide-react';
 import { IssueCard } from './IssueCard';
 import type { AIHistoryLog, AIIssue, AIKnowledgeDoc } from '../../types';
+
+const DOC_MARKDOWN_COMPONENTS = {
+  p: ({ children }: { children?: React.ReactNode }) => (
+    <p className="mb-2 last:mb-0">{children}</p>
+  ),
+  code: ({ className, children }: { className?: string; children?: React.ReactNode }) => {
+    const isBlock = /language-/.test(className ?? '');
+    if (!isBlock) {
+      return <code className="rounded bg-black/[0.08] px-1 py-0.5 font-mono text-[11px]">{children}</code>;
+    }
+    return <code className={className}>{children}</code>;
+  },
+  pre: ({ children }: { children?: React.ReactNode }) => (
+    <pre className="my-2 overflow-x-auto rounded-lg bg-[#111827] p-3 text-[11px] leading-relaxed text-[#d9f99d]">
+      {children}
+    </pre>
+  ),
+};
 
 export interface ResultView {
   issues: AIIssue[];
@@ -11,6 +31,7 @@ export interface ResultView {
   cached?: boolean;
   explanation?: string;
   analyzeTimeMs?: number;
+  patternsChecked?: number;
   code: string;
 }
 
@@ -28,12 +49,13 @@ export function logToView(log: AIHistoryLog): ResultView {
     docsUsed: log.docsUsed ?? [],
     cached: log.cached,
     explanation: log.explanation,
+    analyzeTimeMs: log.analyzeTimeMs,
     code: log.inputCode ?? '',
   };
 }
 
 export const AnalysisResult: React.FC<{ view: ResultView; onResolve?: (fixedCode: string) => void }> = ({ view, onResolve }) => {
-  const { issues, docsUsed, cached, explanation, analyzeTimeMs, code } = view;
+  const { issues, docsUsed, cached, explanation, analyzeTimeMs, patternsChecked, code } = view;
   const { high, medium, low } = severityCounts(issues);
   const lines = code.trim().split('\n').length;
   const chars = code.length;
@@ -60,6 +82,12 @@ export const AnalysisResult: React.FC<{ view: ResultView; onResolve?: (fixedCode
             <div>
               <p className="text-lg font-semibold">{(analyzeTimeMs / 1000).toFixed(1)}s</p>
               <p className="text-xs text-black/45">total time</p>
+            </div>
+          )}
+          {patternsChecked != null && (
+            <div>
+              <p className="text-lg font-semibold">{patternsChecked}</p>
+              <p className="text-xs text-black/45">patterns scanned</p>
             </div>
           )}
         </div>
@@ -105,15 +133,24 @@ export const AnalysisResult: React.FC<{ view: ResultView; onResolve?: (fixedCode
             <Database size={13} className="text-black/45" />
             <p className="text-xs uppercase tracking-[0.14em] text-black/45">Knowledge base references</p>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             {docsUsed.map((doc, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-black/60">
-                {doc.category && (
-                  <span className="rounded bg-black/[0.06] px-1.5 py-0.5 font-mono text-[10px] uppercase text-black/45">
-                    {doc.category}
-                  </span>
+              <div key={i} className="rounded-lg bg-[#f7f4ee] p-3">
+                <div className="flex items-center gap-2 text-xs text-black/60">
+                  {doc.category && (
+                    <span className="rounded bg-black/[0.06] px-1.5 py-0.5 font-mono text-[10px] uppercase text-black/45">
+                      {doc.category}
+                    </span>
+                  )}
+                  <span className="font-medium text-black/80">{doc.title}</span>
+                </div>
+                {doc.content && (
+                  <div className="mt-1.5 text-xs leading-relaxed text-black/60">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={DOC_MARKDOWN_COMPONENTS}>
+                      {doc.content}
+                    </ReactMarkdown>
+                  </div>
                 )}
-                <span>{doc.title}</span>
               </div>
             ))}
           </div>

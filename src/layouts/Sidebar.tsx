@@ -11,7 +11,6 @@ import {
   User,
   Bell,
   Bookmark,
-  Zap,
   ChevronLeft,
   ChevronRight,
   Shield,
@@ -25,6 +24,7 @@ import { useAuthStore, useUIStore } from '../store';
 import { Avatar } from '../components/shared';
 import { coursesService, enrollmentsService, notificationsService } from '../services';
 import { useQueryClient } from '@tanstack/react-query';
+import { BrandLogo } from '../components/shared/BrandLogo';
 import {
   SIDEBAR_COLLAPSED_CLASS,
   SIDEBAR_EXPANDED_CLASS,
@@ -109,28 +109,28 @@ export const Sidebar: React.FC = () => {
     >
       <div className="h-14 flex items-center justify-between px-3 border-b border-black/10 shrink-0">
         {!sidebarCollapsed && (
-          <Link href="/" className="flex items-center gap-2 min-w-0">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-black text-white shrink-0">
-              <Zap size={15} />
-            </span>
-            <span className="font-semibold text-sm text-ink tracking-tight truncate">
-              ThreadLearn
-            </span>
+          <Link
+            href="/"
+            className="flex items-center min-w-0 flex-1 mr-1"
+            aria-label="ThreadLearn home"
+          >
+            <BrandLogo variant="full" size="sm" priority className="max-w-[148px]" />
           </Link>
         )}
         {sidebarCollapsed && (
           <Link
             href="/"
-            className="grid h-8 w-8 place-items-center rounded-lg bg-black text-white mx-auto"
+            className="flex items-center justify-center mx-auto"
             title="ThreadLearn"
+            aria-label="ThreadLearn home"
           >
-            <Zap size={15} />
+            <BrandLogo variant="mark" size="sm" priority />
           </Link>
         )}
         <button
           type="button"
           onClick={toggleSidebarCollapse}
-          className={`text-ink-faint hover:text-ink hover:bg-black/[0.05] p-1 rounded-lg transition-colors ${sidebarCollapsed ? 'hidden' : ''}`}
+          className={`text-ink-faint hover:text-ink hover:bg-black/[0.05] p-1 rounded-lg transition-colors shrink-0 ${sidebarCollapsed ? 'hidden' : ''}`}
           aria-label="Collapse sidebar"
         >
           <ChevronLeft size={14} />

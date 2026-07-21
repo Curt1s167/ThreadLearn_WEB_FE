@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { History } from 'lucide-react';
+import { ChevronLeft, ChevronRight, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { quizService } from '../../services';
 import {
@@ -19,6 +19,8 @@ import {
   formatPercent,
 } from '../ui-reskin/demo-ui';
 
+const PAGE_SIZE = 8;
+
 /**
  * Visual layout mirrors DemoQuizHistoryPage:
  * white hero (pink pill + display title) → simple white rows
@@ -26,16 +28,42 @@ import {
  * Data + links still from quizService.getMyAttempts / attempt detail routes.
  */
 export const QuizHistoryPage: React.FC = () => {
-  const { data: attempts, isLoading, isError, refetch } = useQuery({
-    queryKey: ['quiz-attempts-me'],
-    queryFn: quizService.getMyAttempts,
+  const [page, setPage] = useState(1);
+  const {
+    data: historyPage,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['quiz-attempts-me', { page, limit: PAGE_SIZE }],
+    queryFn: () => quizService.getMyAttemptsPage({ page, limit: PAGE_SIZE }),
   });
+
+  const attempts = historyPage?.items ?? [];
+  const meta = historyPage?.meta;
+  const hasAttempts = attempts.length > 0;
+  const totalPages = meta?.totalPages ?? 1;
+  const canGoPrevious = page > 1;
+  const canGoNext = page < totalPages;
+  const rangeLabel = useMemo(() => {
+    if (!meta || meta.total === 0) return 'No attempts';
+    const start = (meta.page - 1) * meta.limit + 1;
+    const end = Math.min(meta.page * meta.limit, meta.total);
+    return `Showing ${start}-${end} of ${meta.total}`;
+  }, [meta]);
 
   useEffect(() => {
     if (isError) {
       toast.error('Failed to load quiz history');
     }
   }, [isError]);
+
+  useEffect(() => {
+    if (meta?.totalPages && page > meta.totalPages) {
+      setPage(meta.totalPages);
+    }
+  }, [meta?.totalPages, page]);
 
   return (
     <DemoPageRoot>
@@ -65,7 +93,7 @@ export const QuizHistoryPage: React.FC = () => {
             Retry
           </DemoPrimaryButton>
         </DemoWhitePanel>
-      ) : attempts && attempts.length > 0 ? (
+      ) : hasAttempts ? (
         <DemoWhitePanel>
           {attempts.map((attempt, index) => {
             const title = UI_PLACEHOLDERS.quizAttemptTitle(attempt.quizId);
@@ -104,6 +132,35 @@ export const QuizHistoryPage: React.FC = () => {
               </motion.div>
             );
           })}
+          <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-black/55">
+              {rangeLabel}
+              {isFetching ? ' · Refreshing...' : ''}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={!canGoPrevious}
+                className="inline-flex size-9 items-center justify-center rounded-full border border-black/15 text-black transition hover:bg-black/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Previous quiz attempt page"
+              >
+                <ChevronLeft size={15} />
+              </button>
+              <span className="min-w-16 text-center text-sm font-medium text-black">
+                {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((current) => current + 1)}
+                disabled={!canGoNext}
+                className="inline-flex size-9 items-center justify-center rounded-full border border-black/15 text-black transition hover:bg-black/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Next quiz attempt page"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          </div>
         </DemoWhitePanel>
       ) : (
         <DemoWhitePanel className="p-8 text-center">

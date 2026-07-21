@@ -7,11 +7,6 @@ import { formatXp } from '../ui-reskin/demo-ui';
 
 const getUserId = (user?: User | null) => user?._id ?? user?.id;
 
-/**
- * Row layout matches DemoLeaderboardPage:
- * sm:grid-cols-[70px_1fr_120px_120px] · #rank · name · Level N · XP
- * Highlight current user with lime strip (demo used rank #2 highlight).
- */
 export function LeaderboardContent({
   entries,
   user,
@@ -41,15 +36,17 @@ export function LeaderboardContent({
               isMe ? 'bg-[#d9f99d]/45' : ''
             }`}
           >
-            <p className="text-2xl font-semibold text-black">#{entry.rank}</p>
+            <p className="text-2xl font-semibold text-black" aria-label={`Hạng ${entry.rank}`}>
+              #{entry.rank}
+            </p>
             <p className="font-medium text-black">
               {entry.name}
               {isMe && (
-                <span className="ml-2 text-xs font-semibold text-black/50">(you)</span>
+                <span className="ml-2 text-xs font-semibold text-black/50">(Bạn)</span>
               )}
             </p>
             <p className="text-sm text-black/55">
-              Level {entry.level ?? '—'}
+              Cấp {entry.level ?? 1}
             </p>
             <p className="text-sm font-medium text-black">{formatXp(entry.xp)}</p>
           </motion.div>
