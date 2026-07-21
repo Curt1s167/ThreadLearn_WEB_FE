@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Bell, LogOut, Command, Menu, CheckCheck, BookOpen, Trophy, Zap, Moon, Sun } from 'lucide-react';
+import { Bell, LogOut, Menu, CheckCheck, BookOpen, Trophy, Zap, Moon, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
@@ -37,7 +37,6 @@ const formatNotificationTime = (createdAt: string) => {
 export const Topbar: React.FC = () => {
   const { user, logout, stats } = useAuthStore();
   const { sidebarCollapsed, toggleSidebar, theme, setTheme } = useUIStore();
-  const [searchValue, setSearchValue] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotificationMenu, setShowNotificationMenu] = useState(false);
   const notificationMenuRef = useRef<HTMLDivElement>(null);
@@ -110,28 +109,6 @@ export const Topbar: React.FC = () => {
         >
           <Menu size={18} />
         </button>
-        <div className="relative hidden sm:block">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
-          />
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && searchValue.trim()) {
-                router.push(`/courses?search=${encodeURIComponent(searchValue)}`);
-              }
-            }}
-            placeholder="Search courses..."
-            className="topbar-search h-8 rounded-lg pl-8 pr-10 text-xs w-60 outline-none transition-all"
-          />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-ink-soft">
-            <Command size={10} />
-            <span className="text-[10px]">K</span>
-          </div>
-        </div>
       </div>
 
       <div className="flex items-center gap-1">

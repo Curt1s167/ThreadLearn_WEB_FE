@@ -157,23 +157,23 @@ export const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.05 }}
-          className="rounded-lg bg-[#d9f99d] p-6"
+          className="dashboard-streak-panel rounded-[1.5rem] p-6"
         >
-          <Flame size={26} />
-          <p className="mt-5 text-4xl font-semibold">
+          <Flame size={26} className="dashboard-streak-icon" />
+          <p className="dashboard-streak-value mt-5 text-4xl font-semibold">
             {statsLoading ? '…' : `${streak} day${streak === 1 ? '' : 's'}`}
           </p>
-          <p className="mt-2 text-sm text-black/60">
+          <p className="dashboard-streak-copy mt-2 text-sm">
             Learning streak. Keep one short lesson per day.
           </p>
           <div className="mt-6 grid grid-cols-7 gap-1">
             {UI_PLACEHOLDERS.weekdays.map((day, index) => (
               <div
                 key={`${day}-${index}`}
-                className={`grid aspect-square place-items-center rounded text-xs ${
+                className={`dashboard-streak-day grid aspect-square place-items-center rounded text-xs ${
                   index < Math.min(streak, 7)
-                    ? 'bg-black text-white'
-                    : 'bg-white/60 text-black/35'
+                    ? 'dashboard-streak-day-active'
+                    : 'dashboard-streak-day-idle'
                 }`}
               >
                 {day}
@@ -293,7 +293,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="mb-4 rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
+              <div className="dashboard-accent-note mb-4 rounded-lg p-4 text-sm">
                 Mock course progress preview from the demo flow. Enrollments from BE will replace these cards.
               </div>
               <div className="grid gap-4 md:grid-cols-2">
