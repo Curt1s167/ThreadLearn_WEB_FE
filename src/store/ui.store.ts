@@ -22,7 +22,9 @@ interface UIState {
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
-      sidebarOpen: true,
+      // Desktop keeps the navigation visible with CSS. Start mobile with the
+      // drawer closed so it never covers lesson content on first paint.
+      sidebarOpen: false,
       sidebarCollapsed: false,
       theme: 'light',
       activeModal: null,

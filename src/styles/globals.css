@@ -2,26 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ThreadLearn design tokens
+ *
+ * Primitive values stay here; components consume the semantic and component
+ * aliases below. This keeps the learning app visually coherent while pages are
+ * migrated incrementally during the UI phases.
+ */
+:root {
+  /* Primitives */
+  --tl-stone-25: #fcfbf8;
+  --tl-stone-50: #f7f4ee;
+  --tl-stone-100: #eeeae1;
+  --tl-ink-950: #121412;
+  --tl-ink-700: #39403a;
+  --tl-lime-200: #d9f99d;
+  --tl-lime-300: #bef264;
+  --tl-teal-700: #0f766e;
+  --tl-danger-700: #be123c;
+  --tl-shadow-color: 28 32 29;
+
+  /* Semantic */
+  --tl-page-bg: var(--tl-stone-50);
+  --tl-surface: #ffffff;
+  --tl-surface-subtle: var(--tl-stone-25);
+  --tl-text: var(--tl-ink-950);
+  --tl-text-muted: rgba(18, 20, 18, 0.62);
+  --tl-text-faint: rgba(18, 20, 18, 0.44);
+  --tl-border: rgba(18, 20, 18, 0.11);
+  --tl-border-strong: rgba(18, 20, 18, 0.2);
+  --tl-focus: var(--tl-teal-700);
+
+  /* Component tokens */
+  --tl-shell-height: 3.75rem;
+  --tl-control-radius: 0.75rem;
+  --tl-panel-radius: 1rem;
+  --tl-card-shadow: 0 1px 2px rgb(var(--tl-shadow-color) / 0.05), 0 10px 28px rgb(var(--tl-shadow-color) / 0.04);
+  --tl-overlay: rgb(18 20 18 / 0.38);
+}
+
 @layer base {
   * { box-sizing: border-box; }
   /* PR5 cutover: global cream + ink (auth + app share one root) */
   html {
-    background-color: theme('colors.canvas.cream');
-    color: theme('colors.ink.DEFAULT');
-    font-family: system-ui, var(--font-jetbrains-mono), sans-serif;
+    background-color: var(--tl-page-bg);
+    color: var(--tl-text);
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   body {
-    background-color: theme('colors.canvas.cream');
-    color: theme('colors.ink.DEFAULT');
-    min-height: 100vh;
+    background-color: var(--tl-page-bg);
+    color: var(--tl-text);
+    min-height: 100dvh;
     overflow-x: hidden;
   }
+  button, input, textarea, select { font: inherit; }
+  code, pre, kbd, samp { font-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace; }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.28); }
   ::selection { background: theme('colors.brand.lime'); color: #111; }
+  :focus-visible {
+    outline: 2px solid var(--tl-focus);
+    outline-offset: 2px;
+  }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -33,6 +79,28 @@
 }
 
 @layer components {
+  .skip-link {
+    @apply sr-only fixed left-4 top-4 z-[100] rounded-lg bg-black px-4 py-2 text-sm font-medium text-white focus:not-sr-only;
+  }
+  .app-shell { background: var(--tl-page-bg); }
+  .shell-sidebar {
+    background: rgb(255 255 255 / 0.92);
+    border-color: var(--tl-border);
+    box-shadow: 1px 0 0 rgb(18 20 18 / 0.02), 12px 0 32px rgb(18 20 18 / 0.025);
+  }
+  .shell-topbar {
+    min-height: var(--tl-shell-height);
+    background: rgb(255 255 255 / 0.84);
+    border-color: var(--tl-border);
+  }
+  .shell-popover {
+    @apply rounded-2xl border bg-white;
+    border-color: var(--tl-border);
+    box-shadow: var(--tl-card-shadow);
+  }
+  .icon-button {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl text-ink-faint transition-colors hover:bg-black/[0.05] hover:text-ink;
+  }
   /* Light-first chrome primitives (demo language) */
   .btn-primary {
     @apply inline-flex items-center gap-2 bg-black hover:bg-black/85 text-white px-4 py-2 rounded-full font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-black/30 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream;
@@ -47,7 +115,9 @@
     @apply w-full bg-white border border-black/10 focus:border-black/30 text-ink placeholder:text-black/35 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-150 focus:ring-1 focus:ring-black/10;
   }
   .card {
-    @apply bg-white border border-black/10 rounded-xl shadow-sm;
+    @apply bg-white border rounded-2xl;
+    border-color: var(--tl-border);
+    box-shadow: var(--tl-card-shadow);
   }
   .badge-purple {
     @apply inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-black/5 text-ink border border-black/10;
@@ -68,10 +138,10 @@
     @apply rounded animate-pulse bg-black/[0.06];
   }
   .sidebar-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-black/60 hover:text-black hover:bg-black/[0.05] transition-all duration-150 cursor-pointer;
+    @apply flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-black/60 hover:text-black hover:bg-black/[0.05] transition-all duration-150 cursor-pointer;
   }
   .sidebar-item-active {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white bg-black transition-all duration-150 cursor-pointer;
+    @apply flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white bg-black transition-all duration-150 cursor-pointer;
   }
 }
 

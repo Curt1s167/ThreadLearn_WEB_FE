@@ -19,6 +19,7 @@ import {
   CreditCard,
   CheckCircle,
   History,
+  Code2,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar } from '../components/shared';
@@ -41,6 +42,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: '/dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
   { to: '/courses', icon: <BookOpen size={16} />, label: 'Courses' },
+  { to: '/ide', icon: <Code2 size={16} />, label: 'Code Lab' },
   {
     to: '/quiz/history',
     icon: <History size={16} />,
@@ -72,11 +74,16 @@ function itemActive(item: NavItem, pathname: string): boolean {
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuthStore();
-  const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
+  const { sidebarCollapsed, sidebarOpen, setSidebarOpen, toggleSidebarCollapse } = useUIStore();
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN';
+
+  React.useEffect(() => {
+    // A route change should return a phone user to the content they selected.
+    setSidebarOpen(false);
+  }, [pathname, setSidebarOpen]);
 
   const warmRoute = (href: string) => {
     router.prefetch(href);
@@ -102,12 +109,22 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
+    <>
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 cursor-default bg-black/35 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close navigation"
+        />
+      )}
     <aside
-      className={`fixed left-0 top-0 h-full z-30 flex flex-col bg-white/90 backdrop-blur-xl border-r border-black/10 transition-all duration-200 ${
+      className={`shell-sidebar fixed left-0 top-0 z-40 flex h-[100dvh] flex-col border-r backdrop-blur-xl transition-[transform,width] duration-200 ${
         sidebarCollapsed ? SIDEBAR_COLLAPSED_CLASS : SIDEBAR_EXPANDED_CLASS
-      }`}
+      } ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      aria-label="Primary navigation"
     >
-      <div className="h-14 flex items-center justify-between px-3 border-b border-black/10 shrink-0">
+      <div className="flex h-[3.75rem] items-center justify-between border-b border-black/10 px-3 shrink-0">
         {!sidebarCollapsed && (
           <Link
             href="/"
@@ -130,10 +147,18 @@ export const Sidebar: React.FC = () => {
         <button
           type="button"
           onClick={toggleSidebarCollapse}
-          className={`text-ink-faint hover:text-ink hover:bg-black/[0.05] p-1 rounded-lg transition-colors shrink-0 ${sidebarCollapsed ? 'hidden' : ''}`}
+          className={`icon-button hidden h-8 w-8 lg:inline-flex ${sidebarCollapsed ? 'lg:hidden' : ''}`}
           aria-label="Collapse sidebar"
         >
           <ChevronLeft size={14} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(false)}
+          className="icon-button h-8 w-8 lg:hidden"
+          aria-label="Close navigation"
+        >
+          <ChevronLeft size={16} />
         </button>
       </div>
 
@@ -141,7 +166,7 @@ export const Sidebar: React.FC = () => {
         <button
           type="button"
           onClick={toggleSidebarCollapse}
-          className="mx-auto mt-2 text-ink-faint hover:text-ink hover:bg-black/[0.05] p-1 rounded-lg transition-colors"
+          className="icon-button mx-auto mt-2 hidden h-8 w-8 lg:inline-flex"
           aria-label="Expand sidebar"
         >
           <ChevronRight size={14} />
@@ -155,6 +180,7 @@ export const Sidebar: React.FC = () => {
             <Link
               key={item.to}
               href={item.to}
+              onClick={() => setSidebarOpen(false)}
               onMouseEnter={() => warmRoute(item.to)}
               onFocus={() => warmRoute(item.to)}
               className={`${active ? 'sidebar-item-active' : 'sidebar-item'} ${
@@ -185,6 +211,7 @@ export const Sidebar: React.FC = () => {
                 <Link
                   key={item.to}
                   href={item.to}
+                  onClick={() => setSidebarOpen(false)}
                   onMouseEnter={() => warmRoute(item.to)}
                   onFocus={() => warmRoute(item.to)}
                   className={`${active ? 'sidebar-item-active' : 'sidebar-item'} ${
@@ -204,6 +231,7 @@ export const Sidebar: React.FC = () => {
       <div className="border-t border-black/10 p-2 shrink-0">
         <Link
           href="/profile"
+          onClick={() => setSidebarOpen(false)}
           onMouseEnter={() => warmRoute('/profile')}
           onFocus={() => warmRoute('/profile')}
           className={`flex items-center gap-2.5 p-2 rounded-lg hover:bg-black/[0.04] transition-colors ${
@@ -220,5 +248,6 @@ export const Sidebar: React.FC = () => {
         </Link>
       </div>
     </aside>
+    </>
   );
 };
