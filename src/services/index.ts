@@ -317,10 +317,14 @@ export const notesService = {
     const { data } = await apiClient.get<ApiResponse<Note[]>>(
       `/notes?lessonId=${lessonId}`
     );
-    return data.data[0] ?? null;
+    return data.data;
   },
-  upsert: async (payload: { lessonId: string; noteText: string; codeSnippet?: string }) => {
+  create: async (payload: { lessonId: string; noteText: string; codeSnippet?: string; anchorText?: string }) => {
     const { data } = await apiClient.post<ApiResponse<Note>>('/notes', payload);
+    return data.data;
+  },
+  update: async (noteId: string, payload: { noteText?: string; codeSnippet?: string; anchorText?: string }) => {
+    const { data } = await apiClient.patch<ApiResponse<Note>>(`/notes/${noteId}`, payload);
     return data.data;
   },
   remove: async (noteId: string) => {

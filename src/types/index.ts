@@ -321,6 +321,9 @@ export interface Note {
   lessonId: string;
   noteText: string;
   codeSnippet?: string;
+  anchorText?: string;
+  anchorStart?: number;
+  anchorEnd?: number;
   updatedAt: string;
   createdAt?: string;
   lesson?: {
