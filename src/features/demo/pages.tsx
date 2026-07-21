@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '@/store';
+import { BrandLogo } from '@/components/shared/BrandLogo';
 import heroSrc from '@/assets/hero.png';
 import { demoActivity, demoCourses, demoStats, demoUser, findCourse, findLesson, type DemoCourse } from './demo-data';
 
@@ -44,19 +45,22 @@ function Pill({ children, tone = 'default' }: { children: React.ReactNode; tone?
 function PublicNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-black/10 bg-white/82 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-black text-white">
-            <Zap size={18} />
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 gap-3">
+        <Link href="/" className="flex items-center min-w-0" aria-label="ThreadLearn home">
+          {/* Full wordmark on sm+; mark-only on very small screens to avoid squeeze */}
+          <span className="hidden sm:inline-flex">
+            <BrandLogo variant="full" size="md" priority />
           </span>
-          <span className="text-lg font-semibold tracking-tight">ThreadLearn</span>
+          <span className="inline-flex sm:hidden">
+            <BrandLogo variant="mark" size="md" priority />
+          </span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-black/60 md:flex">
           <Link href="/courses" className="hover:text-black">Courses</Link>
           <Link href="/dashboard" className="hover:text-black">Dashboard</Link>
           <Link href="/ai" className="hover:text-black">AI Coach</Link>
         </nav>
-        <Link href="/login" className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white">
+        <Link href="/login" className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white shrink-0">
           Demo login
         </Link>
       </div>
