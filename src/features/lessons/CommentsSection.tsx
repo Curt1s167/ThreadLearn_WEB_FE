@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CornerDownRight, MessageSquare, Pencil, Send, Trash2 } from 'lucide-react';
+import { CornerDownRight, EyeOff, MessageSquare, Pencil, Send, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { commentsService } from '../../services';
 import { useAuthStore } from '../../store';
@@ -18,39 +18,53 @@ const getHttpStatus = (error: unknown) =>
 
 const CommentItem: React.FC<{
   comment: Comment;
-  onReply: (id: string) => void;
+  onReply?: (comment: Comment) => void;
   depth?: number;
 }> = ({ comment, onReply, depth = 0 }) => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
-  const isOwner = user?._id === comment.userId;
+  const canManage = user?._id === comment.userId || user?.role === 'ADMIN';
+  const authorName = comment.isAnonymous ? 'Anonymous learner' : comment.user?.name || 'ThreadLearn member';
 
   const { mutate: updateComment, isPending: isUpdating } = useMutation({
     mutationFn: () => commentsService.update(comment._id, editContent),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', comment.lessonId] });
+      queryClient.invalidateQueries({ queryKey: ['comment-replies', comment.parentId] });
       setIsEditing(false);
       toast.success('Comment updated');
     },
+    onError: () => toast.error('Failed to update comment'),
   });
 
-  const { mutate: deleteComment } = useMutation({
+  const { mutate: deleteComment, isPending: isDeleting } = useMutation({
     mutationFn: () => commentsService.delete(comment._id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', comment.lessonId] });
+      queryClient.invalidateQueries({ queryKey: ['comment-replies', comment.parentId] });
       toast.success('Comment deleted');
     },
+    onError: () => toast.error('Failed to delete comment'),
   });
 
   return (
-    <div className={depth > 0 ? 'ml-6 border-l border-black/10 pl-4' : ''}>
+    <div className={depth > 0 ? 'ml-6 border-l border-black/10 pl-4 sm:ml-8' : ''}>
       <div className="flex gap-3 py-3">
-        <Avatar src={comment.user?.avatarUrl} name={comment.user?.name || 'User'} size="sm" />
+        <Avatar
+          src={comment.isAnonymous ? undefined : comment.user?.avatarUrl}
+          name={authorName}
+          size="sm"
+        />
         <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <span className="text-sm font-medium text-ink">{comment.user?.name || 'Anonymous'}</span>
+          <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-sm font-medium text-ink">{authorName}</span>
+            {comment.isAnonymous ? (
+              <span className="inline-flex items-center gap-1 text-xs text-black/40">
+                <EyeOff size={11} /> Hidden identity
+              </span>
+            ) : null}
             <span className="text-xs text-black/40">
               {new Date(comment.createdAt).toLocaleDateString()}
             </span>
@@ -60,13 +74,13 @@ const CommentItem: React.FC<{
             <div className="flex flex-wrap gap-2">
               <input
                 value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
+                onChange={(event) => setEditContent(event.target.value)}
                 className="input-field min-w-0 flex-1 text-sm disabled:opacity-50"
                 autoFocus
                 disabled={isUpdating}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && editContent.trim() && !isUpdating) updateComment();
-                  else if (e.key === 'Escape' && !isUpdating) {
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && editContent.trim() && !isUpdating) updateComment();
+                  if (event.key === 'Escape' && !isUpdating) {
                     setIsEditing(false);
                     setEditContent(comment.content);
                   }
@@ -94,20 +108,22 @@ const CommentItem: React.FC<{
             </div>
           ) : (
             <div className="rounded-lg bg-[#f7f4ee] p-3">
-              <p className="text-sm text-black/70">{comment.content}</p>
+              <p className="whitespace-pre-wrap text-sm text-black/70">{comment.content}</p>
             </div>
           )}
 
-          <div className="mt-2 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => onReply(comment._id)}
-              className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-black"
-            >
-              <CornerDownRight size={10} />
-              Reply
-            </button>
-            {isOwner ? (
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            {onReply ? (
+              <button
+                type="button"
+                onClick={() => onReply(comment)}
+                className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-black"
+              >
+                <CornerDownRight size={10} />
+                Reply
+              </button>
+            ) : null}
+            {canManage ? (
               <>
                 <button
                   type="button"
@@ -120,7 +136,8 @@ const CommentItem: React.FC<{
                 <button
                   type="button"
                   onClick={() => deleteComment()}
-                  className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-rose-600"
+                  disabled={isDeleting}
+                  className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-rose-600 disabled:opacity-50"
                 >
                   <Trash2 size={10} />
                   Delete
@@ -134,13 +151,32 @@ const CommentItem: React.FC<{
   );
 };
 
-/** PR10 — discussion UI light; create/reply/edit/delete API locked. */
+const CommentThread: React.FC<{ comment: Comment; onReply: (comment: Comment) => void }> = ({
+  comment,
+  onReply,
+}) => {
+  const { data: replies = [] } = useQuery({
+    queryKey: ['comment-replies', comment._id],
+    queryFn: () => commentsService.getReplies(comment._id),
+  });
+
+  return (
+    <div>
+      <CommentItem comment={comment} onReply={onReply} />
+      {replies.map((reply) => (
+        <CommentItem key={reply._id} comment={reply} depth={1} />
+      ))}
+    </div>
+  );
+};
+
 export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
   const [newComment, setNewComment] = useState('');
-  const [replyTo, setReplyTo] = useState<string | undefined>();
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: comments, isLoading } = useQuery({
+  const { data: comments = [], isLoading } = useQuery({
     queryKey: ['comments', lessonId],
     queryFn: () => commentsService.getByLesson(lessonId),
     enabled: !!lessonId,
@@ -148,14 +184,19 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
 
   const { mutate: postComment, isPending } = useMutation({
     mutationFn: () =>
-      commentsService.create({ lessonId, content: newComment, parentId: replyTo }),
+      replyTo
+        ? commentsService.reply(replyTo._id, { content: newComment, isAnonymous })
+        : commentsService.create({ lessonId, content: newComment, isAnonymous }),
     onSuccess: () => {
+      if (replyTo) queryClient.invalidateQueries({ queryKey: ['comment-replies', replyTo._id] });
       queryClient.invalidateQueries({ queryKey: ['comments', lessonId] });
       setNewComment('');
-      setReplyTo(undefined);
+      setReplyTo(null);
+      setIsAnonymous(false);
+      toast.success(replyTo ? 'Reply posted' : 'Comment posted');
     },
-    onError: (err) => {
-      if (getHttpStatus(err) === 403) {
+    onError: (error) => {
+      if (getHttpStatus(error) === 403) {
         toast.error('You must enroll in the course to comment');
         return;
       }
@@ -163,75 +204,74 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
     },
   });
 
-  const rootComments = comments?.filter((c) => !c.parentId) || [];
-  const replies = (parentId: string) => comments?.filter((c) => c.parentId === parentId) || [];
-
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <MessageSquare size={15} className="text-ink" />
-        <h3 className="text-sm font-semibold text-ink">Discussion ({comments?.length ?? 0})</h3>
+        <h3 className="text-sm font-semibold text-ink">Discussion ({comments.length})</h3>
       </div>
 
-      <div className="flex gap-2">
-        <div className="min-w-0 flex-1">
-          {replyTo ? (
-            <div className="mb-1 flex items-center gap-1 text-xs text-black/50">
-              <CornerDownRight size={10} />
-              Replying to comment
-              <button
-                type="button"
-                onClick={() => setReplyTo(undefined)}
-                disabled={isPending}
-                className="ml-1 text-black/40 hover:text-black disabled:opacity-50"
-              >
-                ✕
-              </button>
-            </div>
-          ) : null}
-          <input
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && newComment.trim() && !isPending) postComment();
-            }}
-            disabled={isPending}
-            placeholder="Add a comment..."
-            className="w-full rounded-full border border-black/10 bg-[#f7f4ee] px-4 py-2.5 text-sm text-ink outline-none focus:border-black/25 disabled:opacity-50"
-          />
+      <div className="rounded-lg border border-black/10 bg-[#f7f4ee] p-3">
+        {replyTo ? (
+          <div className="mb-2 flex items-center gap-1 text-xs text-black/50">
+            <CornerDownRight size={10} />
+            Replying to {replyTo.isAnonymous ? 'an anonymous learner' : replyTo.user?.name || 'a learner'}
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              disabled={isPending}
+              className="ml-1 text-black/40 hover:text-black disabled:opacity-50"
+              aria-label="Cancel reply"
+            >
+              ×
+            </button>
+          </div>
+        ) : null}
+        <textarea
+          value={newComment}
+          onChange={(event) => setNewComment(event.target.value)}
+          disabled={isPending}
+          placeholder={replyTo ? 'Write a reply...' : 'Add a comment...'}
+          rows={3}
+          className="w-full resize-none bg-transparent text-sm text-ink outline-none placeholder:text-black/35 disabled:opacity-50"
+        />
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-black/55">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(event) => setIsAnonymous(event.target.checked)}
+              disabled={isPending}
+              className="h-4 w-4 rounded border-black/20 accent-black"
+            />
+            Post anonymously
+          </label>
+          <Button
+            size="sm"
+            onClick={() => postComment()}
+            disabled={!newComment.trim()}
+            loading={isPending}
+          >
+            <Send size={12} />
+            {replyTo ? 'Reply' : 'Post'}
+          </Button>
         </div>
-        <Button
-          size="sm"
-          onClick={() => postComment()}
-          disabled={!newComment.trim()}
-          loading={isPending}
-          className="shrink-0 self-end"
-        >
-          <Send size={12} />
-        </Button>
       </div>
 
       {isLoading ? (
         <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-14 rounded-lg skeleton" />
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className="h-14 rounded-lg skeleton" />
           ))}
         </div>
-      ) : rootComments.length > 0 ? (
+      ) : comments.length > 0 ? (
         <div className="divide-y divide-black/10">
-          {rootComments.map((comment) => (
-            <div key={comment._id}>
-              <CommentItem comment={comment} onReply={setReplyTo} />
-              {replies(comment._id).map((reply) => (
-                <CommentItem key={reply._id} comment={reply} onReply={setReplyTo} depth={1} />
-              ))}
-            </div>
+          {comments.map((comment) => (
+            <CommentThread key={comment._id} comment={comment} onReply={setReplyTo} />
           ))}
         </div>
       ) : (
-        <p className="py-4 text-center text-sm text-black/40">
-          No comments yet. Be the first to discuss!
-        </p>
+        <p className="py-4 text-center text-sm text-black/40">No comments yet. Be the first to discuss!</p>
       )}
     </div>
   );

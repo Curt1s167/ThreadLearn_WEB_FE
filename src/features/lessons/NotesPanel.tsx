@@ -34,11 +34,17 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
   const isEnrollmentRequired = isError && getHttpStatus(error) === 403;
 
   useEffect(() => {
-    if (existingNote) {
-      setNoteText(existingNote.noteText || '');
-      setCodeSnippet(existingNote.codeSnippet || '');
-    }
-  }, [existingNote]);
+    if (isLoading) return;
+    setNoteText(existingNote?.noteText ?? '');
+    setCodeSnippet(existingNote?.codeSnippet ?? '');
+  }, [
+    existingNote?._id,
+    existingNote?.noteText,
+    existingNote?.codeSnippet,
+    existingNote?.updatedAt,
+    isLoading,
+    lessonId,
+  ]);
 
   const { mutate: saveNote, isPending } = useMutation({
     mutationFn: () =>
@@ -47,8 +53,8 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
         noteText,
         codeSnippet: codeSnippet || undefined,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes', lessonId] });
+    onSuccess: (savedNote) => {
+      queryClient.setQueryData(['notes', lessonId], savedNote);
       toast.success('Notes saved');
     },
     onError: () => toast.error('Failed to save notes'),
