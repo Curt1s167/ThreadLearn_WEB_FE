@@ -9,7 +9,9 @@ import { useAuthStore } from '@/store';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      // A failed API must be visible quickly. Screen-specific retry actions are
+      // preferable to silently waiting through a second full timeout.
+      retry: false,
       staleTime: 60_000,
       refetchOnWindowFocus: false,
     },

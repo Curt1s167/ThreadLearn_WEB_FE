@@ -148,6 +148,7 @@ export interface Lesson {
   attachmentUrl?: string;
   attachments?: string[];
   videoUrl?: string;
+  codeSnippets?: { language: string; code: string; description?: string }[];
   duration?: number; // minutes
   estimatedTime?: number;
   order?: number;

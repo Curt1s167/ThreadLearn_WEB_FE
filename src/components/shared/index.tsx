@@ -196,9 +196,10 @@ const levelPillClass = (level?: CourseLevel) => {
 export const CourseCard: React.FC<{
   course: Course;
   onClick?: () => void;
+  onIntent?: () => void;
   compact?: boolean;
   className?: string;
-}> = ({ course, onClick, compact = false, className = '' }) => {
+}> = ({ course, onClick, onIntent, compact = false, className = '' }) => {
   const [imageFailed, setImageFailed] = useState(false);
   const accent = COURSE_ACCENTS[(course.title?.length ?? 0) % COURSE_ACCENTS.length];
   const lessons = course.totalLessons ?? course.lessonCount ?? 0;
@@ -211,6 +212,8 @@ export const CourseCard: React.FC<{
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
+      onMouseEnter={onIntent}
+      onFocus={onIntent}
       onKeyDown={(event) => {
         if (onClick && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
