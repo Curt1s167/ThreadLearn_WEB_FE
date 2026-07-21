@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AuthShell } from './AuthShell';
@@ -15,12 +15,16 @@ const decodeUserParam = (value: string) => {
   try {
     return JSON.parse(value);
   } catch {
-    return JSON.parse(decodeURIComponent(value));
+    try {
+      return JSON.parse(decodeURIComponent(value));
+    } catch {
+      const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+      return JSON.parse(window.atob(base64));
+    }
   }
 };
 
 export const AuthCallbackPage: React.FC = () => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
   const processedRef = useRef(false);
@@ -34,14 +38,7 @@ export const AuthCallbackPage: React.FC = () => {
     const accessToken = searchParams.get('accessToken');
     const refreshToken = searchParams.get('refreshToken');
     const userParam = searchParams.get('user');
-    const hasCallbackParams = Boolean(error || accessToken || refreshToken || userParam);
-
     if (error || !accessToken || !refreshToken || !userParam) {
-      if (hasCallbackParams) {
-        router.replace('/login');
-        return;
-      }
-
       setStatus('error');
       return;
     }
@@ -50,12 +47,14 @@ export const AuthCallbackPage: React.FC = () => {
       const user = normalizeUser(decodeUserParam(userParam));
       setAuth(user, accessToken, refreshToken);
       toast.success('Welcome back!');
-      router.replace('/dashboard');
+      // The callback lives outside the authenticated route group. A hard
+      // navigation avoids a client-router transition getting stuck here while
+      // the persisted auth store is updating.
+      window.location.replace('/dashboard');
     } catch {
-      router.replace('/login');
       setStatus('error');
     }
-  }, [router, searchParams, setAuth]);
+  }, [searchParams, setAuth]);
 
   if (status === 'error') {
     return (

@@ -188,6 +188,14 @@
     background: #10231f;
     color: rgb(231 245 234 / 0.78);
   }
+  .lesson-list { background: var(--tl-surface-subtle); border-color: var(--tl-border); }
+  .lesson-list-row { border-bottom: 1px solid var(--tl-border); }
+  .lesson-list-row:last-child { border-bottom: 0; }
+  .lesson-list-row:hover { background: rgb(11 118 104 / 0.065); }
+  .lesson-list-row-current { background: rgb(217 249 157 / 0.22); }
+  .lesson-list-row-complete { background: rgb(11 118 104 / 0.05); }
+  .lesson-list-title { color: var(--tl-text); }
+  .lesson-list-meta, .lesson-list-duration { color: var(--tl-text-muted); }
   .dashboard-streak-panel {
     background: linear-gradient(145deg, #d9f99d, #c7f277);
     color: #102b26;
@@ -598,6 +606,13 @@ html.dark .public-brand-logo {
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.16);
 }
 html.dark .public-tech-strip { background: #07130f !important; color: rgb(231 245 234 / 0.78) !important; }
+html.dark .lesson-list { background: #0c1a15; border-color: var(--tl-border) !important; }
+html.dark .lesson-list-row { border-color: var(--tl-border) !important; }
+html.dark .lesson-list-row:hover { background: #142d23; }
+html.dark .lesson-list-row-current { background: #1a3a2c; }
+html.dark .lesson-list-row-complete { background: #10271f; }
+html.dark .lesson-list-title { color: #edf7ef !important; }
+html.dark .lesson-list-meta, html.dark .lesson-list-duration { color: rgb(220 237 225 / 0.74) !important; }
 html.dark .input-field:-webkit-autofill,
 html.dark .input-field:-webkit-autofill:hover,
 html.dark .input-field:-webkit-autofill:focus {

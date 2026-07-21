@@ -372,7 +372,7 @@ export const CourseDetailPage: React.FC = () => {
             </p>
           ) : null}
           {displayLessons.length > 0 ? (
-            <div className="mt-5 divide-y divide-black/10">
+            <div className="lesson-list mt-5 overflow-hidden rounded-xl border border-black/10">
               {displayLessons.map((lesson, index) => {
                 const done = completedSet.has(lesson._id);
                 const isCurrent = continueLessonId === lesson._id && isEnrolled && !done;
@@ -393,7 +393,9 @@ export const CourseDetailPage: React.FC = () => {
                       }
                       router.push(`/lessons/${lesson._id}`);
                     }}
-                    className="flex w-full items-center gap-4 py-4 text-left transition hover:bg-black/[0.02]"
+                    className={`lesson-list-row flex w-full items-center gap-4 px-4 py-4 text-left transition ${
+                      done ? 'lesson-list-row-complete' : isCurrent ? 'lesson-list-row-current' : ''
+                    }`}
                   >
                     <span
                       className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-medium ${
@@ -409,8 +411,8 @@ export const CourseDetailPage: React.FC = () => {
                       {locked ? <Lock size={16} /> : done ? <CheckCircle2 size={16} /> : index + 1}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-medium text-ink">{lesson.title}</span>
-                      <span className="mt-1 block text-sm text-black/50">
+                      <span className="lesson-list-title block font-medium">{lesson.title}</span>
+                      <span className="lesson-list-meta mt-1 block text-sm">
                         Lesson {lesson.order ?? lesson.orderIndex ?? index + 1}
                         {lesson.duration || lesson.estimatedTime
                           ? ` · ${lesson.duration ?? lesson.estimatedTime} min`
@@ -418,7 +420,7 @@ export const CourseDetailPage: React.FC = () => {
                       </span>
                     </span>
                     {(lesson.duration ?? lesson.estimatedTime) ? (
-                      <span className="shrink-0 text-sm text-black/45">
+                      <span className="lesson-list-duration shrink-0 text-sm">
                         {lesson.duration ?? lesson.estimatedTime} min
                       </span>
                     ) : null}
