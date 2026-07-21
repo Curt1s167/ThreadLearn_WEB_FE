@@ -39,7 +39,13 @@ interface NavItem {
   isActive?: (pathname: string) => boolean;
 }
 
-const navItems: NavItem[] = [
+interface NavGroup {
+  label?: string;
+  icon?: React.ReactNode;
+  items: NavItem[];
+}
+
+const studentNavItems: NavItem[] = [
   { to: '/dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
   { to: '/courses', icon: <BookOpen size={16} />, label: 'Courses' },
   {
@@ -58,13 +64,24 @@ const navItems: NavItem[] = [
   { to: '/profile', icon: <User size={16} />, label: 'Profile' },
 ];
 
-const adminItems: NavItem[] = [
+const adminNavigationItems: NavItem[] = [
   { to: '/admin', icon: <BarChart2 size={16} />, label: 'Analytics' },
   { to: '/admin/users', icon: <Users size={16} />, label: 'Users' },
+  { to: '/admin/notifications', icon: <Bell size={16} />, label: 'Notifications' },
   { to: '/admin/courses', icon: <BookOpen size={16} />, label: 'Manage Courses' },
   { to: '/admin/quizzes', icon: <CheckCircle size={16} />, label: 'Quizzes' },
   { to: '/admin/plans', icon: <CreditCard size={16} />, label: 'Plans' },
-  { to: '/admin/notifications', icon: <Bell size={16} />, label: 'Notifications' },
+];
+
+const adminAccountItems: NavItem[] = [
+  { to: '/profile', icon: <User size={16} />, label: 'Profile' },
+];
+
+const studentNavGroups: NavGroup[] = [{ items: studentNavItems }];
+
+const adminNavGroups: NavGroup[] = [
+  { label: 'Admin', icon: <Shield size={10} />, items: adminNavigationItems },
+  { label: 'Account', items: adminAccountItems },
 ];
 
 function itemActive(item: NavItem, pathname: string): boolean {
@@ -80,29 +97,7 @@ export const Sidebar: React.FC = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN';
-
-  const warmRoute = (href: string) => {
-    router.prefetch(href);
-
-    if (href === '/courses') {
-      void queryClient.prefetchQuery({
-        queryKey: ['courses', '', ''],
-        queryFn: () => coursesService.list({}),
-      });
-    }
-    if (href === '/dashboard') {
-      void queryClient.prefetchQuery({
-        queryKey: ['my-enrollments'],
-        queryFn: enrollmentsService.getMyEnrollments,
-      });
-    }
-    if (href === '/notifications') {
-      void queryClient.prefetchQuery({
-        queryKey: ['notifications'],
-        queryFn: notificationsService.getAll,
-      });
-    }
-  };
+  const navGroups = isAdmin ? adminNavGroups : studentNavGroups;
 
   return (
     <aside
@@ -152,37 +147,20 @@ export const Sidebar: React.FC = () => {
       )}
 
       <nav className="flex-1 py-3 px-2 flex flex-col gap-0.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const active = itemActive(item, pathname);
-          return (
-            <Link
-              key={item.to}
-              href={item.to}
-              onMouseEnter={() => warmRoute(item.to)}
-              onFocus={() => warmRoute(item.to)}
-              className={`${active ? 'sidebar-item-active' : 'sidebar-item'} ${
-                sidebarCollapsed ? 'justify-center px-0 py-2' : ''
-              }`}
-              title={sidebarCollapsed ? item.label : undefined}
-            >
-              {item.icon}
-              {!sidebarCollapsed && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
-
-        {isAdmin && (
-          <>
-            <div className={`my-2 border-t border-black/10 ${sidebarCollapsed ? '' : 'mx-1'}`} />
-            {!sidebarCollapsed && (
+        {navGroups.map((group, groupIndex) => (
+          <React.Fragment key={group.label ?? 'student-navigation'}>
+            {groupIndex > 0 && (
+              <div className={`my-2 border-t border-black/10 ${sidebarCollapsed ? '' : 'mx-1'}`} />
+            )}
+            {group.label && !sidebarCollapsed && (
               <div className="flex items-center gap-1.5 px-3 py-1 mb-1">
-                <Shield size={10} className="text-ink-faint" />
+                {group.icon}
                 <span className="text-[10px] text-ink-faint uppercase tracking-widest">
-                  Admin
+                  {group.label}
                 </span>
               </div>
             )}
-            {adminItems.map((item) => {
+            {group.items.map((item) => {
               const active = itemActive(item, pathname);
               return (
                 <Link
@@ -200,8 +178,8 @@ export const Sidebar: React.FC = () => {
                 </Link>
               );
             })}
-          </>
-        )}
+          </React.Fragment>
+        ))}
       </nav>
 
       <div className="border-t border-black/10 p-2 shrink-0">
