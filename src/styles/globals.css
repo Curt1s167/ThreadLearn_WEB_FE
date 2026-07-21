@@ -184,6 +184,18 @@
     color: rgb(255 255 255 / 0.92);
   }
   .public-brand-logo { display: inline-flex; align-items: center; }
+  .auth-brand-logo {
+    display: flex;
+    width: fit-content;
+    margin: 0 auto 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(16 43 38 / 0.11);
+    border-radius: 0.8rem;
+    background: #eef8ef;
+    padding: 0.45rem 0.7rem;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.1);
+  }
   .public-tech-strip {
     background: #10231f;
     color: rgb(231 245 234 / 0.78);
@@ -604,6 +616,11 @@ html.dark .public-brand-logo {
   border-radius: 0.6rem;
   background: #eef8ef;
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.16);
+}
+html.dark .auth-brand-logo {
+  border-color: rgb(217 249 157 / 0.16);
+  background: #eef8ef;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 0.16);
 }
 html.dark .public-tech-strip { background: #07130f !important; color: rgb(231 245 234 / 0.78) !important; }
 html.dark .lesson-list { background: #0c1a15; border-color: var(--tl-border) !important; }

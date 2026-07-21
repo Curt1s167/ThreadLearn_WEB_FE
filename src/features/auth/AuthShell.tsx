@@ -20,7 +20,7 @@ export function AuthShell({
       <div className="relative w-full max-w-sm">
         <Link
           href="/"
-          className="public-brand-logo mb-8 inline-flex items-center justify-center"
+          className="auth-brand-logo"
           aria-label="ThreadLearn home"
         >
           <BrandLogo variant="full" size="lg" priority />
