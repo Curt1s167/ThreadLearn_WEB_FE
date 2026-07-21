@@ -36,7 +36,7 @@ export const NotesListPage: React.FC = () => {
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return notes;
     return notes.filter((note) =>
-      [note.noteText, note.codeSnippet, note.lesson?.title]
+      [note.noteText, note.anchorText, note.codeSnippet, note.lesson?.title]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(normalizedQuery)),
     );
@@ -76,7 +76,7 @@ export const NotesListPage: React.FC = () => {
       <DemoHeroWhite>
         <DemoPill tone="blue">My Notes</DemoPill>
         <DemoDisplayTitle>Your learning notes, in one place.</DemoDisplayTitle>
-        <DemoMuted>Each lesson has one editable note. This page brings them together for review.</DemoMuted>
+        <DemoMuted>Keep focused notes for each concept, then return here when you need a review.</DemoMuted>
       </DemoHeroWhite>
 
       <div className="mb-6 flex max-w-xl items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2">
@@ -114,6 +114,7 @@ export const NotesListPage: React.FC = () => {
                       {note.lesson?.title || `Lesson #${note.lessonId.slice(-6)}`}
                     </h2>
                     <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-black/65">{note.noteText}</p>
+                    {note.anchorText ? <p className="mt-3 line-clamp-2 border-l-2 border-brand-lime pl-2 text-xs leading-5 text-black/45">{note.anchorText}</p> : null}
                     {note.codeSnippet ? <p className="mt-3 truncate font-mono text-xs text-black/45">{note.codeSnippet}</p> : null}
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-ink">
                       Open lesson <ArrowRight size={15} />
