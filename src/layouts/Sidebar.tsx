@@ -60,6 +60,7 @@ const adminItems: NavItem[] = [
   { to: '/admin/courses', icon: <BookOpen size={16} />, label: 'Manage Courses' },
   { to: '/admin/quizzes', icon: <CheckCircle size={16} />, label: 'Quizzes' },
   { to: '/admin/plans', icon: <CreditCard size={16} />, label: 'Plans' },
+  { to: '/admin/notifications', icon: <Bell size={16} />, label: 'Notifications' },
 ];
 
 function itemActive(item: NavItem, pathname: string): boolean {

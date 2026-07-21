@@ -324,6 +324,25 @@ export const notificationsService = {
   },
 };
 
+export const adminNotificationsService = {
+  getAdminNotifications: async (filters: import('../types').AdminNotificationFilters = {}) => {
+    const { data } = await apiClient.get<ApiResponse<Notification[]>>('/admin/notifications', { params: filters });
+    return { items: data.data ?? [], meta: data.meta };
+  },
+  getAdminUnreadNotificationCount: async () => {
+    const { data } = await apiClient.get<ApiResponse<{ count: number }>>('/admin/notifications/unread-count');
+    return data.data.count;
+  },
+  markAdminNotificationRead: async (id: string) => {
+    const { data } = await apiClient.patch<ApiResponse<Notification>>(`/admin/notifications/${id}/read`);
+    return data.data;
+  },
+  markAllAdminNotificationsRead: async () => {
+    const { data } = await apiClient.patch<ApiResponse<{ updated: boolean }>>('/admin/notifications/read-all');
+    return data.data;
+  },
+};
+
 // ─── Leaderboard (UC46) ───────────────────────────────────────────────────────
 export const leaderboardService = {
   getTop: async (limit = 50) => {
