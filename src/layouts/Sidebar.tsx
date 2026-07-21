@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   BookOpen,
@@ -11,6 +11,7 @@ import {
   User,
   Bell,
   Bookmark,
+  StickyNote,
   ChevronLeft,
   ChevronRight,
   Shield,
@@ -22,6 +23,8 @@ import {
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar } from '../components/shared';
+import { coursesService, enrollmentsService, notificationsService } from '../services';
+import { useQueryClient } from '@tanstack/react-query';
 import { BrandLogo } from '../components/shared/BrandLogo';
 import {
   SIDEBAR_COLLAPSED_CLASS,
@@ -56,6 +59,7 @@ const studentNavItems: NavItem[] = [
   { to: '/pricing', icon: <CreditCard size={16} />, label: 'Pricing' },
   { to: '/ai', icon: <Bot size={16} />, label: 'AI Advisor' },
   { to: '/bookmarks', icon: <Bookmark size={16} />, label: 'Bookmarks' },
+  { to: '/notes', icon: <StickyNote size={16} />, label: 'My Notes' },
   { to: '/notifications', icon: <Bell size={16} />, label: 'Notifications' },
   { to: '/profile', icon: <User size={16} />, label: 'Profile' },
 ];
@@ -90,6 +94,8 @@ export const Sidebar: React.FC = () => {
   const { user } = useAuthStore();
   const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
   const pathname = usePathname();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN';
   const navGroups = isAdmin ? adminNavGroups : studentNavGroups;
 
@@ -160,6 +166,8 @@ export const Sidebar: React.FC = () => {
                 <Link
                   key={item.to}
                   href={item.to}
+                  onMouseEnter={() => warmRoute(item.to)}
+                  onFocus={() => warmRoute(item.to)}
                   className={`${active ? 'sidebar-item-active' : 'sidebar-item'} ${
                     sidebarCollapsed ? 'justify-center px-0 py-2' : ''
                   }`}
@@ -177,6 +185,8 @@ export const Sidebar: React.FC = () => {
       <div className="border-t border-black/10 p-2 shrink-0">
         <Link
           href="/profile"
+          onMouseEnter={() => warmRoute('/profile')}
+          onFocus={() => warmRoute('/profile')}
           className={`flex items-center gap-2.5 p-2 rounded-lg hover:bg-black/[0.04] transition-colors ${
             sidebarCollapsed ? 'justify-center' : ''
           }`}

@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
+  ArrowLeft,
+  ArrowRight,
   Bookmark,
   Brain,
   CheckCircle2,
@@ -17,18 +19,20 @@ import {
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { bookmarksService, lessonsService } from '../../services';
+import {
+  bookmarksService,
+  codeExecutionService,
+  coursesService,
+  enrollmentsService,
+  lessonsService,
+} from '../../services';
 import { Button, EmptyState } from '../../components/shared';
 import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
-import {
-  DEMO_AI_RESPONSE,
-  DEMO_CODE_SAMPLE,
-  LESSON_FALLBACK_MARKDOWN,
-} from '../ui-reskin/demo-fallbacks';
+import type { CodeExecutionResult, Enrollment } from '../../types';
 
-const LessonMarkdown = dynamic(
-  () => import('./LessonMarkdown').then((module) => module.LessonMarkdown),
-  { loading: () => <div className="h-32 skeleton rounded-lg" /> },
+const LessonReader = dynamic(
+  () => import('./LessonReader').then((module) => module.LessonReader),
+  { loading: () => <div className="h-48 skeleton rounded-lg" /> },
 );
 const CommentsSection = dynamic(
   () => import('./CommentsSection').then((module) => module.CommentsSection),
@@ -42,52 +46,115 @@ const NotesPanel = dynamic(
 const getHttpStatus = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status;
 
-function DemoCodeRunner() {
-  const [code, setCode] = useState(DEMO_CODE_SAMPLE);
-  const [ran, setRan] = useState(false);
-  const output = ran
+const runnableLanguages = new Set(['javascript', 'js', 'java', 'python', 'py', 'cpp', 'c']);
+
+function LessonCodeRunner({
+  lessonId,
+  courseId,
+  language,
+  initialCode,
+}: {
+  lessonId: string;
+  courseId: string;
+  language: string;
+  initialCode: string;
+}) {
+  const [code, setCode] = useState(initialCode);
+  const [result, setResult] = useState<CodeExecutionResult | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+
+  const { mutate: runCode, isPending } = useMutation({
+    mutationFn: () =>
+      codeExecutionService.run({
+        sourceCode: code,
+        language,
+        lessonId,
+        courseId,
+      }),
+    onSuccess: (execution) => {
+      setResult(execution);
+      setRunError(null);
+    },
+    onError: (error) => {
+      setResult(null);
+      setRunError(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Could not run this code. Check your connection and try again.',
+      );
+    },
+  });
+
+  const output = result
     ? [
-        '> node playground.js',
-        '[ true, true ]',
-        'Race warning: both users passed the capacity check before seats was decremented.',
-        'Test 1 capacity invariant: failed',
-        'Test 2 async function resolves: passed',
-      ]
-    : ['Click Run to execute the mock playground.'];
+        `Status: ${result.status.description}`,
+        `Runtime: ${result.runtime}s`,
+        result.stdout ? `\nstdout\n${result.stdout}` : '',
+        result.stderr ? `\nstderr\n${result.stderr}` : '',
+        result.compileOutput ? `\ncompiler output\n${result.compileOutput}` : '',
+      ].filter(Boolean)
+    : runError
+      ? [runError]
+      : ['Run the code currently in the editor to see its actual output.'];
+  const status = isPending
+    ? 'running'
+    : result
+      ? result.status.description
+      : runError
+        ? 'failed'
+        : 'idle';
 
   return (
-    <div className="mt-6 grid gap-4 xl:grid-cols-[1fr_320px]">
+    <div className="mt-8 grid gap-4 xl:grid-cols-[1fr_320px]">
       <section className="overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-2">
             <Code2 size={16} className="text-[#d9f99d]" />
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-white/35">ThreadLearn IDE</p>
-              <p className="text-sm font-semibold">playground.js</p>
+              <p className="text-sm font-semibold">{language}</p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setRan(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-4 py-2 text-sm font-medium text-black"
+            onClick={() => {
+              if (!code.trim()) {
+                setResult(null);
+                setRunError('Write some code before running the playground.');
+                return;
+              }
+              runCode();
+            }}
+            disabled={isPending}
+            className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-4 py-2 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Play size={15} />
-            Run
+            {isPending ? 'Running...' : 'Run'}
           </button>
         </div>
         <textarea
           value={code}
-          onChange={(event) => setCode(event.target.value)}
+          onChange={(event) => {
+            setCode(event.target.value);
+            setResult(null);
+            setRunError(null);
+          }}
           spellCheck={false}
           className="min-h-72 w-full resize-y bg-[#111827] p-5 font-mono text-sm leading-6 text-[#d9f99d] outline-none"
+          aria-label="Lesson code editor"
         />
       </section>
 
       <aside className="rounded-lg border border-black/10 bg-white p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="font-semibold text-ink">Console output</h3>
-          <span className={`rounded-full px-2 py-1 text-xs ${ran ? 'bg-[#fecaca] text-[#7f1d1d]' : 'bg-black/[0.05] text-black/45'}`}>
-            {ran ? '1 failed' : 'idle'}
+          <span className={`rounded-full px-2 py-1 text-xs ${
+            result?.status.id === 3
+              ? 'bg-emerald-100 text-emerald-800'
+              : runError || (result && result.status.id !== 3)
+                ? 'bg-[#fecaca] text-[#7f1d1d]'
+                : 'bg-black/[0.05] text-black/45'
+          }`}>
+            {status}
           </span>
         </div>
         <pre className="mt-4 min-h-40 whitespace-pre-wrap rounded-lg bg-black p-4 font-mono text-xs leading-6 text-[#d9f99d]">
@@ -120,6 +187,41 @@ export const LessonPage: React.FC = () => {
   });
 
   const isEnrollmentRequired = getHttpStatus(error) === 403;
+  const lessonCourseId = lesson?.courseId;
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['my-enrollments'],
+    queryFn: enrollmentsService.getMyEnrollments,
+    enabled: Boolean(lessonCourseId),
+    retry: false,
+  });
+  const enrollment = enrollments.find((item) => {
+    const courseId = typeof item.courseId === 'string' ? item.courseId : item.courseId?._id ?? item.courseId?.id;
+    return courseId === lessonCourseId;
+  });
+  const isLessonCompleted = Boolean(enrollment?.completedLessons?.includes(id!));
+
+  const { data: courseDetail } = useQuery({
+    queryKey: ['course-detail', lessonCourseId],
+    queryFn: () => coursesService.getById(lessonCourseId!),
+    enabled: Boolean(lessonCourseId),
+    retry: false,
+  });
+
+  const { prevLesson, nextLesson } = useMemo(() => {
+    const lessons = (courseDetail?.lessons ?? [])
+      .slice()
+      .sort(
+        (a, b) =>
+          (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0),
+      );
+    const idx = lessons.findIndex((item) => item._id === id);
+    if (idx < 0) return { prevLesson: undefined, nextLesson: undefined };
+    return {
+      prevLesson: idx > 0 ? lessons[idx - 1] : undefined,
+      nextLesson: idx < lessons.length - 1 ? lessons[idx + 1] : undefined,
+    };
+  }, [courseDetail?.lessons, id]);
 
   useEffect(() => {
     if (isError && !isEnrollmentRequired) toast.error('Failed to load lesson');
@@ -145,6 +247,14 @@ export const LessonPage: React.FC = () => {
   const { mutate: completeLesson, isPending: completing } = useMutation({
     mutationFn: () => lessonsService.complete(id!),
     onSuccess: (data) => {
+      if (data.enrollment) {
+        queryClient.setQueryData<Enrollment[]>(['my-enrollments'], (current = []) => {
+          const exists = current.some((item) => item._id === data.enrollment?._id);
+          return exists
+            ? current.map((item) => (item._id === data.enrollment?._id ? data.enrollment! : item))
+            : [...current, data.enrollment!];
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['lesson', id] });
       queryClient.invalidateQueries({ queryKey: ['my-enrollments'] });
       queryClient.invalidateQueries({ queryKey: ['gamification-stats'] });
@@ -156,8 +266,9 @@ export const LessonPage: React.FC = () => {
   const duration = lesson?.estimatedTime ?? lesson?.duration ?? 0;
   const order = lesson?.orderIndex ?? lesson?.order;
   const content = lesson?.contentMarkdown ?? lesson?.content ?? '';
-  const displayContent = content.trim() ? content : LESSON_FALLBACK_MARKDOWN;
-  const isMockContent = !content.trim();
+  const runnableSnippet = lesson?.codeSnippets?.find((snippet) =>
+    runnableLanguages.has(snippet.language.toLowerCase()),
+  );
   const courseHref =
     typeof lesson?.courseId === 'string' ? `/courses/${lesson.courseId}` : '/courses';
 
@@ -247,15 +358,57 @@ export const LessonPage: React.FC = () => {
                   />
                 </div>
               ) : null}
-              {isMockContent ? (
-                <div className="mb-5 rounded-lg bg-[#d9f99d]/40 px-4 py-3 text-sm text-black/60">
-                  Mock lesson content from the demo flow. Replace when lesson.content is available from BE.
+              {content.trim() ? (
+                <LessonReader content={content} />
+              ) : (
+                <EmptyState
+                  icon={<AlertCircle size={32} />}
+                  title="Lesson content is unavailable"
+                  description="This lesson has not been published with learning content yet. Body must be Markdown (contentMarkdown)."
+                />
+              )}
+              {runnableSnippet ? (
+                <LessonCodeRunner
+                  key={id}
+                  lessonId={id!}
+                  courseId={lesson.courseId}
+                  language={runnableSnippet.language}
+                  initialCode={runnableSnippet.code}
+                />
+              ) : null}
+
+              {(prevLesson || nextLesson) ? (
+                <div className="mt-8 flex flex-wrap items-stretch justify-between gap-3 border-t border-black/10 pt-6">
+                  {prevLesson ? (
+                    <Link
+                      href={`/lessons/${prevLesson._id}`}
+                      className="group min-w-[200px] flex-1 rounded-lg border border-black/10 bg-[#fafafa] px-4 py-3 transition hover:border-black/20 hover:bg-white"
+                    >
+                      <span className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.14em] text-black/40">
+                        <ArrowLeft size={12} /> Bài trước
+                      </span>
+                      <span className="mt-1 block text-sm font-medium text-ink group-hover:underline">
+                        {prevLesson.title}
+                      </span>
+                    </Link>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+                  {nextLesson ? (
+                    <Link
+                      href={`/lessons/${nextLesson._id}`}
+                      className="group min-w-[200px] flex-1 rounded-lg border border-black/10 bg-black px-4 py-3 text-right text-white transition hover:bg-black/90"
+                    >
+                      <span className="inline-flex items-center justify-end gap-1 text-xs uppercase tracking-[0.14em] text-white/50">
+                        Bài tiếp <ArrowRight size={12} />
+                      </span>
+                      <span className="mt-1 block text-sm font-medium">{nextLesson.title}</span>
+                    </Link>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
                 </div>
               ) : null}
-              <div className="prose prose-neutral max-w-none text-base leading-8 text-black/70 [&_a]:text-black [&_code]:rounded [&_code]:bg-black/[0.04] [&_code]:px-1 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:bg-[#111827] [&_pre]:p-4 [&_pre]:text-[#d9f99d]">
-                <LessonMarkdown content={displayContent} />
-              </div>
-              <DemoCodeRunner />
             </div>
 
             <div className="rounded-lg border border-black/10 bg-white p-6 xl:hidden">
@@ -280,8 +433,8 @@ export const LessonPage: React.FC = () => {
           <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
             <div className="rounded-lg bg-[#d9f99d] p-5">
               <Brain size={22} className="text-ink" />
-              <h2 className="mt-4 text-xl font-semibold text-ink">AI race condition hint</h2>
-              <p className="mt-3 text-sm text-black/65">{DEMO_AI_RESPONSE}</p>
+              <h2 className="mt-4 text-xl font-semibold text-ink">Need help with this lesson?</h2>
+              <p className="mt-3 text-sm text-black/65">Open AI Advisor to analyse your own code or ask a focused question.</p>
               <button
                 type="button"
                 onClick={() => router.push('/ai')}
@@ -314,9 +467,9 @@ export const LessonPage: React.FC = () => {
               <h2 className="font-semibold text-ink">Lesson checklist</h2>
               <div className="mt-4 space-y-3 text-sm">
                 {[
-                  { label: 'Read the explanation', done: true },
-                  { label: 'Review the code / video', done: !!content || !!lesson.videoUrl },
-                  { label: 'Mark lesson complete', done: false },
+                  { label: 'Read the explanation', done: Boolean(content.trim()) },
+                  { label: 'Review the code / video', done: Boolean(lesson.codeSnippets?.length || lesson.videoUrl) },
+                  { label: 'Mark lesson complete', done: isLessonCompleted },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3 text-black/70">
                     <span
@@ -335,9 +488,10 @@ export const LessonPage: React.FC = () => {
                 className="mt-5 w-full"
                 onClick={() => completeLesson()}
                 loading={completing}
+                disabled={isLessonCompleted}
               >
                 <CheckCircle2 size={14} />
-                Mark complete
+                {isLessonCompleted ? 'Completed' : 'Mark complete'}
               </Button>
             </div>
 

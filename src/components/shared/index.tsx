@@ -196,9 +196,10 @@ const levelPillClass = (level?: CourseLevel) => {
 export const CourseCard: React.FC<{
   course: Course;
   onClick?: () => void;
+  onIntent?: () => void;
   compact?: boolean;
   className?: string;
-}> = ({ course, onClick, compact = false, className = '' }) => {
+}> = ({ course, onClick, onIntent, compact = false, className = '' }) => {
   const [imageFailed, setImageFailed] = useState(false);
   const accent = COURSE_ACCENTS[(course.title?.length ?? 0) % COURSE_ACCENTS.length];
   const lessons = course.totalLessons ?? course.lessonCount ?? 0;
@@ -211,6 +212,8 @@ export const CourseCard: React.FC<{
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
+      onMouseEnter={onIntent}
+      onFocus={onIntent}
       onKeyDown={(event) => {
         if (onClick && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
@@ -313,7 +316,7 @@ export const Avatar: React.FC<{
   className?: string;
 }> = ({ src, name = '?', size = 'md', className = '' }) => {
   const [failedSrc, setFailedSrc] = useState<string | undefined>();
-  const sizeMap = { sm: 'w-6 h-6 text-xs', md: 'w-8 h-8 text-sm', lg: 'w-10 h-10 text-base', xl: 'w-14 h-14 text-xl' };
+  const sizeMap = { sm: 'h-6 w-6 text-xs', md: 'h-8 w-8 text-sm', lg: 'h-10 w-10 text-base', xl: 'h-14 w-14 text-xl' };
   const widthHeightMap = { sm: 24, md: 32, lg: 40, xl: 56 };
   const initials = name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
   const imageSrc = normalizeMediaUrl(src);
@@ -325,13 +328,13 @@ export const Avatar: React.FC<{
       alt={name}
       width={widthHeightMap[size]}
       height={widthHeightMap[size]}
-      className={`rounded-full object-cover ${className}`}
+      className={`aspect-square shrink-0 rounded-full object-cover ${sizeMap[size]} ${className}`}
       unoptimized
       onError={() => setFailedSrc(imageSrc)}
     />
   ) : (
     <div
-      className={`rounded-full bg-brand-lime text-ink flex items-center justify-center font-medium ${sizeMap[size]} ${className}`}
+      className={`aspect-square shrink-0 rounded-full bg-brand-lime text-ink flex items-center justify-center font-medium ${sizeMap[size]} ${className}`}
     >
       {initials}
     </div>

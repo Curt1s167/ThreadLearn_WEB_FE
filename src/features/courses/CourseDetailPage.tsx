@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { coursesService, enrollmentsService } from '../../services';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { useAuthStore } from '../../store';
-import type { CourseLevel, Enrollment } from '../../types';
+import type { CourseLevel, CourseSection, Enrollment, Lesson } from '../../types';
 import {
   COURSE_ACCENT_COLORS,
   DemoPageRoot,
@@ -174,6 +174,64 @@ export const CourseDetailPage: React.FC = () => {
   ].filter(Boolean) as string[];
   const displayOutcomes = outcomes.length >= 4 ? outcomes : fallbackOutcomes;
 
+  /** Group lessons under course sections for a clear syllabus index. */
+  const curriculum = (() => {
+    const sections = (detail?.sections ?? [])
+      .slice()
+      .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)) as CourseSection[];
+
+    const bySection = new Map<string, Lesson[]>();
+    const unassigned: Lesson[] = [];
+
+    for (const lesson of displayLessons) {
+      const sid = lesson.sectionId;
+      if (sid) {
+        const list = bySection.get(sid) ?? [];
+        list.push(lesson);
+        bySection.set(sid, list);
+      } else {
+        unassigned.push(lesson);
+      }
+    }
+
+    const sortLessons = (items: Lesson[]) =>
+      items
+        .slice()
+        .sort(
+          (a, b) =>
+            (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0),
+        );
+
+    if (sections.length === 0) {
+      return [
+        {
+          key: 'all',
+          title: 'Lộ trình bài học',
+          description: undefined as string | undefined,
+          lessons: sortLessons(displayLessons),
+        },
+      ];
+    }
+
+    const modules = sections.map((section) => ({
+      key: section._id,
+      title: section.title,
+      description: section.description,
+      lessons: sortLessons(bySection.get(section._id) ?? []),
+    }));
+
+    if (unassigned.length > 0) {
+      modules.push({
+        key: 'other',
+        title: 'Bài học khác',
+        description: undefined,
+        lessons: sortLessons(unassigned),
+      });
+    }
+
+    return modules.filter((module) => module.lessons.length > 0);
+  })();
+
   return (
     <DemoPageRoot>
       <button
@@ -261,88 +319,152 @@ export const CourseDetailPage: React.FC = () => {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-lg border border-black/10 bg-white p-5">
-          <h2 className="text-xl font-semibold">Lessons</h2>
+        <div className="rounded-lg border border-black/10 bg-white p-5 sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.16em] text-black/40">Chỉ mục khóa học</p>
+              <h2 className="mt-1 text-xl font-semibold text-ink">Lộ trình theo module</h2>
+              <p className="mt-1 text-sm text-black/50">
+                {curriculum.length} module · {displayLessonCount} bài · đọc theo thứ tự từ trên xuống
+              </p>
+            </div>
+          </div>
+
           {!hasRealLessons ? (
-            <p className="mt-2 rounded-lg bg-[#d9f99d]/45 px-3 py-2 text-xs text-black/60">
+            <p className="mt-3 rounded-lg bg-[#d9f99d]/45 px-3 py-2 text-xs text-black/60">
               Mock lesson preview from the demo flow. Replace when lessonsService data is available.
             </p>
           ) : null}
-          {displayLessons.length > 0 ? (
-            <div className="mt-5 divide-y divide-black/10">
-              {displayLessons.map((lesson, index) => {
-                const done = completedSet.has(lesson._id);
-                const isCurrent = continueLessonId === lesson._id && isEnrolled && !done;
-                const locked = !!lesson.isLocked && !isEnrolled;
 
-                return (
-                  <button
-                    key={lesson._id}
-                    type="button"
-                    onClick={() => {
-                      if (!hasRealLessons) {
-                        toast.info('This is a mock lesson preview. Connect lesson data to open it.');
-                        return;
-                      }
-                      if (locked) {
-                        toast.error('Enroll to unlock this lesson');
-                        return;
-                      }
-                      router.push(`/lessons/${lesson._id}`);
-                    }}
-                    className="flex w-full items-center gap-4 py-4 text-left transition hover:bg-black/[0.02]"
-                  >
-                    <span
-                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-medium ${
-                        done
-                          ? 'bg-black text-white'
-                          : isCurrent
-                            ? 'bg-[#d9f99d] text-ink'
-                            : locked
-                              ? 'bg-black/[0.04] text-black/35'
-                              : 'bg-black/[0.04] text-black/55'
-                      }`}
-                    >
-                      {locked ? <Lock size={16} /> : done ? <CheckCircle2 size={16} /> : index + 1}
+          <div className="mt-6 space-y-6">
+            {curriculum.map((module, moduleIndex) => {
+              const moduleDone = module.lessons.filter((l) => completedSet.has(l._id)).length;
+              return (
+                <div key={module.key} className="rounded-lg border border-black/10 overflow-hidden">
+                  <div className="flex flex-wrap items-start justify-between gap-3 bg-[#fafafa] px-4 py-3 border-b border-black/10">
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-black/40">
+                        Module {moduleIndex + 1}
+                      </p>
+                      <h3 className="mt-0.5 font-semibold text-ink">{module.title}</h3>
+                      {module.description ? (
+                        <p className="mt-1 text-sm text-black/55 line-clamp-2">{module.description}</p>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 rounded-full bg-white border border-black/10 px-2.5 py-1 text-xs text-black/55">
+                      {moduleDone}/{module.lessons.length} hoàn thành
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-medium text-ink">{lesson.title}</span>
-                      <span className="mt-1 block text-sm text-black/50">
-                        Lesson {lesson.order ?? lesson.orderIndex ?? index + 1}
-                        {lesson.duration || lesson.estimatedTime
-                          ? ` · ${lesson.duration ?? lesson.estimatedTime} min`
-                          : ''}
-                      </span>
-                    </span>
-                    {(lesson.duration ?? lesson.estimatedTime) ? (
-                      <span className="shrink-0 text-sm text-black/45">
-                        {lesson.duration ?? lesson.estimatedTime} min
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
+                  </div>
+
+                  <div className="divide-y divide-black/10">
+                    {module.lessons.map((lesson, index) => {
+                      const globalIndex =
+                        curriculum
+                          .slice(0, moduleIndex)
+                          .reduce((sum, m) => sum + m.lessons.length, 0) + index;
+                      const done = completedSet.has(lesson._id);
+                      const isCurrent = continueLessonId === lesson._id && isEnrolled && !done;
+                      const locked = !!lesson.isLocked && !isEnrolled;
+
+                      return (
+                        <button
+                          key={lesson._id}
+                          type="button"
+                          onClick={() => {
+                            if (!hasRealLessons) {
+                              toast.info('This is a mock lesson preview. Connect lesson data to open it.');
+                              return;
+                            }
+                            if (locked) {
+                              toast.error('Enroll to unlock this lesson');
+                              return;
+                            }
+                            router.push(`/lessons/${lesson._id}`);
+                          }}
+                          className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition hover:bg-black/[0.02]"
+                        >
+                          <span
+                            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-medium ${
+                              done
+                                ? 'bg-black text-white'
+                                : isCurrent
+                                  ? 'bg-[#d9f99d] text-ink'
+                                  : locked
+                                    ? 'bg-black/[0.04] text-black/35'
+                                    : 'bg-black/[0.04] text-black/55'
+                            }`}
+                          >
+                            {locked ? <Lock size={16} /> : done ? <CheckCircle2 size={16} /> : globalIndex + 1}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-medium text-ink">{lesson.title}</span>
+                            <span className="mt-1 block text-sm text-black/50">
+                              {lesson.description
+                                ? lesson.description
+                                : `Bài ${lesson.order ?? lesson.orderIndex ?? globalIndex + 1}`}
+                              {lesson.duration || lesson.estimatedTime
+                                ? ` · ${lesson.duration ?? lesson.estimatedTime} phút`
+                                : ''}
+                              {lesson.isPreview ? ' · Preview' : ''}
+                            </span>
+                          </span>
+                          {(lesson.duration ?? lesson.estimatedTime) ? (
+                            <span className="hidden sm:inline shrink-0 text-sm text-black/45">
+                              {lesson.duration ?? lesson.estimatedTime} phút
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <aside className="rounded-lg border border-black/10 bg-white p-5">
-          <h2 className="text-xl font-semibold">What you will learn</h2>
-          <div className="mt-5 space-y-3">
-            {displayOutcomes.map((outcome) => (
-              <div key={outcome} className="flex gap-3 text-sm text-black/65">
-                <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-black" />
-                <span className="line-clamp-3">{outcome}</span>
-              </div>
-            ))}
-          </div>
-          {tags.length ? (
-            <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-5">
-              {tags.map((tag) => (
-                <span key={tag} className="rounded bg-black/[0.04] px-2 py-1 text-xs text-black/55">
-                  #{tag}
-                </span>
+        <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          <div className="rounded-lg border border-black/10 bg-white p-5">
+            <h2 className="text-xl font-semibold">What you will learn</h2>
+            <div className="mt-5 space-y-3">
+              {displayOutcomes.map((outcome) => (
+                <div key={outcome} className="flex gap-3 text-sm text-black/65">
+                  <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-black" />
+                  <span className="line-clamp-3">{outcome}</span>
+                </div>
               ))}
+            </div>
+            {tags.length ? (
+              <div className="mt-6 flex flex-wrap gap-2 border-t border-black/10 pt-5">
+                {tags.map((tag) => (
+                  <span key={tag} className="rounded bg-black/[0.04] px-2 py-1 text-xs text-black/55">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          {curriculum.length > 1 ? (
+            <div className="rounded-lg border border-black/10 bg-white p-5">
+              <p className="text-xs uppercase tracking-[0.16em] text-black/40">Mục lục nhanh</p>
+              <h2 className="mt-1 font-semibold text-ink">Các module</h2>
+              <nav className="mt-4 space-y-2">
+                {curriculum.map((module, index) => (
+                  <div
+                    key={module.key}
+                    className="flex items-start gap-2 rounded-md bg-black/[0.03] px-3 py-2 text-sm"
+                  >
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-black text-[10px] font-medium text-white">
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-medium text-ink line-clamp-2">{module.title}</span>
+                      <span className="text-xs text-black/45">{module.lessons.length} bài</span>
+                    </span>
+                  </div>
+                ))}
+              </nav>
             </div>
           ) : null}
         </aside>

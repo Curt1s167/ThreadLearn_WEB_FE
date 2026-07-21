@@ -18,6 +18,7 @@ import type {
   QuestionPayload,
   SubmitAttemptPayload,
   Comment,
+  CodeExecutionResult,
   Bookmark,
   BookmarkToggleResult,
   Note,
@@ -249,12 +250,23 @@ export const commentsService = {
     });
     return data.data;
   },
-  create: async (payload: { lessonId: string; content: string; parentId?: string }) => {
+  create: async (payload: { lessonId: string; content: string; isAnonymous?: boolean }) => {
     const { data } = await apiClient.post<ApiResponse<Comment>>('/comments', {
       targetType: 'LESSON',
       targetId: payload.lessonId,
       content: payload.content,
-      parentId: payload.parentId,
+      isAnonymous: payload.isAnonymous ?? false,
+    });
+    return data.data;
+  },
+  getReplies: async (commentId: string) => {
+    const { data } = await apiClient.get<ApiResponse<Comment[]>>(`/comments/${commentId}/replies`);
+    return data.data;
+  },
+  reply: async (commentId: string, payload: { content: string; isAnonymous?: boolean }) => {
+    const { data } = await apiClient.post<ApiResponse<Comment>>(`/comments/${commentId}/replies`, {
+      content: payload.content,
+      isAnonymous: payload.isAnonymous ?? false,
     });
     return data.data;
   },
@@ -292,14 +304,45 @@ export const bookmarksService = {
 
 // ─── Notes (UC40) ─────────────────────────────────────────────────────────────
 export const notesService = {
+  list: async (page = 1, limit = 12) => {
+    const { data } = await apiClient.get<ApiResponse<Note[]>>('/notes', {
+      params: { page, limit },
+    });
+    return {
+      data: data.data,
+      meta: data.meta,
+    };
+  },
   getByLesson: async (lessonId: string) => {
     const { data } = await apiClient.get<ApiResponse<Note[]>>(
       `/notes?lessonId=${lessonId}`
     );
-    return data.data[0] ?? null;
+    return data.data;
   },
-  upsert: async (payload: { lessonId: string; noteText: string; codeSnippet?: string }) => {
+  create: async (payload: { lessonId: string; noteText: string; codeSnippet?: string; anchorText?: string }) => {
     const { data } = await apiClient.post<ApiResponse<Note>>('/notes', payload);
+    return data.data;
+  },
+  update: async (noteId: string, payload: { noteText?: string; codeSnippet?: string; anchorText?: string }) => {
+    const { data } = await apiClient.patch<ApiResponse<Note>>(`/notes/${noteId}`, payload);
+    return data.data;
+  },
+  remove: async (noteId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(`/notes/${noteId}`);
+    return data.data;
+  },
+};
+
+// ─── Code execution (UC44–UC45) ─────────────────────────────────────────────
+export const codeExecutionService = {
+  run: async (payload: {
+    sourceCode: string;
+    language: string;
+    stdin?: string;
+    courseId?: string;
+    lessonId?: string;
+  }) => {
+    const { data } = await apiClient.post<ApiResponse<CodeExecutionResult>>('/code-execution/run', payload);
     return data.data;
   },
 };
