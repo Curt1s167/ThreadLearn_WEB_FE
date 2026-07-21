@@ -25,6 +25,7 @@ import type {
   Notification,
   LeaderboardEntry,
   SubscriptionPlan,
+  SubscriptionFeature,
   UserSubscription,
   SubscriptionPurchase,
   PlanCreatePayload,
@@ -412,6 +413,12 @@ export const gamificationService = {
 
 // ─── Subscription (UC51–UC52) ─────────────────────────────────────────────────
 export const subscriptionService = {
+  getAvailableFeatures: async () => {
+    const { data } = await apiClient.get<ApiResponse<SubscriptionFeature[]>>(
+      '/subscription/plans/features'
+    );
+    return data.data;
+  },
   getPlans: async () => {
     const { data } = await apiClient.get<ApiResponse<SubscriptionPlan[]>>('/subscription/plans');
     return data.data;

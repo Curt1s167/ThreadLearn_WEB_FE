@@ -15,6 +15,7 @@ export interface User {
   role: UserRole;
   planType: PlanType;
   subscriptionExpiresAt?: string;
+  subscriptionFeatures?: string[];
   isLocked?: boolean;
   isActive?: boolean;
   isVerified?: boolean;
@@ -433,9 +434,16 @@ export interface SubscriptionPlan {
   currency: string;
   durationDays: number;
   features: string[];
+  featureDetails?: SubscriptionFeature[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SubscriptionFeature {
+  key: string;
+  label: string;
+  description: string;
 }
 
 export interface PlanCreatePayload {

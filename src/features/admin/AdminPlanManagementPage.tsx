@@ -10,14 +10,18 @@ import {
   Plus,
   Save,
   Trash2,
-  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, EmptyState, Input, Skeleton } from '../../components/shared';
 import { ConfirmModal, Modal } from '../../components/shared/Modal';
 import { subscriptionService } from '../../services';
 import { useUIStore } from '../../store';
-import type { PlanCreatePayload, PlanUpdatePayload, SubscriptionPlan } from '../../types';
+import type {
+  PlanCreatePayload,
+  PlanUpdatePayload,
+  SubscriptionFeature,
+  SubscriptionPlan,
+} from '../../types';
 import {
   DemoDisplayTitle,
   DemoHeroWhite,
@@ -31,6 +35,8 @@ const PLAN_FORM_MODAL = 'admin-plan-form';
 const DEACTIVATE_PLAN_MODAL = 'deactivate-admin-plan';
 
 const getPlanId = (plan: SubscriptionPlan) => plan.id ?? plan._id;
+const getFeatureLabel = (plan: SubscriptionPlan, key: string) =>
+  plan.featureDetails?.find((feature) => feature.key === key)?.label ?? key;
 
 const formatPrice = (amount: number, currency: string) => {
   try {
@@ -70,11 +76,14 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
   const [price, setPrice] = useState(String(plan?.price ?? 0));
   const [currency, setCurrency] = useState(plan?.currency ?? 'VND');
   const [durationDays, setDurationDays] = useState(String(plan?.durationDays ?? 30));
-  const [features, setFeatures] = useState<string[]>(
-    plan?.features.length ? plan.features : ['']
-  );
+  const [features, setFeatures] = useState<string[]>(plan?.features ?? []);
   const [isActive, setIsActive] = useState(plan?.isActive ?? true);
   const [errors, setErrors] = useState<PlanFormErrors>({});
+
+  const { data: availableFeatures, isLoading: featuresLoading } = useQuery({
+    queryKey: ['subscription-feature-catalog'],
+    queryFn: subscriptionService.getAvailableFeatures,
+  });
 
   const invalidatePlans = () => {
     queryClient.invalidateQueries({ queryKey: ['subscription-plans'] });
@@ -105,8 +114,6 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
     const nextErrors: PlanFormErrors = {};
     const numericPrice = Number(price);
     const numericDuration = Number(durationDays);
-    const cleanFeatures = features.map((feature) => feature.trim()).filter(Boolean);
-
     if (!name.trim()) nextErrors.name = 'Name is required';
     if (!Number.isFinite(numericPrice) || numericPrice < 0) {
       nextErrors.price = 'Price must be zero or greater';
@@ -117,12 +124,7 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
     if (!Number.isInteger(numericDuration) || numericDuration < 1) {
       nextErrors.durationDays = 'Duration must be at least 1 day';
     }
-    if (features.some((feature) => feature.length > 0 && !feature.trim())) {
-      nextErrors.features = 'Features cannot be only spaces';
-    }
-    if (cleanFeatures.length !== new Set(cleanFeatures).size) {
-      nextErrors.features = 'Features must be unique';
-    }
+    if (features.length === 0) nextErrors.features = 'Select at least one available feature';
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -134,7 +136,7 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
     price: Number(price),
     currency: currency.trim().toUpperCase(),
     durationDays: Number(durationDays),
-    features: features.map((feature) => feature.trim()).filter(Boolean),
+    features,
     isActive,
   });
 
@@ -150,16 +152,12 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
     createPlanMutation.mutate(payload);
   };
 
-  const updateFeature = (index: number, value: string) => {
-    setFeatures((current) => current.map((feature, i) => (i === index ? value : feature)));
-  };
-
-  const addFeature = () => setFeatures((current) => [...current, '']);
-  const removeFeature = (index: number) => {
-    setFeatures((current) => {
-      const next = current.filter((_, i) => i !== index);
-      return next.length ? next : [''];
-    });
+  const toggleFeature = (feature: SubscriptionFeature) => {
+    setFeatures((current) =>
+      current.includes(feature.key)
+        ? current.filter((key) => key !== feature.key)
+        : [...current, feature.key]
+    );
   };
 
   const isSubmitting = createPlanMutation.isPending || updatePlanMutation.isPending;
@@ -224,36 +222,32 @@ const AdminPlanForm: React.FC<AdminPlanFormProps> = ({ plan, onSaved }) => {
       </label>
 
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-ink">Features</h3>
-            {errors.features && (
-              <p className="mt-1 text-xs text-rose-600">{errors.features}</p>
-            )}
-          </div>
-          <Button type="button" variant="outline" size="sm" onClick={addFeature}>
-            <Plus size={13} />
-            Add feature
-          </Button>
+        <div>
+          <h3 className="text-sm font-semibold text-ink">Available features</h3>
+          <p className="mt-1 text-xs text-black/55">
+            Each selected feature is enforced when this plan is activated after payment.
+          </p>
+          {errors.features && <p className="mt-1 text-xs text-rose-600">{errors.features}</p>}
         </div>
 
-        <div className="flex max-h-48 flex-col gap-2 overflow-y-auto pr-1">
-          {features.map((feature, index) => (
-            <div key={index} className="grid grid-cols-[1fr_auto] gap-2">
-              <Input
-                value={feature}
-                onChange={(event) => updateFeature(index, event.target.value)}
-                placeholder={`Feature ${index + 1}`}
+        <div className="grid gap-2 sm:grid-cols-2">
+          {featuresLoading ? <p className="text-sm text-black/55">Loading available features...</p> : null}
+          {availableFeatures?.map((feature) => (
+            <label
+              key={feature.key}
+              className="flex cursor-pointer items-start gap-3 rounded-lg border border-black/10 p-3 hover:bg-black/[0.02]"
+            >
+              <input
+                type="checkbox"
+                checked={features.includes(feature.key)}
+                onChange={() => toggleFeature(feature)}
+                className="mt-0.5 size-4 rounded border-black/20 accent-black"
               />
-              <button
-                type="button"
-                aria-label={`Remove feature ${index + 1}`}
-                onClick={() => removeFeature(index)}
-                className="inline-flex size-10 items-center justify-center rounded-lg border border-black/10 text-ink-muted hover:bg-rose-50 hover:text-rose-700"
-              >
-                <X size={14} />
-              </button>
-            </div>
+              <span>
+                <span className="block text-sm font-medium text-ink">{feature.label}</span>
+                <span className="mt-0.5 block text-xs text-black/55">{feature.description}</span>
+              </span>
+            </label>
           ))}
         </div>
       </div>
@@ -457,7 +451,7 @@ export const AdminPlanManagementPage: React.FC = () => {
                                 key={feature}
                                 className="rounded-full bg-[#f7f4ee] px-2 py-0.5 text-[11px] text-black/70"
                               >
-                                {feature}
+                                {getFeatureLabel(plan, feature)}
                               </span>
                             ))
                           ) : (

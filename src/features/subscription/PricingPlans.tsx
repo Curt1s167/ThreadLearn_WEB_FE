@@ -14,6 +14,8 @@ import type { SubscriptionPlan, UserSubscription } from '../../types';
 
 const getPlanId = (plan: SubscriptionPlan) => plan.id ?? plan._id;
 const PURCHASE_CONFIRM_MODAL = 'subscription-purchase-confirmation';
+const getFeatureLabel = (plan: SubscriptionPlan, key: string) =>
+  plan.featureDetails?.find((feature) => feature.key === key)?.label ?? key;
 
 const formatPrice = (amount: number, currency: string) => {
   try {
@@ -152,7 +154,7 @@ export function PricingPlans({
                 plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2 text-sm text-black/70">
                     <Check size={15} className="mt-0.5 shrink-0 text-black" />
-                    <span>{feature}</span>
+                    <span>{getFeatureLabel(plan, feature)}</span>
                   </li>
                 ))
               ) : (
