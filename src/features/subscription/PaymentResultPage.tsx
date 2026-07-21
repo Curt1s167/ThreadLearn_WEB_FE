@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AlertCircle, ArrowRight, CheckCircle, CreditCard, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionService } from '../../services';
+import { authService } from '../../services/auth.service';
 import { Skeleton } from '../../components/shared';
 import { useAuthStore } from '../../store';
 import type { PaymentConfirmationPayload } from '../../types';
@@ -188,12 +189,16 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   useEffect(() => {
     if (!paymentSucceeded || !user || !myPlan || hasSyncedProfile.current) return;
     hasSyncedProfile.current = true;
-    setUser({
-      ...user,
-      planType: 'PREMIUM',
-      subscriptionExpiresAt: myPlan.expiresAt,
-    });
-  }, [myPlan, paymentSucceeded, setUser, user]);
+    void authService.getMe()
+      .then((profile) => {
+        setUser(profile);
+        queryClient.setQueryData(['auth-me'], profile);
+      })
+      .catch(() => {
+        hasSyncedProfile.current = false;
+        toast.error('Thanh toán đã hoàn tất nhưng chưa thể đồng bộ hồ sơ. Hãy thử tải lại trang.');
+      });
+  }, [myPlan, paymentSucceeded, queryClient, setUser, user]);
 
   useEffect(() => {
     if (!paymentSucceeded) return;
