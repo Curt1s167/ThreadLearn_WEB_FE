@@ -42,7 +42,7 @@ export function DemoPill({
     blue: 'bg-[#cfe5ff] text-[#123a68]',
   };
   return (
-    <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${tones[tone]}`}>
+    <span className={`inline-flex self-start rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${tones[tone]}`}>
       {children}
     </span>
   );

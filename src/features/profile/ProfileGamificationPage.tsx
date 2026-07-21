@@ -148,7 +148,7 @@ export const ProfileGamificationPage: React.FC = () => {
             <button
               type="button"
               disabled
-              className="mt-5 cursor-not-allowed rounded-full bg-black/40 px-4 py-2 text-sm font-medium text-white"
+              className="accent-surface-disabled mt-5 cursor-not-allowed rounded-full px-4 py-2 text-sm font-medium"
               title="Coming soon"
             >
               Download certificate

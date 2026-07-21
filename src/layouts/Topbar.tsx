@@ -230,7 +230,7 @@ export const Topbar: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowUserMenu((v) => !v)}
-            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-black/[0.05] transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-full p-0 transition-colors hover:bg-black/[0.05]"
           >
             <Avatar src={user?.avatarUrl} name={user?.name} size="sm" />
           </button>

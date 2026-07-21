@@ -178,6 +178,16 @@
     background: rgb(217 249 157 / 0.46);
     color: rgb(16 43 38 / 0.8);
   }
+  .accent-surface-disabled {
+    border: 1px solid rgb(16 43 38 / 0.12);
+    background: rgb(16 43 38 / 0.62);
+    color: rgb(255 255 255 / 0.92);
+  }
+  .public-brand-logo { display: inline-flex; align-items: center; }
+  .public-tech-strip {
+    background: #10231f;
+    color: rgb(231 245 234 / 0.78);
+  }
   .dashboard-streak-panel {
     background: linear-gradient(145deg, #d9f99d, #c7f277);
     color: #102b26;
@@ -542,6 +552,18 @@ html.dark :where(
 }
 html.dark :where(
   .accent-surface,
+  [class~='bg-[#d9f99d]'],
+  [class~='bg-[#fde68a]'],
+  [class~='bg-[#bfdbfe]'],
+  [class~='bg-[#f5d0fe]'],
+  [class~='bg-[#fecaca]'],
+  [class~='bg-amber-100'],
+  [class~='bg-brand-lime']
+):is(.text-ink, .text-black, [class*='text-black/'], [class*='text-ink-']) {
+  color: #102b26 !important;
+}
+html.dark :where(
+  .accent-surface,
   .accent-surface-subtle,
   [class~='bg-[#d9f99d]'],
   [class~='bg-[#fde68a]'],
@@ -555,6 +577,11 @@ html.dark :where(
 }
 html.dark .accent-surface-copy { color: rgb(16 43 38 / 0.78) !important; }
 html.dark .accent-surface-title { color: #102b26 !important; }
+html.dark .accent-surface-disabled {
+  border-color: rgb(16 43 38 / 0.15) !important;
+  background: rgb(16 43 38 / 0.7) !important;
+  color: rgb(255 255 255 / 0.94) !important;
+}
 html.dark .accent-surface-subtle {
   border-color: rgb(217 249 157 / 0.2) !important;
   background: #153a2c !important;
@@ -562,6 +589,21 @@ html.dark .accent-surface-subtle {
 }
 html.dark .accent-surface-subtle :is(.text-ink, .text-black, [class*='text-black/'], [class*='text-ink-']) {
   color: rgb(242 255 243 / 0.86) !important;
+}
+html.dark .public-brand-logo {
+  margin: -0.25rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: 0.6rem;
+  background: #eef8ef;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.16);
+}
+html.dark .public-tech-strip { background: #07130f !important; color: rgb(231 245 234 / 0.78) !important; }
+html.dark .input-field:-webkit-autofill,
+html.dark .input-field:-webkit-autofill:hover,
+html.dark .input-field:-webkit-autofill:focus {
+  -webkit-text-fill-color: #edf7ef;
+  -webkit-box-shadow: 0 0 0 1000px #13281f inset;
+  caret-color: #edf7ef;
 }
 html.dark .border-black\/10,
 html.dark .border-black\/5,

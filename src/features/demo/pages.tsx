@@ -46,7 +46,7 @@ function PublicNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-black/10 bg-white/82 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 gap-3">
-        <Link href="/" className="flex items-center min-w-0" aria-label="ThreadLearn home">
+        <Link href="/" className="public-brand-logo flex min-w-0" aria-label="ThreadLearn home">
           {/* Full wordmark on sm+; mark-only on very small screens to avoid squeeze */}
           <span className="hidden sm:inline-flex">
             <BrandLogo variant="full" size="md" priority />
@@ -207,8 +207,8 @@ export function DemoLandingPage() {
   return (
     <div className="min-h-screen bg-white text-black">
       <PublicNav />
-      <div className="overflow-hidden bg-black py-2 text-white">
-        <div className="flex w-max animate-marquee gap-10 whitespace-nowrap text-xs uppercase tracking-[0.2em] text-white/65">
+      <div className="public-tech-strip overflow-hidden py-2">
+        <div className="flex w-max animate-marquee gap-10 whitespace-nowrap text-xs uppercase tracking-[0.2em]">
           {[...techBrands, ...techBrands, ...techBrands].map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
         </div>
       </div>
