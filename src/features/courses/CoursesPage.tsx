@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BookOpen, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ const LEVELS: CourseLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
  */
 export const CoursesPage: React.FC = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [level, setLevel] = useState<CourseLevel | ''>('');
@@ -132,6 +133,13 @@ export const CoursesPage: React.FC = () => {
                 key={course._id}
                 course={course}
                 onClick={useMockCourses ? undefined : () => router.push(`/courses/${course._id}`)}
+                onIntent={useMockCourses ? undefined : () => {
+                  router.prefetch(`/courses/${course._id}`);
+                  void queryClient.prefetchQuery({
+                    queryKey: ['course-detail', course._id],
+                    queryFn: () => coursesService.getById(course._id),
+                  });
+                }}
               />
             ))}
           </div>
