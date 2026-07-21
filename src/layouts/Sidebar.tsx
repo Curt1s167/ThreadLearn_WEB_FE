@@ -131,7 +131,9 @@ export const Sidebar: React.FC = () => {
             className="flex items-center min-w-0 flex-1 mr-1"
             aria-label="ThreadLearn home"
           >
-            <BrandLogo variant="full" size="sm" priority className="max-w-[148px]" />
+            <span className="brand-logo-frame">
+              <BrandLogo variant="full" size="sm" priority className="max-w-[148px]" />
+            </span>
           </Link>
         )}
         {sidebarCollapsed && (
@@ -141,7 +143,9 @@ export const Sidebar: React.FC = () => {
             title="ThreadLearn"
             aria-label="ThreadLearn home"
           >
-            <BrandLogo variant="mark" size="sm" priority />
+            <span className="brand-logo-frame">
+              <BrandLogo variant="mark" size="sm" priority />
+            </span>
           </Link>
         )}
         <button

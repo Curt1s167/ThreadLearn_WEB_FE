@@ -36,7 +36,7 @@ export const ProfilePage: React.FC = () => {
     <div className="mx-auto flex max-w-2xl flex-col gap-6 animate-fade-in">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0b7668]">Learner account</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[#102b26]">Profile</h1>
+        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-ink">Profile</h1>
       </div>
 
       {/* Profile card */}

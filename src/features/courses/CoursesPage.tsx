@@ -64,14 +64,14 @@ export const CoursesPage: React.FC = () => {
                 : 'A focused path for async programming, concurrency bugs, and production-safe backend patterns.'}
             </DemoMuted>
           </div>
-          <label className="flex min-w-0 items-center gap-2 rounded-full border border-black/10 bg-[#f7f4ee] px-4 py-3 text-sm lg:w-80">
-            <Search size={16} className="shrink-0 text-black/40" />
+          <label className="catalog-search flex min-w-0 items-center gap-2 rounded-full px-4 py-3 text-sm lg:w-80">
+            <Search size={16} className="catalog-search-icon shrink-0" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search courses..."
-              className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-black/40"
+              className="min-w-0 flex-1 bg-transparent outline-none"
             />
           </label>
         </div>
@@ -80,10 +80,10 @@ export const CoursesPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setLevel('')}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`catalog-filter rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               level === ''
-                ? 'bg-black text-white'
-                : 'border border-black/10 bg-white text-black/60 hover:border-black/20'
+                ? 'catalog-filter-active'
+                : ''
             }`}
           >
             All levels
@@ -93,10 +93,10 @@ export const CoursesPage: React.FC = () => {
               key={item}
               type="button"
               onClick={() => setLevel(item === level ? '' : item)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+              className={`catalog-filter rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
                 level === item
-                  ? 'bg-black text-white'
-                  : 'border border-black/10 bg-white text-black/60 hover:border-black/20'
+                  ? 'catalog-filter-active'
+                  : ''
               }`}
             >
               {item.toLowerCase()}

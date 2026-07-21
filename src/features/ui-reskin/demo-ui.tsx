@@ -50,7 +50,7 @@ export function DemoPill({
 
 /** Root spacing used by all Demo* pages */
 export function DemoPageRoot({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`space-y-7 text-[#10231f] ${className}`}>{children}</div>;
+  return <div className={`demo-page-root space-y-7 ${className}`}>{children}</div>;
 }
 
 /** Dark ink hero island (dashboard progress, leaderboard) */
@@ -66,7 +66,7 @@ export function DemoHeroInk({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={`relative overflow-hidden rounded-[1.5rem] border border-[#16433a] bg-[#102b26] p-6 text-white shadow-[0_18px_42px_rgb(16_43_38_/_0.2)] sm:p-8 ${className}`}
+      className={`demo-hero-ink relative overflow-hidden rounded-[1.5rem] p-6 text-white sm:p-8 ${className}`}
     >
       <div className="pointer-events-none absolute -right-24 -top-32 h-64 w-64 rounded-full bg-[#d9f99d]/15 blur-3xl" />
       {children}
@@ -87,7 +87,7 @@ export function DemoHeroWhite({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={`rounded-[1.5rem] border border-[#dce6de] bg-white p-6 shadow-[0_12px_30px_rgb(16_43_38_/_0.055)] sm:p-8 ${className}`}
+      className={`demo-hero-white rounded-[1.5rem] p-6 sm:p-8 ${className}`}
     >
       {children}
     </motion.section>
@@ -95,11 +95,11 @@ export function DemoHeroWhite({
 }
 
 export function DemoDisplayTitle({ children }: { children: React.ReactNode }) {
-  return <h1 className="mt-5 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] text-[#102b26] sm:text-4xl">{children}</h1>;
+  return <h1 className="demo-display-title mt-5 text-3xl font-semibold leading-[1.08] tracking-[-0.035em] sm:text-4xl">{children}</h1>;
 }
 
 export function DemoMuted({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <p className={`mt-3 max-w-2xl text-sm leading-6 text-[#102b26]/65 sm:text-base ${className}`}>{children}</p>;
+  return <p className={`demo-muted mt-3 max-w-2xl text-sm leading-6 sm:text-base ${className}`}>{children}</p>;
 }
 
 export function DemoWhitePanel({
@@ -110,7 +110,7 @@ export function DemoWhitePanel({
   className?: string;
 }) {
   return (
-    <div className={`overflow-hidden rounded-[1.25rem] border border-[#dce6de] bg-white shadow-[0_10px_26px_rgb(16_43_38_/_0.045)] ${className}`}>
+    <div className={`demo-white-panel overflow-hidden rounded-[1.25rem] ${className}`}>
       {children}
     </div>
   );

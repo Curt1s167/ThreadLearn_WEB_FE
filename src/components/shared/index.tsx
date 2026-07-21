@@ -220,9 +220,9 @@ export const CourseCard: React.FC<{
           onClick();
         }
       }}
-      className={`group block overflow-hidden rounded-[1.25rem] border border-[#dce6de] bg-white shadow-[0_10px_24px_rgb(16_43_38_/_0.045)] transition-all duration-200 motion-safe:hover:-translate-y-1 hover:border-[#9db7a9] hover:shadow-[0_18px_34px_rgb(16_43_38_/_0.12)] outline-none focus-visible:ring-2 focus-visible:ring-[#0b7668]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`course-card group block overflow-hidden rounded-[1.25rem] transition-all duration-200 motion-safe:hover:-translate-y-1 outline-none focus-visible:ring-2 focus-visible:ring-[#0b7668]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream ${onClick ? 'cursor-pointer' : ''} ${className}`}
     >
-      <div className={`relative overflow-hidden ${compact ? 'aspect-[16/9] max-h-28' : 'aspect-video'} ${accent} p-4 sm:p-5`}>
+      <div className={`course-card-media relative overflow-hidden ${compact ? 'aspect-[16/9] max-h-28' : 'aspect-video'} ${accent} p-4 sm:p-5`}>
         {thumbnailUrl ? (
           <Image
             src={thumbnailUrl}
@@ -233,9 +233,9 @@ export const CourseCard: React.FC<{
             onError={() => setImageFailed(true)}
           />
         ) : null}
-        <div className={`relative flex h-full flex-col justify-between rounded-xl border border-white/55 bg-white/72 p-4 shadow-[0_8px_20px_rgb(16_43_38_/_0.08)] ${thumbnailUrl ? 'bg-white/88 backdrop-blur-[1px]' : ''}`}>
+        <div className="course-card-media-overlay relative flex h-full flex-col justify-between rounded-xl p-4">
           <div className="flex items-center justify-between gap-2">
-            <Code2 size={compact ? 20 : 26} className="text-ink shrink-0" />
+            <Code2 size={compact ? 20 : 26} className="course-card-media-icon shrink-0" />
             <div className="flex flex-wrap items-center justify-end gap-1.5">
               {course.level ? (
                 <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${levelPillClass(course.level)}`}>
@@ -243,12 +243,12 @@ export const CourseCard: React.FC<{
                 </span>
               ) : null}
               {course.isPremium ? (
-                <span className="inline-flex rounded-full bg-black px-2.5 py-0.5 text-[10px] font-medium text-white">
+                <span className="inline-flex rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-medium text-white">
                   Premium
                 </span>
               ) : null}
               {!course.isPublished ? (
-                <span className="inline-flex rounded-full bg-black/10 px-2.5 py-0.5 text-[10px] font-medium text-black/55">
+                <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-[10px] font-medium text-white/80">
                   Draft
                 </span>
               ) : null}
@@ -256,18 +256,18 @@ export const CourseCard: React.FC<{
           </div>
           <div>
             {course.language ? (
-              <p className="text-xs uppercase tracking-[0.18em] text-black/45">{course.language}</p>
+              <p className="course-card-media-eyebrow text-xs uppercase tracking-[0.18em]">{course.language}</p>
             ) : null}
-            <p className={`mt-1 font-semibold text-ink leading-snug line-clamp-2 ${compact ? 'text-base' : 'text-lg'}`}>
+            <p className={`course-card-media-title mt-1 font-semibold leading-snug line-clamp-2 ${compact ? 'text-base' : 'text-lg'}`}>
               {course.title}
             </p>
           </div>
         </div>
       </div>
 
-      <div className={compact ? 'p-4' : 'p-5'}>
+      <div className={`course-card-body ${compact ? 'p-4' : 'p-5'}`}>
         {(course.shortDescription || course.description) ? (
-          <p className="line-clamp-2 min-h-11 text-sm text-black/60">
+          <p className="course-card-description line-clamp-2 min-h-11 text-sm">
             {course.shortDescription || course.description}
           </p>
         ) : null}
@@ -275,14 +275,14 @@ export const CourseCard: React.FC<{
         {course.tags && course.tags.length > 0 ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {course.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="rounded bg-black/[0.04] px-2 py-1 text-xs text-black/55">
+              <span key={tag} className="course-card-tag rounded px-2 py-1 text-xs">
                 #{tag}
               </span>
             ))}
           </div>
         ) : null}
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-4 text-xs text-black/50">
+        <div className="course-card-meta mt-5 flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-xs">
           <span className="flex items-center gap-1">
             <BookOpen size={13} />
             {lessons} lessons

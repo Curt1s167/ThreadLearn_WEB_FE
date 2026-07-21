@@ -125,7 +125,7 @@ export const Topbar: React.FC = () => {
               }
             }}
             placeholder="Search courses..."
-            className="h-8 bg-canvas-cream border border-black/10 text-ink placeholder:text-black/35 rounded-lg pl-8 pr-10 text-xs w-60 outline-none focus:border-black/25 focus:bg-white transition-all"
+            className="topbar-search h-8 rounded-lg pl-8 pr-10 text-xs w-60 outline-none transition-all"
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-ink-soft">
             <Command size={10} />

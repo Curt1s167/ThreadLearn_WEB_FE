@@ -260,7 +260,7 @@ export const CourseDetailPage: React.FC = () => {
         Back
       </button>
 
-      <section className={`${accent} relative overflow-hidden rounded-[1.5rem] border border-white/70 p-6 shadow-[0_18px_36px_rgb(16_43_38_/_0.08)] sm:p-8`}>
+      <section className={`course-detail-hero ${accent} relative overflow-hidden rounded-[1.5rem] border border-white/70 p-6 shadow-[0_18px_36px_rgb(16_43_38_/_0.08)] sm:p-8`}>
         <div className="grid gap-7 lg:grid-cols-[1fr_340px] lg:items-end">
           <div>
             <div className="mb-5 flex flex-wrap gap-2">
@@ -268,8 +268,8 @@ export const CourseDetailPage: React.FC = () => {
               {course.language ? <DemoPill tone="blue">{course.language}</DemoPill> : null}
               {course.isPremium ? <DemoPill>Premium</DemoPill> : null}
             </div>
-            <h1 className="max-w-4xl text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-[#102b26] sm:text-5xl">{course.title}</h1>
-            <p className="mt-5 max-w-2xl text-sm leading-6 text-[#102b26]/70 sm:text-base">
+            <h1 className="course-detail-hero-title max-w-4xl text-4xl font-semibold leading-[1.05] tracking-[-0.04em] sm:text-5xl">{course.title}</h1>
+            <p className="course-detail-hero-summary mt-5 max-w-2xl text-sm leading-6 sm:text-base">
               {course.shortDescription || course.description}
             </p>
             <div className="mt-5 flex flex-wrap gap-4 text-sm text-black/55">
