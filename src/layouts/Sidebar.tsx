@@ -11,6 +11,7 @@ import {
   User,
   Bell,
   Bookmark,
+  StickyNote,
   ChevronLeft,
   ChevronRight,
   Shield,
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
   { to: '/pricing', icon: <CreditCard size={16} />, label: 'Pricing' },
   { to: '/ai', icon: <Bot size={16} />, label: 'AI Advisor' },
   { to: '/bookmarks', icon: <Bookmark size={16} />, label: 'Bookmarks' },
+  { to: '/notes', icon: <StickyNote size={16} />, label: 'My Notes' },
   { to: '/notifications', icon: <Bell size={16} />, label: 'Notifications' },
   { to: '/profile', icon: <User size={16} />, label: 'Profile' },
 ];

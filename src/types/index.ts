@@ -322,6 +322,12 @@ export interface Note {
   noteText: string;
   codeSnippet?: string;
   updatedAt: string;
+  createdAt?: string;
+  lesson?: {
+    _id: string;
+    title: string;
+    courseId: string;
+  };
 }
 
 export interface CodeExecutionResult {

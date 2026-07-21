@@ -304,6 +304,15 @@ export const bookmarksService = {
 
 // ─── Notes (UC40) ─────────────────────────────────────────────────────────────
 export const notesService = {
+  list: async (page = 1, limit = 12) => {
+    const { data } = await apiClient.get<ApiResponse<Note[]>>('/notes', {
+      params: { page, limit },
+    });
+    return {
+      data: data.data,
+      meta: data.meta,
+    };
+  },
   getByLesson: async (lessonId: string) => {
     const { data } = await apiClient.get<ApiResponse<Note[]>>(
       `/notes?lessonId=${lessonId}`
@@ -312,6 +321,10 @@ export const notesService = {
   },
   upsert: async (payload: { lessonId: string; noteText: string; codeSnippet?: string }) => {
     const { data } = await apiClient.post<ApiResponse<Note>>('/notes', payload);
+    return data.data;
+  },
+  remove: async (noteId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(`/notes/${noteId}`);
     return data.data;
   },
 };
