@@ -10,15 +10,17 @@ import {
   Bookmark,
   Brain,
   CheckCircle2,
+  Code2,
   Clock,
   MessageCircle,
+  Play,
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { bookmarksService, enrollmentsService, lessonsService } from '../../services';
+import { bookmarksService, codeExecutionService, enrollmentsService, lessonsService } from '../../services';
 import { Button, EmptyState } from '../../components/shared';
 import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
-import type { Enrollment } from '../../types';
+import type { CodeExecutionResult, Enrollment } from '../../types';
 
 const LessonMarkdown = dynamic(
   () => import('./LessonMarkdown').then((module) => module.LessonMarkdown),
@@ -35,6 +37,125 @@ const NotesPanel = dynamic(
 
 const getHttpStatus = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status;
+
+const runnableLanguages = new Set(['javascript', 'js', 'java', 'python', 'py', 'cpp', 'c']);
+
+function LessonCodeRunner({
+  lessonId,
+  courseId,
+  language,
+  initialCode,
+}: {
+  lessonId: string;
+  courseId: string;
+  language: string;
+  initialCode: string;
+}) {
+  const [code, setCode] = useState(initialCode);
+  const [result, setResult] = useState<CodeExecutionResult | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+
+  const { mutate: runCode, isPending } = useMutation({
+    mutationFn: () =>
+      codeExecutionService.run({
+        sourceCode: code,
+        language,
+        lessonId,
+        courseId,
+      }),
+    onSuccess: (execution) => {
+      setResult(execution);
+      setRunError(null);
+    },
+    onError: (error) => {
+      setResult(null);
+      setRunError(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Could not run this code. Check your connection and try again.',
+      );
+    },
+  });
+
+  const output = result
+    ? [
+        `Status: ${result.status.description}`,
+        `Runtime: ${result.runtime}s`,
+        result.stdout ? `\nstdout\n${result.stdout}` : '',
+        result.stderr ? `\nstderr\n${result.stderr}` : '',
+        result.compileOutput ? `\ncompiler output\n${result.compileOutput}` : '',
+      ].filter(Boolean)
+    : runError
+      ? [runError]
+      : ['Run the code currently in the editor to see its actual output.'];
+  const status = isPending
+    ? 'running'
+    : result
+      ? result.status.description
+      : runError
+        ? 'failed'
+        : 'idle';
+
+  return (
+    <div className="mt-8 grid gap-4 xl:grid-cols-[1fr_320px]">
+      <section className="overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Code2 size={16} className="text-[#d9f99d]" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/35">ThreadLearn IDE</p>
+              <p className="text-sm font-semibold">{language}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (!code.trim()) {
+                setResult(null);
+                setRunError('Write some code before running the playground.');
+                return;
+              }
+              runCode();
+            }}
+            disabled={isPending}
+            className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-4 py-2 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Play size={15} />
+            {isPending ? 'Running...' : 'Run'}
+          </button>
+        </div>
+        <textarea
+          value={code}
+          onChange={(event) => {
+            setCode(event.target.value);
+            setResult(null);
+            setRunError(null);
+          }}
+          spellCheck={false}
+          className="min-h-72 w-full resize-y bg-[#111827] p-5 font-mono text-sm leading-6 text-[#d9f99d] outline-none"
+          aria-label="Lesson code editor"
+        />
+      </section>
+
+      <aside className="rounded-lg border border-black/10 bg-white p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-semibold text-ink">Console output</h3>
+          <span className={`rounded-full px-2 py-1 text-xs ${
+            result?.status.id === 3
+              ? 'bg-emerald-100 text-emerald-800'
+              : runError || (result && result.status.id !== 3)
+                ? 'bg-[#fecaca] text-[#7f1d1d]'
+                : 'bg-black/[0.05] text-black/45'
+          }`}>
+            {status}
+          </span>
+        </div>
+        <pre className="mt-4 min-h-40 whitespace-pre-wrap rounded-lg bg-black p-4 font-mono text-xs leading-6 text-[#d9f99d]">
+          {output.join('\n')}
+        </pre>
+      </aside>
+    </div>
+  );
+}
 
 /**
  * PR10 — lesson room mirrors DemoLessonPage (content + sticky aside).
@@ -115,6 +236,9 @@ export const LessonPage: React.FC = () => {
   const duration = lesson?.estimatedTime ?? lesson?.duration ?? 0;
   const order = lesson?.orderIndex ?? lesson?.order;
   const content = lesson?.contentMarkdown ?? lesson?.content ?? '';
+  const runnableSnippet = lesson?.codeSnippets?.find((snippet) =>
+    runnableLanguages.has(snippet.language.toLowerCase()),
+  );
   const courseHref =
     typeof lesson?.courseId === 'string' ? `/courses/${lesson.courseId}` : '/courses';
 
@@ -215,6 +339,15 @@ export const LessonPage: React.FC = () => {
                   description="This lesson has not been published with learning content yet."
                 />
               )}
+              {runnableSnippet ? (
+                <LessonCodeRunner
+                  key={id}
+                  lessonId={id!}
+                  courseId={lesson.courseId}
+                  language={runnableSnippet.language}
+                  initialCode={runnableSnippet.code}
+                />
+              ) : null}
             </div>
 
             <div className="rounded-lg border border-black/10 bg-white p-6 xl:hidden">

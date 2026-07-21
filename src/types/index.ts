@@ -286,6 +286,7 @@ export interface Comment {
   user?: Pick<User, '_id' | 'name' | 'avatarUrl'>;
   content: string;
   parentId?: string;
+  isAnonymous: boolean;
   likes: string[];
   createdAt: string;
   updatedAt: string;
@@ -321,6 +322,19 @@ export interface Note {
   noteText: string;
   codeSnippet?: string;
   updatedAt: string;
+}
+
+export interface CodeExecutionResult {
+  _id: string;
+  stdout: string;
+  stderr: string;
+  compileOutput: string;
+  status: { id: number; description: string };
+  runtime: string;
+  memory: number;
+  language: string;
+  languageId: number;
+  createdAt: string;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
