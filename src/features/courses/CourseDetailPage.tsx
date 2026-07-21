@@ -260,7 +260,7 @@ export const CourseDetailPage: React.FC = () => {
         Back
       </button>
 
-      <section className={`${accent} rounded-lg p-6 sm:p-8`}>
+      <section className={`${accent} relative overflow-hidden rounded-[1.5rem] border border-white/70 p-6 shadow-[0_18px_36px_rgb(16_43_38_/_0.08)] sm:p-8`}>
         <div className="grid gap-7 lg:grid-cols-[1fr_340px] lg:items-end">
           <div>
             <div className="mb-5 flex flex-wrap gap-2">
@@ -268,8 +268,8 @@ export const CourseDetailPage: React.FC = () => {
               {course.language ? <DemoPill tone="blue">{course.language}</DemoPill> : null}
               {course.isPremium ? <DemoPill>Premium</DemoPill> : null}
             </div>
-            <h1 className="max-w-4xl text-4xl font-light tracking-tight sm:text-5xl">{course.title}</h1>
-            <p className="mt-5 max-w-2xl text-black/65">
+            <h1 className="max-w-4xl text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-[#102b26] sm:text-5xl">{course.title}</h1>
+            <p className="mt-5 max-w-2xl text-sm leading-6 text-[#102b26]/70 sm:text-base">
               {course.shortDescription || course.description}
             </p>
             <div className="mt-5 flex flex-wrap gap-4 text-sm text-black/55">
@@ -290,7 +290,7 @@ export const CourseDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-lg bg-white/72 p-5 backdrop-blur-sm">
+          <div className="relative overflow-hidden rounded-2xl border border-white/70 bg-[#102b26]/92 p-5 text-white shadow-[0_16px_28px_rgb(16_43_38_/_0.16)] backdrop-blur-sm">
             {course.thumbnailUrl ? (
               <div className="pointer-events-none absolute inset-0 opacity-20">
                 <Image src={course.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
@@ -308,18 +308,18 @@ export const CourseDetailPage: React.FC = () => {
               </div>
             )}
             <div className="relative">
-              <p className="text-sm text-black/55">
+              <p className="text-sm text-white/60">
                 {isEnrolled ? 'Course progress' : blockReason ? 'Access requirement' : 'Ready to start'}
               </p>
               <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
-              <div className="mt-4 h-2 rounded-full bg-black/10">
+              <div className="mt-4 h-2 rounded-full bg-white/15">
                 <div
-                  className="h-2 rounded-full bg-black transition-all"
+                  className="h-2 rounded-full bg-[#d9f99d] transition-all"
                   style={{ width: `${isEnrolled ? progress : 0}%` }}
                 />
               </div>
               {blockReason ? (
-                <div className="mt-5 rounded-xl border border-black/10 bg-white/80 p-3 text-left shadow-sm">
+                <div className="mt-5 rounded-xl border border-white/15 bg-white p-3 text-left text-black shadow-sm">
                   <div className="flex gap-2.5">
                     <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${blockReason === 'premium' ? 'bg-amber-400/20 text-amber-800' : 'bg-sky-500/10 text-sky-800'}`}>
                       {blockReason === 'premium' ? <Crown size={15} /> : <Milestone size={15} />}
@@ -347,7 +347,7 @@ export const CourseDetailPage: React.FC = () => {
                   onClick={() => (isEnrolled ? handleContinue() : enroll())}
                   loading={enrolling}
                   disabled={!isEnrolled && !courseObjectId}
-                  className="mt-5 w-full"
+                  className="mt-5 w-full bg-[#d9f99d] text-[#102b26] hover:bg-[#bef264]"
                 >
                   {isEnrolled ? (
                     <>

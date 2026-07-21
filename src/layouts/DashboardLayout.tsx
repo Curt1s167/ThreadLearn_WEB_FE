@@ -53,7 +53,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
           sidebarCollapsed ? MAIN_COLLAPSED_PL : MAIN_EXPANDED_PL
         }`}
       >
-        <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6 lg:px-8 lg:py-9">
           <ErrorBoundary>
             {children}
           </ErrorBoundary>

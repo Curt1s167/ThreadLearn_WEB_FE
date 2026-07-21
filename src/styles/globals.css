@@ -11,14 +11,16 @@
  */
 :root {
   /* Primitives */
-  --tl-stone-25: #fcfbf8;
-  --tl-stone-50: #f7f4ee;
-  --tl-stone-100: #eeeae1;
-  --tl-ink-950: #121412;
-  --tl-ink-700: #39403a;
+  --tl-stone-25: #fbfcfa;
+  --tl-stone-50: #f2f5f1;
+  --tl-stone-100: #e4ebe4;
+  --tl-ink-950: #10231f;
+  --tl-ink-700: #3d514a;
   --tl-lime-200: #d9f99d;
   --tl-lime-300: #bef264;
-  --tl-teal-700: #0f766e;
+  --tl-teal-700: #0b7668;
+  --tl-forest-900: #102b26;
+  --tl-forest-800: #16433a;
   --tl-danger-700: #be123c;
   --tl-shadow-color: 28 32 29;
 
@@ -27,17 +29,17 @@
   --tl-surface: #ffffff;
   --tl-surface-subtle: var(--tl-stone-25);
   --tl-text: var(--tl-ink-950);
-  --tl-text-muted: rgba(18, 20, 18, 0.62);
-  --tl-text-faint: rgba(18, 20, 18, 0.44);
-  --tl-border: rgba(18, 20, 18, 0.11);
-  --tl-border-strong: rgba(18, 20, 18, 0.2);
+  --tl-text-muted: rgba(16, 35, 31, 0.64);
+  --tl-text-faint: rgba(16, 35, 31, 0.44);
+  --tl-border: rgba(16, 43, 38, 0.12);
+  --tl-border-strong: rgba(16, 43, 38, 0.22);
   --tl-focus: var(--tl-teal-700);
 
   /* Component tokens */
   --tl-shell-height: 3.75rem;
-  --tl-control-radius: 0.75rem;
-  --tl-panel-radius: 1rem;
-  --tl-card-shadow: 0 1px 2px rgb(var(--tl-shadow-color) / 0.05), 0 10px 28px rgb(var(--tl-shadow-color) / 0.04);
+  --tl-control-radius: 0.875rem;
+  --tl-panel-radius: 1.25rem;
+  --tl-card-shadow: 0 1px 2px rgb(var(--tl-shadow-color) / 0.04), 0 14px 34px rgb(var(--tl-shadow-color) / 0.055);
   --tl-overlay: rgb(18 20 18 / 0.38);
 }
 
@@ -52,7 +54,9 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    background-color: var(--tl-page-bg);
+    background:
+      radial-gradient(circle at 92% -20%, rgb(217 249 157 / 0.32), transparent 24rem),
+      var(--tl-page-bg);
     color: var(--tl-text);
     min-height: 100dvh;
     overflow-x: hidden;
@@ -84,14 +88,15 @@
   }
   .app-shell { background: var(--tl-page-bg); }
   .shell-sidebar {
-    background: rgb(255 255 255 / 0.92);
+    background: rgb(255 255 255 / 0.94);
     border-color: var(--tl-border);
-    box-shadow: 1px 0 0 rgb(18 20 18 / 0.02), 12px 0 32px rgb(18 20 18 / 0.025);
+    box-shadow: 1px 0 0 rgb(16 43 38 / 0.03), 18px 0 42px rgb(16 43 38 / 0.035);
   }
   .shell-topbar {
     min-height: var(--tl-shell-height);
-    background: rgb(255 255 255 / 0.84);
+    background: rgb(255 255 255 / 0.88);
     border-color: var(--tl-border);
+    box-shadow: 0 1px 0 rgb(16 43 38 / 0.035);
   }
   .shell-popover {
     @apply rounded-2xl border bg-white;
@@ -103,7 +108,7 @@
   }
   /* Light-first chrome primitives (demo language) */
   .btn-primary {
-    @apply inline-flex items-center gap-2 bg-black hover:bg-black/85 text-white px-4 py-2 rounded-full font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-black/30 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream;
+    @apply inline-flex items-center gap-2 bg-[#102b26] hover:bg-[#16433a] text-white px-4 py-2 rounded-full font-medium text-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus-visible:ring-2 focus-visible:ring-[#0b7668]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream active:translate-y-px;
   }
   .btn-ghost {
     @apply inline-flex items-center gap-2 bg-transparent hover:bg-black/[0.05] text-ink-muted hover:text-ink px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream;
@@ -115,7 +120,7 @@
     @apply w-full bg-white border border-black/10 focus:border-black/30 text-ink placeholder:text-black/35 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-150 focus:ring-1 focus:ring-black/10;
   }
   .card {
-    @apply bg-white border rounded-2xl;
+    @apply bg-white border rounded-[1.25rem];
     border-color: var(--tl-border);
     box-shadow: var(--tl-card-shadow);
   }
@@ -138,10 +143,10 @@
     @apply rounded animate-pulse bg-black/[0.06];
   }
   .sidebar-item {
-    @apply flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-black/60 hover:text-black hover:bg-black/[0.05] transition-all duration-150 cursor-pointer;
+    @apply flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-black/60 hover:text-[#102b26] hover:bg-[#d9f99d]/45 transition-all duration-150 cursor-pointer;
   }
   .sidebar-item-active {
-    @apply flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white bg-black transition-all duration-150 cursor-pointer;
+    @apply flex min-h-11 items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#102b26] shadow-[0_8px_18px_rgb(16_43_38_/_0.16)] transition-all duration-150 cursor-pointer;
   }
 }
 

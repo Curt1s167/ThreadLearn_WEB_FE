@@ -33,17 +33,20 @@ export const ProfilePage: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-in max-w-2xl mx-auto">
-      <h1 className="font-mono font-bold text-2xl text-ink">Profile</h1>
+    <div className="mx-auto flex max-w-2xl flex-col gap-6 animate-fade-in">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0b7668]">Learner account</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em] text-[#102b26]">Profile</h1>
+      </div>
 
       {/* Profile card */}
-      <Card className="p-6">
+      <Card className="p-6 shadow-[0_14px_30px_rgb(16_43_38_/_0.06)]">
         <div className="flex items-start gap-5">
           <div className="relative shrink-0">
             <Avatar src={user.avatarUrl} name={user.name} size="xl" />
             <button
               onClick={() => fileRef.current?.click()}
-              className="absolute -bottom-1 -right-1 w-6 h-6 bg-violet-600 rounded-full flex items-center justify-center hover:bg-violet-500 transition-colors"
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#102b26] shadow-sm transition-colors hover:bg-[#16433a]"
             >
               <Upload size={11} className="text-white" />
             </button>
@@ -58,14 +61,14 @@ export const ProfilePage: React.FC = () => {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-mono font-bold text-xl text-ink">{user.name}</h2>
+              <h2 className="text-xl font-semibold tracking-[-0.02em] text-ink">{user.name}</h2>
               <Badge color={user.role === 'ADMIN' ? 'purple' : 'gray'}>{user.role}</Badge>
               <Badge color={user.planType === 'PREMIUM' ? 'amber' : 'gray'}>
                 {user.planType}
               </Badge>
             </div>
-            <p className="text-ink-faint font-mono text-sm mt-1">{user.email}</p>
-            <p className="text-ink-faint font-mono text-xs mt-2">
+            <p className="mt-1 text-sm text-ink-faint">{user.email}</p>
+            <p className="mt-2 text-xs text-ink-faint">
               Member since {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
           </div>
@@ -75,7 +78,7 @@ export const ProfilePage: React.FC = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { icon: <Star size={16} className="text-violet-400" />, label: 'Total XP', value: (stats?.xp ?? 0).toLocaleString(), bg: 'bg-violet-500/10' },
+          { icon: <Star size={16} className="text-[#0b7668]" />, label: 'Total XP', value: (stats?.xp ?? 0).toLocaleString(), bg: 'bg-[#0b7668]/10' },
           { icon: <Flame size={16} className="text-amber-400" />, label: 'Day streak', value: `${stats?.streak ?? 0} days`, bg: 'bg-amber-500/10' },
           { icon: <BookOpen size={16} className="text-emerald-400" />, label: 'Lessons completed', value: stats?.totalLessonsCompleted ?? 0, bg: 'bg-emerald-500/10' },
           { icon: <Trophy size={16} className="text-amber-400" />, label: 'Quizzes passed', value: stats?.totalQuizzesPassed ?? 0, bg: 'bg-amber-500/10' },
@@ -85,8 +88,8 @@ export const ProfilePage: React.FC = () => {
               {item.icon}
             </div>
             <div>
-              <p className="text-xs text-ink-faint font-mono">{item.label}</p>
-              <p className="text-lg font-mono font-bold text-ink">{item.value}</p>
+              <p className="text-xs font-medium text-ink-faint">{item.label}</p>
+              <p className="text-lg font-semibold text-ink">{item.value}</p>
             </div>
           </Card>
         ))}
@@ -95,12 +98,12 @@ export const ProfilePage: React.FC = () => {
       {/* Level card */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-mono font-semibold text-ink text-sm">Level {stats?.level ?? 1}</span>
-          <span className="text-xs text-ink-faint font-mono">{stats?.xp ?? 0} / {((stats?.level ?? 1)) * 1000} XP</span>
+          <span className="text-sm font-semibold text-ink">Level {stats?.level ?? 1}</span>
+          <span className="text-xs text-ink-faint">{stats?.xp ?? 0} / {((stats?.level ?? 1)) * 1000} XP</span>
         </div>
         <div className="h-2 bg-black/[0.04] rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-violet-600 to-violet-400 rounded-full transition-all duration-500"
+            className="h-full rounded-full bg-[#0b7668] transition-all duration-500"
             style={{ width: `${((stats?.xp ?? 0) % 1000) / 10}%` }}
           />
         </div>
