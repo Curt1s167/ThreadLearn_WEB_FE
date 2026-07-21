@@ -130,29 +130,51 @@ export interface CourseCreatePayload {
   thumbnailUrl?: string;
 }
 
+export interface CourseSection {
+  _id: string;
+  id?: string;
+  courseId: string;
+  title: string;
+  description?: string;
+  orderIndex: number;
+  isPublished?: boolean;
+  status?: string;
+}
+
 export interface CourseDetail {
   course: Course;
-  sections: unknown[];
+  sections: CourseSection[];
   lessons: Lesson[];
 }
 
 // ─── Lessons ─────────────────────────────────────────────────────────────────
 
+export interface LessonCodeSnippet {
+  language: string;
+  code: string;
+  description?: string;
+}
+
 export interface Lesson {
   _id: string;
   id?: string;
   courseId: string;
+  sectionId?: string;
   title: string;
-  content?: string; // Markdown
-  contentMarkdown?: string;
+  slug?: string;
+  description?: string;
+  content?: string; // Markdown (legacy mirror)
+  contentMarkdown?: string; // Canonical body — Markdown
+  lessonType?: 'article' | 'video' | 'coding' | 'quiz' | 'assignment' | 'mixed' | string;
   attachmentUrl?: string;
   attachments?: string[];
   videoUrl?: string;
-  codeSnippets?: { language: string; code: string; description?: string }[];
+  codeSnippets?: LessonCodeSnippet[];
   duration?: number; // minutes
   estimatedTime?: number;
   order?: number;
   orderIndex?: number;
+  isPreview?: boolean;
   isLocked?: boolean;
   createdAt: string;
   updatedAt: string;
