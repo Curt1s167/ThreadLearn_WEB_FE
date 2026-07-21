@@ -91,17 +91,17 @@ export const PricingPage: React.FC = () => {
       </DemoHeroWhite>
 
       {myPlan ? (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-black/10 bg-[#d9f99d] p-5">
+        <div className="accent-surface flex flex-wrap items-center justify-between gap-4 rounded-lg p-5">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-black/45">Gói đang sử dụng</p>
-            <p className="mt-1 text-sm font-medium text-ink">
+            <p className="accent-surface-copy text-xs uppercase tracking-[0.16em]">Gói đang sử dụng</p>
+            <p className="accent-surface-title mt-1 text-sm font-medium">
               Mã gói #{myPlan.planId.slice(-6)} · Đang hoạt động
             </p>
-            <p className="mt-0.5 text-sm text-black/60">
+            <p className="accent-surface-copy mt-0.5 text-sm">
               Hết hạn ngày {new Date(myPlan.expiresAt).toLocaleDateString('vi-VN')}
             </p>
           </div>
-          <Sparkles size={22} className="text-black/50 shrink-0" />
+          <Sparkles size={22} className="accent-surface-copy shrink-0" />
         </div>
       ) : null}
 

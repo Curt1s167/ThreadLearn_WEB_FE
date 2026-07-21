@@ -31,7 +31,7 @@ export default function AdminCourses() {
         ))}
       </div>
 
-      <div className="rounded-lg bg-[#d9f99d] p-5">
+      <div className="accent-surface rounded-lg p-5">
         <BookOpen size={22} />
         <p className="mt-3 font-semibold">Student catalog and detail pages already keep the real course APIs.</p>
       </div>

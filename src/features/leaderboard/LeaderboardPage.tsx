@@ -61,14 +61,14 @@ export const LeaderboardPage: React.FC = () => {
       <DemoHeroInk>
         <Trophy size={28} className="text-[#d9f99d]" />
         <DemoDisplayTitle>Bảng xếp hạng</DemoDisplayTitle>
-        <p className="mt-3 max-w-2xl text-white/60">
+        <p className="on-forest-copy mt-3 max-w-2xl">
           Theo dõi thứ hạng dựa trên XP bạn nhận được khi hoàn thành bài học và bài kiểm tra.
         </p>
 
         {user && (
           <div className="mt-6 inline-flex flex-wrap items-center gap-3 rounded-lg bg-white/10 px-4 py-3 text-sm">
             {myRankLoading ? (
-              <span className="text-white/60">Đang tải thứ hạng của bạn...</span>
+              <span className="on-forest-copy">Đang tải thứ hạng của bạn...</span>
             ) : myRankError ? (
               <button
                 type="button"
@@ -89,7 +89,7 @@ export const LeaderboardPage: React.FC = () => {
                 <span className="text-white/80">{myRank.xp.toLocaleString()} XP</span>
               </>
             ) : (
-              <span className="text-white/60">Hoàn thành bài học hoặc bài kiểm tra để xuất hiện tại đây.</span>
+              <span className="on-forest-copy">Hoàn thành bài học hoặc bài kiểm tra để xuất hiện tại đây.</span>
             )}
           </div>
         )}

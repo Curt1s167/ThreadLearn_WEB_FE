@@ -308,7 +308,7 @@ export const CourseDetailPage: React.FC = () => {
               </div>
             )}
             <div className="relative">
-              <p className="text-sm text-white/60">
+              <p className="on-forest-copy text-sm">
                 {isEnrolled ? 'Course progress' : blockReason ? 'Access requirement' : 'Ready to start'}
               </p>
               <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
@@ -367,7 +367,7 @@ export const CourseDetailPage: React.FC = () => {
         <div className="rounded-lg border border-black/10 bg-white p-5">
           <h2 className="text-xl font-semibold">Lessons</h2>
           {!hasRealLessons ? (
-            <p className="mt-2 rounded-lg bg-[#d9f99d]/45 px-3 py-2 text-xs text-black/60">
+            <p className="accent-surface-subtle mt-2 rounded-lg px-3 py-2 text-xs">
               Mock lesson preview from the demo flow. Replace when lessonsService data is available.
             </p>
           ) : null}

@@ -119,11 +119,11 @@ export const DashboardPage: React.FC = () => {
     <DemoPageRoot>
       <section className="grid gap-5 lg:grid-cols-[1.45fr_0.55fr]">
         <DemoHeroInk>
-          <p className="text-xs uppercase tracking-[0.18em] text-white/45">Your progress</p>
+          <p className="on-forest-label text-xs uppercase tracking-[0.18em]">Your progress</p>
           <h1 className="mt-3 text-4xl font-light tracking-tight">
             Continue learning, {firstName}.
           </h1>
-          <p className="mt-4 max-w-2xl text-white/60">
+          <p className="on-forest-copy mt-4 max-w-2xl">
             {resumeLoading
               ? 'Loading your resume target…'
               : resume
