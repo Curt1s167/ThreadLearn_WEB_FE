@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
@@ -11,14 +11,17 @@ import {
   BookOpen,
   CheckCircle2,
   Clock,
+  Crown,
   Lock,
+  Milestone,
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { coursesService, enrollmentsService } from '../../services';
+import { extractApiError, extractApiErrorCode } from '../../services/apiClient';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { useAuthStore } from '../../store';
-import type { CourseLevel, Enrollment } from '../../types';
+import type { Course, CourseLevel, Enrollment } from '../../types';
 import {
   COURSE_ACCENT_COLORS,
   DemoPageRoot,
@@ -48,6 +51,13 @@ const levelTone = (level?: CourseLevel): 'lime' | 'pink' | 'blue' | 'default' =>
   return 'default';
 };
 
+type EnrollmentBlockReason = 'premium' | 'prerequisite' | null;
+
+const isPremiumActive = (planType?: string, expiresAt?: string) =>
+  planType === 'PREMIUM' && (!expiresAt || new Date(expiresAt).getTime() > Date.now());
+
+const getCourseRef = (course: Course) => course._id ?? course.id ?? '';
+
 /**
  * PR10 — course detail mirrors DemoCourseDetailPage hero + lesson list.
  * LOGIC LOCK: getById, enrollments, enroll mutation, continue → first lesson.
@@ -56,7 +66,8 @@ export const CourseDetailPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const [serverBlockReason, setServerBlockReason] = useState<EnrollmentBlockReason>(null);
 
   const {
     data: detail,
@@ -79,6 +90,13 @@ export const CourseDetailPage: React.FC = () => {
     retry: false,
   });
 
+  const { data: courseCatalog } = useQuery({
+    queryKey: ['courses', 'access-catalog'],
+    queryFn: () => coursesService.list({ limit: 100 }),
+    enabled: Boolean(course?.prerequisites?.length),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const enrollment = useMemo(
     () =>
       myEnrollments.find((item) => {
@@ -94,6 +112,39 @@ export const CourseDetailPage: React.FC = () => {
     () => new Set(enrollment?.completedLessons ?? []),
     [enrollment?.completedLessons],
   );
+
+  const missingPrerequisites = useMemo(() => {
+    const threshold = course?.prerequisiteThreshold ?? 80;
+    const catalog = courseCatalog?.items ?? [];
+    const coursesById = new Map(catalog.map((item) => [getCourseRef(item), item]));
+
+    return (course?.prerequisites ?? [])
+      .map((requiredCourseId) => {
+        const prerequisiteEnrollment = myEnrollments.find((item) => getEnrollmentCourseRef(item).id === requiredCourseId);
+        const progressPercent = Math.round(
+          prerequisiteEnrollment?.progressPercent ?? prerequisiteEnrollment?.progress ?? 0,
+        );
+        return {
+          id: requiredCourseId,
+          course: coursesById.get(requiredCourseId),
+          progressPercent,
+          requiredProgress: threshold,
+          isComplete: progressPercent >= threshold,
+        };
+      })
+      .filter((prerequisite) => !prerequisite.isComplete);
+  }, [course?.prerequisiteThreshold, course?.prerequisites, courseCatalog?.items, myEnrollments]);
+
+  const localBlockReason: EnrollmentBlockReason = !isEnrolled && course?.isPremium && !isPremiumActive(
+    user?.planType,
+    user?.subscriptionExpiresAt,
+  )
+    ? 'premium'
+    : !isEnrolled && missingPrerequisites.length > 0
+      ? 'prerequisite'
+      : null;
+  const blockReason = serverBlockReason ?? localBlockReason;
+  const firstMissingPrerequisite = missingPrerequisites[0];
 
   const accent =
     COURSE_ACCENT_COLORS[(course?.title?.length ?? 0) % COURSE_ACCENT_COLORS.length];
@@ -120,11 +171,24 @@ export const CourseDetailPage: React.FC = () => {
       return enrollmentsService.enroll(courseObjectId);
     },
     onSuccess: () => {
+      setServerBlockReason(null);
       queryClient.invalidateQueries({ queryKey: ['my-enrollments'] });
       queryClient.invalidateQueries({ queryKey: ['course-detail', courseId] });
       toast.success('Enrolled in course');
     },
-    onError: () => toast.error('Could not enroll in this course'),
+    onError: (error) => {
+      const code = extractApiErrorCode(error);
+      const message = extractApiError(error, 'Could not enroll in this course');
+      if (code === 'COURSE_PREMIUM_REQUIRED') {
+        setServerBlockReason('premium');
+        return;
+      }
+      if (code === 'COURSE_PREREQUISITE_REQUIRED') {
+        setServerBlockReason('prerequisite');
+        return;
+      }
+      toast.error(message);
+    },
   });
 
   useEffect(() => {
@@ -173,6 +237,17 @@ export const CourseDetailPage: React.FC = () => {
     isEnrolled ? 'Resume anytime from your dashboard' : 'Enroll free to unlock lessons',
   ].filter(Boolean) as string[];
   const displayOutcomes = outcomes.length >= 4 ? outcomes : fallbackOutcomes;
+  const accessAction = () => {
+    if (blockReason === 'premium') {
+      router.push('/pricing');
+      return;
+    }
+    if (firstMissingPrerequisite?.course) {
+      router.push(`/courses/${firstMissingPrerequisite.course.slug ?? firstMissingPrerequisite.id}`);
+      return;
+    }
+    router.push('/courses');
+  };
 
   return (
     <DemoPageRoot>
@@ -233,7 +308,9 @@ export const CourseDetailPage: React.FC = () => {
               </div>
             )}
             <div className="relative">
-              <p className="text-sm text-black/55">{isEnrolled ? 'Course progress' : 'Ready to start'}</p>
+              <p className="text-sm text-black/55">
+                {isEnrolled ? 'Course progress' : blockReason ? 'Access requirement' : 'Ready to start'}
+              </p>
               <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
               <div className="mt-4 h-2 rounded-full bg-black/10">
                 <div
@@ -241,20 +318,46 @@ export const CourseDetailPage: React.FC = () => {
                   style={{ width: `${isEnrolled ? progress : 0}%` }}
                 />
               </div>
-              <Button
-                onClick={() => (isEnrolled ? handleContinue() : enroll())}
-                loading={enrolling}
-                disabled={!isEnrolled && !courseObjectId}
-                className="mt-5 w-full"
-              >
-                {isEnrolled ? (
-                  <>
-                    Continue lesson <ArrowRight size={16} />
-                  </>
-                ) : (
-                  'Enroll'
-                )}
-              </Button>
+              {blockReason ? (
+                <div className="mt-5 rounded-xl border border-black/10 bg-white/80 p-3 text-left shadow-sm">
+                  <div className="flex gap-2.5">
+                    <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${blockReason === 'premium' ? 'bg-amber-400/20 text-amber-800' : 'bg-sky-500/10 text-sky-800'}`}>
+                      {blockReason === 'premium' ? <Crown size={15} /> : <Milestone size={15} />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-black">
+                        {blockReason === 'premium' ? 'Premium access required' : 'Complete a prerequisite first'}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-black/60">
+                        {blockReason === 'premium'
+                          ? 'This course is included with an active Premium plan.'
+                          : firstMissingPrerequisite
+                            ? `${firstMissingPrerequisite.course?.title ?? 'A required course'} needs ${firstMissingPrerequisite.requiredProgress}% completion. You are at ${firstMissingPrerequisite.progressPercent}%.`
+                            : 'Finish the required course before enrolling.'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button onClick={accessAction} className="mt-3 w-full" size="sm">
+                    {blockReason === 'premium' ? 'View Premium plans' : firstMissingPrerequisite?.course ? 'Open required course' : 'Browse courses'}
+                    <ArrowRight size={14} />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  onClick={() => (isEnrolled ? handleContinue() : enroll())}
+                  loading={enrolling}
+                  disabled={!isEnrolled && !courseObjectId}
+                  className="mt-5 w-full"
+                >
+                  {isEnrolled ? (
+                    <>
+                      Continue lesson <ArrowRight size={16} />
+                    </>
+                  ) : (
+                    'Enroll'
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>
