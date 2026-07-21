@@ -352,6 +352,7 @@ export type NotificationType =
   | 'LEVEL_UP'
   | 'BOOKMARK_COURSE_UPDATED'
   | 'PAYMENT_SUCCESS'
+  | 'USER_REGISTERED'
   | 'NEW_USER_REGISTERED'
   | 'STUDENT_COMMENT_REPORT'
   | 'COMMENT_REPLY'
@@ -369,6 +370,14 @@ export interface Notification {
   link?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AdminNotificationFilters {
+  page?: number;
+  limit?: number;
+  isRead?: boolean;
+  type?: NotificationType;
 }
 
 // ─── Leaderboard ──────────────────────────────────────────────────────────────
