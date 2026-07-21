@@ -70,6 +70,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
   const queryClient = useQueryClient();
   const { user, setUser } = useAuthStore();
   const hasSubmittedConfirmation = useRef(false);
+  const hasRequestedReconciliation = useRef(false);
   const purchasePollAttempts = useRef(0);
   const subscriptionPollAttempts = useRef(0);
   const hasSyncedProfile = useRef(false);
@@ -160,6 +161,18 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     onError: () => toast.error('Không thể xác nhận kết quả thanh toán'),
   });
 
+  const {
+    mutate: reconcilePurchase,
+    isPending: isReconcilingPayment,
+    isError: isReconciliationError,
+  } = useMutation({
+    mutationFn: subscriptionService.reconcilePurchase,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription-purchase', purchaseId] });
+    },
+  });
+
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ['my-subscription'] });
   }, [queryClient]);
@@ -169,6 +182,15 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     hasSubmittedConfirmation.current = true;
     confirmPayment(paymentPayload);
   }, [confirmPayment, paymentPayload, shouldConfirmPayment]);
+
+  useEffect(() => {
+    if (
+      mode !== 'real' || gateway !== 'payos' || !purchaseId ||
+      purchase?.status !== 'pending' || hasRequestedReconciliation.current
+    ) return;
+    hasRequestedReconciliation.current = true;
+    reconcilePurchase(purchaseId);
+  }, [gateway, mode, purchase?.status, purchaseId, reconcilePurchase]);
 
   const hasActivePlan = isActiveSubscription(myPlan?.status);
   const paymentSucceeded = purchaseSucceeded && hasActivePlan && !hasGatewayFailure;
@@ -182,6 +204,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     Boolean(purchaseId) &&
     (isLoadingPurchase ||
       isConfirmingPayment ||
+      isReconcilingPayment ||
       isPollingPurchase ||
       (isPollingSubscription && (isLoadingPlan || isFetchingPlan)) ||
       (isFetchingPurchase && !purchase));
@@ -298,7 +321,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
     );
   }
 
-  if ((isPurchaseError || isPlanError || isConfirmError) && !paymentSucceeded) {
+  if ((isPurchaseError || isPlanError || isConfirmError || isReconciliationError) && !paymentSucceeded) {
     return (
       <ResultShell
         tone="fail"
@@ -307,6 +330,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
         description="Hãy kiểm tra lại gói dịch vụ của bạn sau ít phút."
         icon={<AlertCircle size={36} className="text-[#7f1d1d]" />}
         onRetry={() => {
+          if (gateway === 'payos' && purchaseId) reconcilePurchase(purchaseId);
           refetchPurchase();
           refetchMyPlan();
         }}
@@ -347,6 +371,7 @@ export const PaymentResultPage: React.FC<{ mode?: PaymentResultMode }> = ({ mode
         description="Hệ thống đã nhận kết quả trả về và đang chờ xác thực an toàn từ cổng thanh toán để kích hoạt gói của bạn."
         icon={<CreditCard size={36} className="text-black/40" />}
         onRetry={() => {
+          if (gateway === 'payos') reconcilePurchase(purchaseId);
           refetchPurchase();
           refetchMyPlan();
         }}

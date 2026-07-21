@@ -474,6 +474,12 @@ export const subscriptionService = {
     );
     return data.data;
   },
+  reconcilePurchase: async (purchaseId: string) => {
+    const { data } = await apiClient.post<ApiResponse<SubscriptionPurchase>>(
+      `/subscription/purchases/${purchaseId}/reconcile`
+    );
+    return data.data;
+  },
   confirmPayment: async (payload: PaymentConfirmationPayload) => {
     const { data } = await apiClient.post<ApiResponse<SubscriptionPurchase>>(
       '/subscription/webhook/payment',
