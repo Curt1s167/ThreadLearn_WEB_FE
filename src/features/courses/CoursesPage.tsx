@@ -16,7 +16,6 @@ import {
   DemoPageRoot,
   DemoPill,
 } from '../ui-reskin/demo-ui';
-import { FALLBACK_COURSES } from '../ui-reskin/demo-fallbacks';
 
 const LEVELS: CourseLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 
@@ -42,11 +41,8 @@ export const CoursesPage: React.FC = () => {
   });
 
   const courses = data?.items ?? [];
-  const useMockCourses = !isLoading && (isError || courses.length === 0);
-  const visibleCourses = useMockCourses ? FALLBACK_COURSES : courses;
-
   useEffect(() => {
-    if (isError) toast.error('Failed to load courses. Showing demo preview.');
+    if (isError) toast.error('Failed to load courses');
   }, [isError]);
 
   return (
@@ -57,9 +53,7 @@ export const CoursesPage: React.FC = () => {
           <div>
             <DemoDisplayTitle>All courses</DemoDisplayTitle>
             <DemoMuted>
-              {useMockCourses
-                ? 'Demo course previews are shown because the backend has no catalog data yet.'
-                : data?.total != null
+              {data?.total != null
                 ? `${data.total} courses available — focused paths for async programming and production-safe backend patterns.`
                 : 'A focused path for async programming, concurrency bugs, and production-safe backend patterns.'}
             </DemoMuted>
@@ -114,7 +108,13 @@ export const CoursesPage: React.FC = () => {
             <Skeleton key={i} className="h-72 rounded-lg" />
           ))}
         </div>
-      ) : visibleCourses.length === 0 ? (
+      ) : isError ? (
+        <EmptyState
+          icon={<BookOpen size={36} />}
+          title="Could not load courses"
+          description="Please try again in a moment."
+        />
+      ) : courses.length === 0 ? (
         <EmptyState
           icon={<BookOpen size={36} />}
           title="No courses found"
@@ -122,18 +122,13 @@ export const CoursesPage: React.FC = () => {
         />
       ) : (
         <>
-          {useMockCourses ? (
-            <div className="accent-surface rounded-lg p-4 text-sm">
-              Mock catalog preview from the demo flow. Connect coursesService.list data to replace these cards.
-            </div>
-          ) : null}
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {visibleCourses.map((course) => (
+            {courses.map((course) => (
               <CourseCard
                 key={course._id}
                 course={course}
-                onClick={useMockCourses ? undefined : () => router.push(`/courses/${course._id}`)}
-                onIntent={useMockCourses ? undefined : () => {
+                onClick={() => router.push(`/courses/${course._id}`)}
+                onIntent={() => {
                   router.prefetch(`/courses/${course._id}`);
                   void queryClient.prefetchQuery({
                     queryKey: ['course-detail', course._id],

@@ -24,11 +24,6 @@ import {
   DemoPageRoot,
   DemoPill,
 } from '../ui-reskin/demo-ui';
-import {
-  buildFallbackLessons,
-  buildFallbackOutcomes,
-  buildFallbackTags,
-} from '../ui-reskin/demo-fallbacks';
 
 const getEnrollmentCourseRef = (enrollment: Enrollment) => {
   if (typeof enrollment.courseId === 'string') {
@@ -196,24 +191,10 @@ export const CourseDetailPage: React.FC = () => {
     );
   }
 
-  const hasRealLessons = courseLessons.length > 0;
-  const displayLessons = hasRealLessons
-    ? courseLessons
-    : buildFallbackLessons(courseObjectId ?? courseId ?? 'mock-course', course.language);
+  const displayLessons = courseLessons;
   const displayLessonCount = course.totalLessons ?? displayLessons.length;
-  const tags = course.tags?.length ? course.tags : buildFallbackTags(course.language);
-  const fallbackOutcomes = buildFallbackOutcomes(course.language, displayLessonCount);
-  const outcomes = [
-    course.shortDescription || course.description,
-    `${displayLessonCount} structured lessons`,
-    course.language ? `Hands-on ${course.language} practice` : 'Hands-on coding practice',
-    requiresPremium
-      ? 'Premium course: upgrade to unlock the full curriculum'
-      : isEnrolled
-        ? 'Resume anytime from your dashboard'
-        : 'Enroll free to unlock lessons',
-  ].filter(Boolean) as string[];
-  const displayOutcomes = outcomes.length >= 4 ? outcomes : fallbackOutcomes;
+  const tags = course.tags ?? [];
+  const displayOutcomes = course.shortDescription ? [course.shortDescription] : [];
 
   /** Group lessons under course sections for a clear syllabus index. */
   const curriculum = (() => {
@@ -243,7 +224,7 @@ export const CourseDetailPage: React.FC = () => {
             (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0),
         );
 
-    if (sections.length === 0) {
+    if (sections.length === 0 && displayLessons.length > 0) {
       return [
         {
           key: 'all',
@@ -391,13 +372,13 @@ export const CourseDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {!hasRealLessons ? (
-            <p className="mt-3 rounded-lg bg-[#d9f99d]/45 px-3 py-2 text-xs text-black/60">
-              Mock lesson preview from the demo flow. Replace when lessonsService data is available.
-            </p>
-          ) : null}
-
-          <div className="mt-6 space-y-6">
+          {curriculum.length === 0 ? (
+            <EmptyState
+              icon={<BookOpen size={32} />}
+              title="No lessons available yet"
+              description="Lessons will appear here when they are published for this course."
+            />
+          ) : <div className="mt-6 space-y-6">
             {curriculum.map((module, moduleIndex) => {
               const moduleDone = module.lessons.filter((l) => completedSet.has(l._id)).length;
               return (
@@ -442,10 +423,6 @@ export const CourseDetailPage: React.FC = () => {
                           key={lesson._id}
                           type="button"
                           onClick={() => {
-                            if (!hasRealLessons) {
-                              toast.info('This is a mock lesson preview. Connect lesson data to open it.');
-                              return;
-                            }
                             router.push(`/lessons/${lesson._id}`);
                           }}
                           disabled={locked}
@@ -490,7 +467,7 @@ export const CourseDetailPage: React.FC = () => {
                 </div>
               );
             })}
-          </div>
+          </div>}
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">

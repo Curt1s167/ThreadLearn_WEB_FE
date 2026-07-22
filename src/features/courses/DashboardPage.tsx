@@ -24,14 +24,13 @@ import {
   studentsService,
 } from '../../services';
 import type { Course, Enrollment } from '../../types';
-import { CourseCard } from '../../components/shared';
+import { CourseCard, EmptyState } from '../../components/shared';
 import {
   DemoHeroInk,
   DemoPageRoot,
   UI_PLACEHOLDERS,
   formatXp,
 } from '../ui-reskin/demo-ui';
-import { FALLBACK_COURSES } from '../ui-reskin/demo-fallbacks';
 
 const getCourseId = (enrollment?: Enrollment | null) => {
   if (!enrollment) return '';
@@ -68,7 +67,7 @@ const getEnrollmentCourse = (enrollment: Enrollment): Course => {
     };
   }
 
-  return FALLBACK_COURSES.find((course) => course._id === enrollment.courseId) ?? {
+  return {
     _id: enrollment.courseId,
     title: `Course #${enrollment.courseId.slice(-6)}`,
     description: 'Continue this course from your personal learning dashboard.',
@@ -290,24 +289,16 @@ export const DashboardPage: React.FC = () => {
               })}
             </div>
           ) : (
-            <>
-              <div className="dashboard-accent-note mb-4 rounded-lg p-4 text-sm">
-                Mock course progress preview from the demo flow. Enrollments from BE will replace these cards.
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {FALLBACK_COURSES.slice(0, 2).map((course, index) => {
-                  const pct = index === 0 ? 68 : 24;
-                  return (
-                    <DashboardCourseCard
-                      key={course._id}
-                      course={course}
-                      progress={pct}
-                      onOpen={() => router.push('/courses')}
-                    />
-                  );
-                })}
-              </div>
-            </>
+            <EmptyState
+              icon={<BookOpen size={36} />}
+              title="No enrolled courses yet"
+              description="Browse the course catalog and enroll to start your learning path."
+              action={(
+                <Link href="/courses" className="btn-primary">
+                  Browse courses <ArrowRight size={15} />
+                </Link>
+              )}
+            />
           )}
         </div>
 
@@ -317,7 +308,7 @@ export const DashboardPage: React.FC = () => {
               <Brain size={19} />
               <h3 className="font-semibold text-black">AI Coach</h3>
             </div>
-            <p className="mt-3 text-sm text-black/60">{UI_PLACEHOLDERS.aiCoachUsageLine}</p>
+            <p className="mt-3 text-sm text-black/60">Ask for help with course concepts, code, and concurrency problems.</p>
             <Link
               href="/ai"
               className="mt-4 inline-flex rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
@@ -327,14 +318,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="rounded-lg border border-black/10 bg-white p-5">
             <h3 className="font-semibold text-black">Recent activity</h3>
-            <div className="mt-4 space-y-3">
-              {UI_PLACEHOLDERS.recentActivityFallback.map((item) => (
-                <div key={item} className="flex gap-3 text-sm text-black/60">
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-black" />
-                  {item}
-                </div>
-              ))}
-            </div>
+            <p className="mt-3 text-sm text-black/60">Your completed lessons and quiz results will appear here.</p>
           </div>
         </aside>
       </section>

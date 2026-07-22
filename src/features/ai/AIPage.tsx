@@ -12,7 +12,6 @@ import {
   DemoPill,
   DemoWhitePanel,
 } from '../ui-reskin/demo-ui';
-import { DEMO_AI_RESPONSE, DEMO_CODE_SAMPLE } from '../ui-reskin/demo-fallbacks';
 import { SAMPLE_CASES } from './sampleCases';
 import { PipelineProgress } from './PipelineProgress';
 import { useAnalyzeStream } from './useAnalyzeStream';
@@ -26,7 +25,7 @@ import { CodeEditor } from './CodeEditor';
 import { useCodeHistory } from './useCodeHistory';
 
 export const AIPage: React.FC = () => {
-  const { code, setCode, undo, redo, resetCode, canUndo, canRedo } = useCodeHistory(DEMO_CODE_SAMPLE);
+  const { code, setCode, undo, redo, resetCode, canUndo, canRedo } = useCodeHistory('');
   const [sampleIdx, setSampleIdx] = useState(-1);
   const queryClient = useQueryClient();
 
@@ -85,8 +84,6 @@ export const AIPage: React.FC = () => {
   }
 
   const latestLog = history?.[0];
-  const showMockHistory = !historyLoading && (!history || history.length === 0);
-
   const [sidebarWidth, setSidebarWidth] = useState(380);
   const dragging = useRef(false);
   const startX = useRef(0);
@@ -275,12 +272,7 @@ export const AIPage: React.FC = () => {
             ) : latestLog ? (
               <AnalysisResult view={logToView(latestLog)} />
             ) : (
-              <div className="mt-4 rounded-lg bg-[#f7f4ee] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-black/45">
-                  Mock AI review
-                </p>
-                <p className="mt-3 text-sm leading-6 text-black/65">{DEMO_AI_RESPONSE}</p>
-              </div>
+              <p className="mt-4 text-sm leading-6 text-black/60">Run an analysis to see feedback here.</p>
             )}
           </div>
         </aside>
@@ -295,7 +287,6 @@ export const AIPage: React.FC = () => {
             <h2 className="mt-1 text-xl font-semibold">Analysis history</h2>
           </div>
           <DemoPill tone="blue">{history?.length ?? 0} records</DemoPill>
-          {showMockHistory ? <DemoPill>Mock preview</DemoPill> : null}
         </div>
 
         {historyLoading ? (
@@ -305,18 +296,8 @@ export const AIPage: React.FC = () => {
         ) : history && history.length > 0 ? (
           <HistoryList history={history} />
         ) : (
-          <div className="divide-y divide-black/10">
-            <article className="grid gap-4 p-5 lg:grid-cols-[220px_1fr]">
-              <div>
-                <p className="font-medium">Mock concurrency analysis</p>
-                <p className="mt-2 flex items-center gap-1 text-xs text-black/45">
-                  Demo preview until /ai/history has records
-                </p>
-              </div>
-              <div className="rounded-lg bg-[#f7f4ee] p-4">
-                <p className="whitespace-pre-wrap text-sm leading-6 text-black/65">{DEMO_AI_RESPONSE}</p>
-              </div>
-            </article>
+          <div className="p-8 text-center text-sm text-black/60">
+            No analysis history yet.
           </div>
         )}
       </DemoWhitePanel>
