@@ -159,10 +159,33 @@
     box-shadow: 0 18px 42px rgb(16 43 38 / 0.2);
   }
   /* Copy placed on a forest surface must never inherit a low-contrast neutral. */
+  .demo-hero-ink .demo-display-title { color: #f2fff3; }
   .on-forest-label { color: rgb(242 255 243 / 0.72); }
   .on-forest-copy { color: rgb(242 255 243 / 0.86); }
   .demo-hero-ink .text-white\/45 { color: rgb(242 255 243 / 0.72); }
   .demo-hero-ink .text-white\/60 { color: rgb(242 255 243 / 0.86); }
+  .leaderboard-rank-summary {
+    border: 1px solid rgb(242 255 243 / 0.14);
+    background: rgb(242 255 243 / 0.11);
+  }
+  .leaderboard-rank-label { color: rgb(242 255 243 / 0.76); }
+  .leaderboard-rank-value {
+    color: #d9f99d;
+    font-size: 1.45rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .leaderboard-rank-divider { color: rgb(242 255 243 / 0.38); }
+  .leaderboard-rank-stat { color: #f2fff3; font-weight: 600; }
+  .topbar-xp-chip {
+    border: 1px solid rgb(16 43 38 / 0.14);
+    background: #d9f99d;
+    color: #102b26;
+  }
+  .topbar-xp-label,
+  .topbar-xp-value { color: rgb(16 43 38 / 0.72); font-size: 0.875rem; }
+  .topbar-xp-level { color: #102b26; font-size: 0.875rem; font-weight: 700; }
+  .topbar-xp-divider { color: rgb(16 43 38 / 0.44); font-size: 0.875rem; }
 
   /* Use this for full, bright information panels rather than relying on a theme-wide text rule. */
   .accent-surface {
@@ -507,6 +530,16 @@ html.dark .demo-hero-white {
     var(--tl-surface) !important;
 }
 html.dark .demo-display-title { color: var(--tl-text) !important; }
+html.dark .demo-hero-ink .demo-display-title { color: #f2fff3 !important; }
+html.dark .topbar-xp-chip {
+  border-color: rgb(16 43 38 / 0.14) !important;
+  background: #d9f99d !important;
+  color: #102b26 !important;
+}
+html.dark .topbar-xp-label,
+html.dark .topbar-xp-value { color: rgb(16 43 38 / 0.72) !important; }
+html.dark .topbar-xp-level { color: #102b26 !important; }
+html.dark .topbar-xp-divider { color: rgb(16 43 38 / 0.44) !important; }
 html.dark .demo-muted { color: var(--tl-text-muted) !important; }
 html.dark .demo-hero-ink .bg-white {
   background-color: #edf7ef !important;

@@ -113,13 +113,13 @@ export const Topbar: React.FC = () => {
 
       <div className="flex items-center gap-1">
         {user && (
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-lime/80 border border-black/5 mr-2">
-            <span className="text-ink/70 text-xs">Lv.</span>
-            <span className="text-ink text-xs font-semibold">{level}</span>
+          <div className="topbar-xp-chip hidden sm:flex items-center gap-2 rounded-full px-4 py-2 mr-2">
+            <span className="topbar-xp-label">Lv.</span>
+            <span className="topbar-xp-level">{level}</span>
             {xp != null && (
               <>
-                <span className="text-ink/30 text-xs">·</span>
-                <span className="text-ink/70 text-xs">{xp.toLocaleString()} XP</span>
+                <span className="topbar-xp-divider">·</span>
+                <span className="topbar-xp-value">{xp.toLocaleString()} XP</span>
               </>
             )}
           </div>

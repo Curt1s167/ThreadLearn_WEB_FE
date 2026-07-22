@@ -66,7 +66,7 @@ export const LeaderboardPage: React.FC = () => {
         </p>
 
         {user && (
-          <div className="mt-6 inline-flex flex-wrap items-center gap-3 rounded-lg bg-white/10 px-4 py-3 text-sm">
+          <div className="leaderboard-rank-summary mt-7 inline-flex flex-wrap items-center gap-3 rounded-xl px-5 py-4 text-base">
             {myRankLoading ? (
               <span className="on-forest-copy">Đang tải thứ hạng của bạn...</span>
             ) : myRankError ? (
@@ -81,12 +81,12 @@ export const LeaderboardPage: React.FC = () => {
               </button>
             ) : myRank ? (
               <>
-                <span className="text-white/55">Thứ hạng của bạn</span>
-                <span className="font-semibold text-[#d9f99d]">#{myRank.rank}</span>
-                <span className="text-white/40">·</span>
-                <span className="text-white/70">Cấp {myRank.level ?? 1}</span>
-                <span className="text-white/40">·</span>
-                <span className="text-white/80">{myRank.xp.toLocaleString()} XP</span>
+                <span className="leaderboard-rank-label">Thứ hạng của bạn</span>
+                <span className="leaderboard-rank-value">#{myRank.rank}</span>
+                <span className="leaderboard-rank-divider">·</span>
+                <span className="leaderboard-rank-label">Cấp {myRank.level ?? 1}</span>
+                <span className="leaderboard-rank-divider">·</span>
+                <span className="leaderboard-rank-stat">{myRank.xp.toLocaleString()} XP</span>
               </>
             ) : (
               <span className="on-forest-copy">Hoàn thành bài học hoặc bài kiểm tra để xuất hiện tại đây.</span>
