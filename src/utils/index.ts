@@ -27,3 +27,19 @@ export function xpToNextLevel(xp: number): number {
 export function levelProgress(xp: number): number {
   return ((xp % 1000) / 1000) * 100;
 }
+
+/**
+ * Recover UTF-8 text that was decoded as Latin-1 by an upstream service.
+ * Proper Unicode strings are returned unchanged.
+ */
+export function normalizeMojibakeText(value: string): string {
+  if (!/(?:Ã.|Â.|Ä.|Å.|á[\u0080-\u00bf])/.test(value)) return value;
+
+  try {
+    return new TextDecoder('utf-8').decode(
+      Uint8Array.from(value, (character) => character.charCodeAt(0)),
+    );
+  } catch {
+    return value;
+  }
+}
