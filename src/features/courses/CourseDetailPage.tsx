@@ -363,7 +363,7 @@ export const CourseDetailPage: React.FC = () => {
                   onClick={() => (isEnrolled ? handleContinue() : enroll())}
                   loading={enrolling}
                   disabled={!isEnrolled && !courseObjectId}
-                  className="course-hero-status-action mt-5 w-full bg-[#d9f99d] text-[#102b26] hover:bg-[#bef264]"
+                  className="course-hero-status-action course-hero-primary-action mt-5 w-full bg-[#d9f99d] text-[#102b26] hover:bg-[#bef264]"
                 >
                   {isEnrolled ? (
                     <>
