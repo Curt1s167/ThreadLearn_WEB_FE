@@ -61,11 +61,11 @@ const CommentItem: React.FC<{
           <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-sm font-medium text-ink">{authorName}</span>
             {comment.isAnonymous ? (
-              <span className="inline-flex items-center gap-1 text-xs text-black/40">
+              <span className="inline-flex items-center gap-1 text-xs text-ink-faint">
                 <EyeOff size={11} /> Hidden identity
               </span>
             ) : null}
-            <span className="text-xs text-black/40">
+            <span className="text-xs text-ink-faint">
               {new Date(comment.createdAt).toLocaleDateString()}
             </span>
           </div>
@@ -101,14 +101,14 @@ const CommentItem: React.FC<{
                   setEditContent(comment.content);
                 }}
                 disabled={isUpdating}
-                className="text-xs text-black/45 disabled:opacity-50"
+                className="comments-action min-h-11 px-2 text-xs disabled:opacity-50"
               >
                 Cancel
               </button>
             </div>
           ) : (
-            <div className="rounded-lg bg-[#f7f4ee] p-3">
-              <p className="whitespace-pre-wrap text-sm text-black/70">{comment.content}</p>
+            <div className="comment-bubble rounded-lg p-3">
+              <p className="whitespace-pre-wrap text-sm leading-6 text-ink-muted">{comment.content}</p>
             </div>
           )}
 
@@ -117,7 +117,7 @@ const CommentItem: React.FC<{
               <button
                 type="button"
                 onClick={() => onReply(comment)}
-                className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-black"
+                className="comments-action inline-flex min-h-11 items-center gap-1 px-2 text-xs"
               >
                 <CornerDownRight size={10} />
                 Reply
@@ -128,7 +128,7 @@ const CommentItem: React.FC<{
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-black"
+                  className="comments-action inline-flex min-h-11 items-center gap-1 px-2 text-xs"
                 >
                   <Pencil size={10} />
                   Edit
@@ -137,7 +137,7 @@ const CommentItem: React.FC<{
                   type="button"
                   onClick={() => deleteComment()}
                   disabled={isDeleting}
-                  className="inline-flex items-center gap-1 text-xs text-black/45 transition hover:text-rose-600 disabled:opacity-50"
+                  className="comments-action inline-flex min-h-11 items-center gap-1 px-2 text-xs transition hover:text-rose-600 disabled:opacity-50"
                 >
                   <Trash2 size={10} />
                   Delete
@@ -211,16 +211,16 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
         <h3 className="text-sm font-semibold text-ink">Discussion ({comments.length})</h3>
       </div>
 
-      <div className="rounded-lg border border-black/10 bg-[#f7f4ee] p-3">
+      <div className="comments-composer rounded-lg border p-3">
         {replyTo ? (
-          <div className="mb-2 flex items-center gap-1 text-xs text-black/50">
+          <div className="mb-2 flex items-center gap-1 text-xs text-ink-faint">
             <CornerDownRight size={10} />
             Replying to {replyTo.isAnonymous ? 'an anonymous learner' : replyTo.user?.name || 'a learner'}
             <button
               type="button"
               onClick={() => setReplyTo(null)}
               disabled={isPending}
-              className="ml-1 text-black/40 hover:text-black disabled:opacity-50"
+              className="comments-action ml-1 grid min-h-11 min-w-11 place-items-center disabled:opacity-50"
               aria-label="Cancel reply"
             >
               ×
@@ -233,21 +233,22 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
           disabled={isPending}
           placeholder={replyTo ? 'Write a reply...' : 'Add a comment...'}
           rows={3}
-          className="w-full resize-none bg-transparent text-sm text-ink outline-none placeholder:text-black/35 disabled:opacity-50"
+          className="comments-input w-full resize-y rounded-md border-0 bg-transparent px-1 py-2 text-sm leading-6 outline-none disabled:opacity-50"
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-black/55">
+          <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-xs text-ink-muted">
             <input
               type="checkbox"
               checked={isAnonymous}
               onChange={(event) => setIsAnonymous(event.target.checked)}
               disabled={isPending}
-              className="h-4 w-4 rounded border-black/20 accent-black"
+              className="comments-checkbox h-5 w-5 rounded"
             />
             Post anonymously
           </label>
           <Button
             size="sm"
+            className="min-h-11 px-4"
             onClick={() => postComment()}
             disabled={!newComment.trim()}
             loading={isPending}
@@ -271,7 +272,7 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
           ))}
         </div>
       ) : (
-        <p className="py-4 text-center text-sm text-black/40">No comments yet. Be the first to discuss!</p>
+        <p className="py-5 text-center text-sm text-ink-faint">No comments yet. Be the first to discuss!</p>
       )}
     </div>
   );

@@ -265,7 +265,7 @@ export const CourseDetailPage: React.FC = () => {
         Back
       </button>
 
-      <section className={`${accent} rounded-lg p-6 sm:p-8`}>
+      <section className={`${accent} course-detail-hero rounded-lg border p-6 sm:p-8`}>
         <div className="grid gap-7 lg:grid-cols-[1fr_340px] lg:items-end">
           <div>
             <div className="mb-5 flex flex-wrap gap-2">
@@ -273,11 +273,11 @@ export const CourseDetailPage: React.FC = () => {
               {course.language ? <DemoPill tone="blue">{course.language}</DemoPill> : null}
               {course.isPremium ? <DemoPill>Premium</DemoPill> : null}
             </div>
-            <h1 className="max-w-4xl text-4xl font-light tracking-tight sm:text-5xl">{course.title}</h1>
-            <p className="mt-5 max-w-2xl text-black/65">
+            <h1 className="course-detail-hero-title max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.035em] sm:text-4xl lg:text-5xl">{course.title}</h1>
+            <p className="course-detail-hero-summary mt-5 max-w-2xl text-base leading-7">
               {course.shortDescription || course.description}
             </p>
-            <div className="mt-5 flex flex-wrap gap-4 text-sm text-black/55">
+            <div className="course-detail-hero-summary mt-5 flex flex-wrap gap-4 text-sm">
               <span className="inline-flex items-center gap-1.5">
                 <BookOpen size={15} />
                 {displayLessonCount} lessons

@@ -54,7 +54,15 @@ function OutlineNav({
   );
 }
 
-export function LessonReader({ content }: { content: string }) {
+export function LessonReader({
+  content,
+  checklistStorageKey,
+  onReadComplete,
+}: {
+  content: string;
+  checklistStorageKey?: string;
+  onReadComplete?: () => void;
+}) {
   const outline = useMemo(() => parseLessonOutline(content), [content]);
   const sections = useMemo(() => splitLessonSections(content), [content]);
   const readMinutes = useMemo(() => estimateReadMinutes(content), [content]);
@@ -72,10 +80,17 @@ export function LessonReader({ content }: { content: string }) {
   const canPrev = sectionIndex > 0;
   const canNext = sectionIndex < sections.length - 1;
 
+  const goToSection = (index: number) => {
+    const nextIndex = Math.min(Math.max(index, 0), Math.max(0, sections.length - 1));
+    setSectionIndex(nextIndex);
+    setActiveId(sections[nextIndex]?.id);
+    if (nextIndex === sections.length - 1) onReadComplete?.();
+  };
+
   const goToOutlineItem = (item: LessonOutlineItem) => {
     setActiveId(item.id);
     if (mode === 'sections') {
-      setSectionIndex(Math.min(item.sectionIndex, Math.max(0, sections.length - 1)));
+      goToSection(item.sectionIndex);
       return;
     }
     const el = document.getElementById(item.id);
@@ -126,8 +141,7 @@ export function LessonReader({ content }: { content: string }) {
                   key={section.id}
                   type="button"
                   onClick={() => {
-                    setSectionIndex(index);
-                    setActiveId(section.id);
+                    goToSection(index);
                   }}
                   className={`guided-outline-item block w-full px-2 text-left ${
                     index === sectionIndex ? 'guided-outline-item-active' : ''
@@ -184,7 +198,7 @@ export function LessonReader({ content }: { content: string }) {
                 <button
                   type="button"
                   disabled={!canPrev}
-                  onClick={() => setSectionIndex((i) => Math.max(0, i - 1))}
+                  onClick={() => goToSection(sectionIndex - 1)}
                   className="guided-secondary-button"
                 >
                   <ChevronLeft size={16} />
@@ -193,7 +207,7 @@ export function LessonReader({ content }: { content: string }) {
                 <button
                   type="button"
                   disabled={!canNext}
-                  onClick={() => setSectionIndex((i) => Math.min(sections.length - 1, i + 1))}
+                  onClick={() => goToSection(sectionIndex + 1)}
                   className="guided-primary-button"
                 >
                   Tiếp
@@ -203,14 +217,14 @@ export function LessonReader({ content }: { content: string }) {
             </div>
 
             <div className={proseClass}>
-              <LessonMarkdown content={current.markdown} />
+              <LessonMarkdown content={current.markdown} checklistStorageKey={checklistStorageKey} />
             </div>
 
             <div className="grid gap-3 border-t border-black/10 pt-4 sm:grid-cols-2">
               <button
                 type="button"
                 disabled={!canPrev}
-                onClick={() => setSectionIndex((i) => Math.max(0, i - 1))}
+                onClick={() => goToSection(sectionIndex - 1)}
                 className="guided-footer-button sm:justify-start"
               >
                 <ChevronLeft size={16} />
@@ -219,7 +233,7 @@ export function LessonReader({ content }: { content: string }) {
               <button
                 type="button"
                 disabled={!canNext}
-                onClick={() => setSectionIndex((i) => Math.min(sections.length - 1, i + 1))}
+                onClick={() => goToSection(sectionIndex + 1)}
                 className="guided-footer-button guided-footer-button-next sm:justify-end"
               >
                 {canNext ? `Tiếp: ${sections[sectionIndex + 1]?.title}` : 'Hết bài'}
@@ -229,7 +243,7 @@ export function LessonReader({ content }: { content: string }) {
           </>
         ) : (
           <div className={proseClass}>
-            <LessonMarkdown content={content} />
+            <LessonMarkdown content={content} checklistStorageKey={checklistStorageKey} />
           </div>
         )}
 
