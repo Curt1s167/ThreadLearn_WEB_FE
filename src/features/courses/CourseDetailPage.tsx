@@ -314,9 +314,9 @@ export const CourseDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-lg bg-white/72 p-5 backdrop-blur-sm">
+          <div className="course-hero-status-card relative overflow-hidden rounded-2xl p-5 text-white">
             {course.thumbnailUrl ? (
-              <div className="pointer-events-none absolute inset-0 opacity-20">
+              <div className="course-hero-status-image pointer-events-none absolute inset-0">
                 <Image src={course.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
               </div>
             ) : (
@@ -331,14 +331,14 @@ export const CourseDetailPage: React.FC = () => {
                 </div>
               </div>
             )}
-            <div className="relative">
-              <p className="text-sm text-black/55">
+            <div className="course-hero-status-content relative">
+              <p className="course-hero-status-label text-sm">
                 {requiresPremium ? 'Premium access required' : isEnrolled ? 'Course progress' : 'Ready to start'}
               </p>
               <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
-              <div className="mt-4 h-2 rounded-full bg-black/10">
+              <div className="course-hero-progress-track mt-4">
                 <div
-                  className="h-2 rounded-full bg-black transition-all"
+                  className="course-hero-progress-fill transition-all"
                   style={{ width: `${isEnrolled ? progress : 0}%` }}
                 />
               </div>
@@ -356,7 +356,11 @@ export const CourseDetailPage: React.FC = () => {
                 }}
                 loading={enrolling}
                 disabled={!courseObjectId || (isEnrolled && !continueLessonId)}
-                className="mt-5 w-full"
+                className={`course-hero-status-action mt-5 w-full ${
+                  requiresPremium
+                    ? 'bg-white text-[#102b26] hover:bg-[#f2fff3]'
+                    : 'course-hero-primary-action bg-[#d9f99d] text-[#102b26] hover:bg-[#bef264]'
+                }`}
               >
                 {requiresPremium ? (
                   <>
@@ -376,7 +380,7 @@ export const CourseDetailPage: React.FC = () => {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-lg border border-black/10 bg-white p-5 sm:p-6">
+        <div className="course-lessons-panel rounded-lg border border-black/10 bg-white p-5 sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.16em] text-black/40">Chỉ mục khóa học</p>
@@ -397,8 +401,8 @@ export const CourseDetailPage: React.FC = () => {
             {curriculum.map((module, moduleIndex) => {
               const moduleDone = module.lessons.filter((l) => completedSet.has(l._id)).length;
               return (
-                <div key={module.key} className="rounded-lg border border-black/10 overflow-hidden">
-                  <div className="flex flex-wrap items-start justify-between gap-3 bg-[#fafafa] px-4 py-3 border-b border-black/10">
+                <div key={module.key} className="course-lesson-module overflow-hidden rounded-xl border border-black/10">
+                  <div className="course-lesson-module-header flex flex-wrap items-start justify-between gap-3 border-b border-black/10 px-4 py-3">
                     <div className="min-w-0">
                       <p className="text-[11px] uppercase tracking-[0.14em] text-black/40">
                         Module {moduleIndex + 1}
@@ -413,7 +417,7 @@ export const CourseDetailPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="divide-y divide-black/10">
+                  <div className="course-lesson-module-list divide-y divide-black/10">
                     {module.lessons.map((lesson, index) => {
                       const globalIndex =
                         curriculum
@@ -446,7 +450,7 @@ export const CourseDetailPage: React.FC = () => {
                           }}
                           disabled={locked}
                           title={locked ? lockMessage : undefined}
-                          className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition hover:bg-black/[0.02] disabled:cursor-not-allowed disabled:opacity-55"
+                          className="course-lesson-module-row flex w-full items-center gap-4 px-4 py-3.5 text-left transition disabled:cursor-not-allowed disabled:opacity-55"
                         >
                           <span
                             className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-medium ${

@@ -342,6 +342,11 @@
     box-shadow: 0 12px 24px rgb(0 0 0 / 0.14);
   }
   .course-lessons-panel { min-width: 0; }
+  .course-lesson-module { border-color: var(--tl-border); background: var(--tl-surface); }
+  .course-lesson-module-header { background: var(--tl-surface-subtle); border-color: var(--tl-border); }
+  .course-lesson-module-list { border-color: var(--tl-border); }
+  .course-lesson-module-row { color: var(--tl-text); }
+  .course-lesson-module-row:hover { background: rgb(11 118 104 / 0.065); }
   @media (max-width: 34rem) {
     .lesson-list-row { grid-template-columns: 2.5rem minmax(0, 1fr) !important; }
     .lesson-list-duration { grid-column-start: 2; }
@@ -756,6 +761,11 @@ html.dark .auth-brand-logo {
 }
 html.dark .public-tech-strip { background: #07130f !important; color: rgb(231 245 234 / 0.78) !important; }
 html.dark .course-lesson-list { background: #0c1a15; border-color: var(--tl-border) !important; }
+html.dark .course-lesson-module { background: #0c1a15; border-color: var(--tl-border) !important; }
+html.dark .course-lesson-module-header { background: #10271f; border-color: var(--tl-border) !important; }
+html.dark .course-lesson-module-list { border-color: var(--tl-border) !important; }
+html.dark .course-lesson-module-row { color: #edf7ef; }
+html.dark .course-lesson-module-row:hover { background: #142d23; }
 html.dark .lesson-list-row { border-color: var(--tl-border) !important; }
 html.dark .lesson-list-row:hover { background: #142d23; }
 html.dark .lesson-list-row-current { background: #1a3a2c; }
