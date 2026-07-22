@@ -273,7 +273,7 @@ export const CourseCard: React.FC<{
         ) : null}
 
         {course.tags && course.tags.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="course-card-tags mt-4 flex flex-wrap content-start gap-2">
             {course.tags.slice(0, 3).map((tag) => (
               <span key={tag} className="course-card-tag rounded px-2 py-1 text-xs">
                 #{tag}

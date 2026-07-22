@@ -279,6 +279,8 @@
   .course-card-body { color: var(--tl-text); }
   .course-card-description { color: var(--tl-text-muted); }
   .course-card-tag { border: 1px solid var(--tl-border); background: var(--tl-surface-subtle); color: var(--tl-text-muted); }
+  /* Reserve two tag rows so every course card keeps its metadata baseline aligned. */
+  .course-card-tags { min-height: 5.25rem; }
   .course-card-meta { border-color: var(--tl-border); color: var(--tl-text-faint); }
   .icon-button {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-xl text-ink-faint transition-colors hover:bg-black/[0.05] hover:text-ink;
