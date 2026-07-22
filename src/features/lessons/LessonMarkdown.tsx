@@ -111,35 +111,38 @@ export function LessonMarkdown({
           {children}
         </a>
       ),
-      li: ({ node: _node, className, children, ...props }) => {
+      li: ({ node, className, children, ...props }) => {
         const isTaskItem = className?.split(' ').includes('task-list-item');
         if (!isTaskItem) return <li {...props} className={className}>{children}</li>;
 
-        return (
-          <li {...props} className={className}>
-            <label className="lesson-task-label">{children}</label>
-          </li>
+        const childItems = React.Children.toArray(children);
+        const sourceCheckbox = childItems.find(
+          (child) => React.isValidElement<{ type?: string; checked?: boolean }>(child)
+            && child.type === 'input'
+            && child.props.type === 'checkbox',
         );
-      },
-      input: ({ node, type, checked, disabled: _disabled, ...props }) => {
-        if (type !== 'checkbox') {
-          return <input {...props} type={type} checked={checked} disabled={_disabled} />;
-        }
-
+        const contentChildren = childItems.filter((child) => child !== sourceCheckbox);
+        const labelText = extractText(contentChildren).trim();
         const sourceOffset = node?.position?.start.offset ?? node?.position?.start.line ?? 0;
-        const taskKey = `${contentKey}:${sourceOffset}`;
-        const defaultChecked = Boolean(checked);
+        const taskKey = `${contentKey}:${sourceOffset}:${hashContent(labelText)}`;
+        const defaultChecked = React.isValidElement<{ checked?: boolean }>(sourceCheckbox)
+          ? Boolean(sourceCheckbox.props.checked)
+          : false;
         const isChecked = checkedTasks[taskKey] ?? defaultChecked;
 
         return (
-          <input
-            {...props}
-            type="checkbox"
-            checked={isChecked}
-            aria-label={isChecked ? 'Bỏ đánh dấu mục trong checklist' : 'Đánh dấu mục trong checklist'}
-            className="lesson-task-checkbox"
-            onChange={() => toggleTask(taskKey, defaultChecked)}
-          />
+          <li {...props} className={className}>
+            <label className="lesson-task-label">
+              <input
+                type="checkbox"
+                checked={isChecked}
+                aria-label={`${isChecked ? 'Bỏ đánh dấu' : 'Đánh dấu'}: ${labelText || 'mục checklist'}`}
+                className="lesson-task-checkbox"
+                onChange={() => toggleTask(taskKey, defaultChecked)}
+              />
+              <span className="min-w-0 flex-1">{contentChildren}</span>
+            </label>
+          </li>
         );
       },
     }),

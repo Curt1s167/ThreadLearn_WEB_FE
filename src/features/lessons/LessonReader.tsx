@@ -238,26 +238,6 @@ export function LessonReader({
               />
             </div>
 
-            <div className="grid gap-3 border-t border-black/10 pt-4 sm:grid-cols-2">
-              <button
-                type="button"
-                disabled={!canPrev}
-                onClick={() => goToSection(sectionIndex - 1)}
-                className="guided-footer-button sm:justify-start"
-              >
-                <ChevronLeft size={16} />
-                {canPrev ? sections[sectionIndex - 1]?.title : 'Đầu bài'}
-              </button>
-              <button
-                type="button"
-                disabled={!canNext}
-                onClick={() => goToSection(sectionIndex + 1)}
-                className="guided-footer-button guided-footer-button-next sm:justify-end"
-              >
-                {canNext ? `Tiếp: ${sections[sectionIndex + 1]?.title}` : 'Hết bài'}
-                <ChevronRight size={16} />
-              </button>
-            </div>
           </>
         ) : (
           <div className={proseClass}>

@@ -632,8 +632,7 @@
   .guided-outline-item-active,
   .guided-outline-item-active:hover { background: var(--tl-forest-900); color: #ffffff; }
   .guided-primary-button,
-  .guided-secondary-button,
-  .guided-footer-button {
+  .guided-secondary-button {
     display: inline-flex;
     min-height: 2.75rem;
     align-items: center;
@@ -650,15 +649,6 @@
   .guided-primary-button:hover { background: var(--tl-forest-800); }
   .guided-secondary-button { border: 1px solid var(--tl-border-strong); background: var(--tl-surface); color: var(--tl-text); }
   .guided-secondary-button:hover { border-color: var(--tl-focus); background: var(--tl-surface-subtle); }
-  .guided-footer-button {
-    width: 100%;
-    border: 1px solid var(--tl-border);
-    background: var(--tl-surface-subtle);
-    color: var(--tl-text-muted);
-  }
-  .guided-footer-button:hover { border-color: var(--tl-border-strong); color: var(--tl-text); }
-  .guided-footer-button-next { border-color: rgb(16 43 38 / 0.16); background: var(--tl-lime-200); color: var(--tl-forest-900); }
-  .guided-footer-button-next:hover { background: var(--tl-lime-300); color: var(--tl-forest-900); }
   .lesson-route-card {
     display: flex;
     min-height: 5rem;
@@ -674,8 +664,7 @@
   .lesson-route-card-primary { border-color: var(--tl-forest-800); background: var(--tl-forest-900); color: #ffffff; }
   .lesson-route-card-primary:hover { border-color: var(--tl-forest-800); background: var(--tl-forest-800); }
   .guided-primary-button:disabled,
-  .guided-secondary-button:disabled,
-  .guided-footer-button:disabled { cursor: not-allowed; opacity: 0.42; }
+  .guided-secondary-button:disabled { cursor: not-allowed; opacity: 0.42; }
 
   .guided-lesson-prose {
     --tw-prose-body: var(--tl-text-muted);
@@ -1055,8 +1044,6 @@ html.dark .guided-outline-item-active:hover { background: var(--tl-lime-200); co
 html.dark .guided-primary-button { border-color: var(--tl-lime-200); background: var(--tl-lime-200); color: var(--tl-forest-900); }
 html.dark .guided-primary-button:hover { background: var(--tl-lime-300); }
 html.dark .guided-secondary-button { background: var(--tl-surface); color: var(--tl-text); }
-html.dark .guided-footer-button { background: var(--tl-surface-subtle); color: var(--tl-text-muted); }
-html.dark .guided-footer-button-next { background: var(--tl-lime-200); color: var(--tl-forest-900); }
 html.dark .lesson-route-card { background: var(--tl-surface-subtle); border-color: var(--tl-border); color: var(--tl-text); }
 html.dark .lesson-route-card:hover { background: var(--tl-surface); border-color: var(--tl-border-strong); }
 html.dark .lesson-route-card-primary { background: #193329; border-color: rgb(217 249 157 / 0.26); color: #edf7ef; }
