@@ -35,6 +35,20 @@ const notifTone = (type: NotificationType) => {
   return 'bg-black/[0.04]';
 };
 
+// Some legacy notification records arrive with UTF-8 bytes decoded as Latin-1
+// (for example: "Báº¡n ÄÃ£..."). Decode only strings matching that signature.
+const normalizeNotificationText = (value: string) => {
+  if (!/(?:Ã.|Â.|Ä.|Å.|á[\u0080-\u00bf])/.test(value)) return value;
+
+  try {
+    return new TextDecoder('utf-8').decode(
+      Uint8Array.from(value, (character) => character.charCodeAt(0)),
+    );
+  } catch {
+    return value;
+  }
+};
+
 export const NotificationsPage: React.FC = () => {
   const queryClient = useQueryClient();
 
@@ -125,12 +139,12 @@ export const NotificationsPage: React.FC = () => {
               </span>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-semibold">{notif.title}</h2>
+                  <h2 className="font-semibold">{normalizeNotificationText(notif.title)}</h2>
                   <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">{notif.type}</span>
                   {!notif.isRead && <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">new</span>}
                   {useMockNotifications ? <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">mock</span> : null}
                 </div>
-                <p className="mt-1 text-sm text-black/60">{notif.message}</p>
+                <p className="mt-1 text-sm text-black/60">{normalizeNotificationText(notif.message)}</p>
               </div>
               <p className="text-xs text-black/40 sm:text-right">
                 {new Date(notif.createdAt).toLocaleString()}

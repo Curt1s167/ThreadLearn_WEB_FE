@@ -379,7 +379,7 @@ export const CourseDetailPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+      <section className="space-y-6">
         <div className="course-lessons-panel rounded-lg border border-black/10 bg-white p-4 sm:p-5">
           <h2 className="text-xl font-semibold">Lessons</h2>
           {!hasRealLessons ? (
