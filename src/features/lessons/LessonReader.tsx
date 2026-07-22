@@ -6,6 +6,7 @@ import {
   estimateReadMinutes,
   parseLessonOutline,
   splitLessonSections,
+  stripRepeatedLessonTitle,
   type LessonOutlineItem,
 } from './lessonContent';
 import { LessonMarkdown } from './LessonMarkdown';
@@ -56,16 +57,22 @@ function OutlineNav({
 
 export function LessonReader({
   content,
+  lessonTitle,
   checklistStorageKey,
   onReadComplete,
 }: {
   content: string;
+  lessonTitle: string;
   checklistStorageKey?: string;
   onReadComplete?: () => void;
 }) {
-  const outline = useMemo(() => parseLessonOutline(content), [content]);
-  const sections = useMemo(() => splitLessonSections(content), [content]);
-  const readMinutes = useMemo(() => estimateReadMinutes(content), [content]);
+  const displayContent = useMemo(
+    () => stripRepeatedLessonTitle(content, lessonTitle),
+    [content, lessonTitle],
+  );
+  const outline = useMemo(() => parseLessonOutline(displayContent), [displayContent]);
+  const sections = useMemo(() => splitLessonSections(displayContent), [displayContent]);
+  const readMinutes = useMemo(() => estimateReadMinutes(displayContent), [displayContent]);
 
   const [mode, setMode] = useState<ReadMode>('sections');
   const [sectionIndex, setSectionIndex] = useState(0);
@@ -74,7 +81,7 @@ export function LessonReader({
   useEffect(() => {
     setSectionIndex(0);
     setActiveId(outline[0]?.id);
-  }, [content, outline]);
+  }, [displayContent, outline]);
 
   const current = sections[sectionIndex] ?? sections[0];
   const canPrev = sectionIndex > 0;
@@ -90,7 +97,11 @@ export function LessonReader({
   const goToOutlineItem = (item: LessonOutlineItem) => {
     setActiveId(item.id);
     if (mode === 'sections') {
-      goToSection(item.sectionIndex);
+      const firstH2 = outline.find((outlineItem) => outlineItem.level === 2);
+      const firstH2SectionIndex = firstH2
+        ? Math.max(0, sections.findIndex((section) => section.id === firstH2.id))
+        : 0;
+      goToSection(item.sectionIndex + firstH2SectionIndex);
       return;
     }
     const el = document.getElementById(item.id);
@@ -98,7 +109,10 @@ export function LessonReader({
   };
 
   return (
-    <div className="guided-reader-grid grid gap-5 2xl:grid-cols-[minmax(13.5rem,15rem)_minmax(0,1fr)] 2xl:gap-6">
+    <div
+      className="guided-reader-grid notranslate grid gap-5 2xl:grid-cols-[minmax(13.5rem,15rem)_minmax(0,1fr)] 2xl:gap-6"
+      translate="no"
+    >
       {/* TOC — desktop sticky */}
       <aside className="hidden 2xl:block">
         <div className="guided-reader-surface sticky top-24 space-y-4 p-4">
@@ -217,7 +231,11 @@ export function LessonReader({
             </div>
 
             <div className={proseClass}>
-              <LessonMarkdown content={current.markdown} checklistStorageKey={checklistStorageKey} />
+              <LessonMarkdown
+                key={current.id}
+                content={current.markdown}
+                checklistStorageKey={checklistStorageKey}
+              />
             </div>
 
             <div className="grid gap-3 border-t border-black/10 pt-4 sm:grid-cols-2">
@@ -243,7 +261,7 @@ export function LessonReader({
           </>
         ) : (
           <div className={proseClass}>
-            <LessonMarkdown content={content} checklistStorageKey={checklistStorageKey} />
+            <LessonMarkdown content={displayContent} checklistStorageKey={checklistStorageKey} />
           </div>
         )}
 

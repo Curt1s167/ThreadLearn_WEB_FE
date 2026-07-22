@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { Check } from 'lucide-react';
 import { parseLessonOutline, slugifyHeading } from './lessonContent';
 
 type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
@@ -112,6 +111,16 @@ export function LessonMarkdown({
           {children}
         </a>
       ),
+      li: ({ node: _node, className, children, ...props }) => {
+        const isTaskItem = className?.split(' ').includes('task-list-item');
+        if (!isTaskItem) return <li {...props} className={className}>{children}</li>;
+
+        return (
+          <li {...props} className={className}>
+            <label className="lesson-task-label">{children}</label>
+          </li>
+        );
+      },
       input: ({ node, type, checked, disabled: _disabled, ...props }) => {
         if (type !== 'checkbox') {
           return <input {...props} type={type} checked={checked} disabled={_disabled} />;
@@ -123,18 +132,14 @@ export function LessonMarkdown({
         const isChecked = checkedTasks[taskKey] ?? defaultChecked;
 
         return (
-          <button
-            type="button"
-            role="checkbox"
-            aria-checked={isChecked}
+          <input
+            {...props}
+            type="checkbox"
+            checked={isChecked}
             aria-label={isChecked ? 'Bỏ đánh dấu mục trong checklist' : 'Đánh dấu mục trong checklist'}
-            className="lesson-task-toggle"
-            onClick={() => toggleTask(taskKey, defaultChecked)}
-          >
-            <span className="lesson-task-toggle-box" aria-hidden="true">
-              {isChecked ? <Check size={13} strokeWidth={3} /> : null}
-            </span>
-          </button>
+            className="lesson-task-checkbox"
+            onChange={() => toggleTask(taskKey, defaultChecked)}
+          />
         );
       },
     }),

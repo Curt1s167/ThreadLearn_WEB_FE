@@ -706,36 +706,31 @@
   .guided-lesson-prose blockquote { border-left-color: var(--tl-lime-300); background: rgb(11 118 104 / 0.06); padding: 0.65rem 1rem; color: var(--tl-text-muted); font-style: normal; }
   .guided-lesson-prose .contains-task-list { list-style: none; padding-left: 0; }
   .guided-lesson-prose .task-list-item {
+    min-height: 2.75rem;
+    padding-left: 0;
+  }
+  .lesson-task-label {
     display: flex;
     min-height: 2.75rem;
     align-items: flex-start;
-    gap: 0.25rem;
-    padding-left: 0;
-  }
-  .lesson-task-toggle {
-    display: inline-grid;
-    width: 2.75rem;
-    height: 2.75rem;
-    flex: 0 0 2.75rem;
-    place-items: center;
-    margin: -0.45rem 0 -0.45rem -0.55rem;
+    gap: 0.65rem;
+    margin: -0.45rem -0.55rem;
+    padding: 0.45rem 0.55rem;
     border-radius: 0.65rem;
-    color: #102b26;
+    cursor: pointer;
+    transition: background-color 150ms ease;
   }
-  .lesson-task-toggle:hover { background: rgb(11 118 104 / 0.08); }
-  .lesson-task-toggle-box {
-    display: grid;
+  .lesson-task-label:hover { background: rgb(11 118 104 / 0.08); }
+  .lesson-task-checkbox {
     width: 1.25rem;
     height: 1.25rem;
-    place-items: center;
+    flex: 0 0 1.25rem;
+    margin: 0.18rem 0 0;
     border: 1px solid var(--tl-border-strong);
     border-radius: 0.3rem;
     background: var(--tl-surface);
-  }
-  .lesson-task-toggle[aria-checked='true'] .lesson-task-toggle-box {
-    border-color: #102b26;
-    background: #102b26;
-    color: #ffffff;
+    accent-color: #102b26;
+    cursor: pointer;
   }
 }
 
@@ -890,14 +885,8 @@ html.dark .lesson-checklist-status-done {
   color: #102b26;
 }
 html.dark .comments-checkbox { accent-color: #bef264; }
-html.dark .lesson-task-toggle { color: #102b26; }
-html.dark .lesson-task-toggle:hover { background: rgb(217 249 157 / 0.08); }
-html.dark .lesson-task-toggle-box { background: #0c1a15; border-color: var(--tl-border-strong); }
-html.dark .lesson-task-toggle[aria-checked='true'] .lesson-task-toggle-box {
-  border-color: #d9f99d;
-  background: #d9f99d;
-  color: #102b26;
-}
+html.dark .lesson-task-label:hover { background: rgb(217 249 157 / 0.08); }
+html.dark .lesson-task-checkbox { accent-color: #d9f99d; }
 html.dark .bg-canvas-cream,
 html.dark [class*='bg-black/'] { background-color: rgb(255 255 255 / 0.07); }
 html.dark [class~='bg-[#f7f4ee]'],

@@ -435,6 +435,7 @@ export const LessonPage: React.FC = () => {
               {content.trim() ? (
                 <LessonReader
                   content={content}
+                  lessonTitle={lesson.title}
                   checklistStorageKey={`${user?._id ?? 'anonymous'}:${id}`}
                   onReadComplete={() => setReviewStep('explanationReviewed', true)}
                 />
