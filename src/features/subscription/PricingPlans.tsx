@@ -10,7 +10,7 @@ import { subscriptionService } from '../../services';
 import { EmptyState } from '../../components/shared';
 import { Modal } from '../../components/shared/Modal';
 import { useUIStore } from '../../store';
-import type { SubscriptionPlan, UserSubscription } from '../../types';
+import type { PlanType, SubscriptionPlan, UserSubscription } from '../../types';
 
 const getPlanId = (plan: SubscriptionPlan) => plan.id ?? plan._id;
 const PURCHASE_CONFIRM_MODAL = 'subscription-purchase-confirmation';
@@ -34,17 +34,29 @@ const formatPrice = (amount: number, currency: string) => {
 export function PricingPlans({
   plans,
   myPlan,
+  userPlanType,
   isSignedIn,
 }: {
   plans: SubscriptionPlan[];
   myPlan?: UserSubscription | null;
+  userPlanType?: PlanType;
   isSignedIn: boolean;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { openModal, closeModal } = useUIStore();
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const currentPlanId = myPlan?.status === 'active' ? myPlan.planId : null;
+  const freePlanId = useMemo(
+    () => plans.find((plan) => plan.price === 0 || plan.name.trim().toLowerCase() === 'free')
+      ? getPlanId(plans.find((plan) => plan.price === 0 || plan.name.trim().toLowerCase() === 'free')!)
+      : null,
+    [plans],
+  );
+  const currentPlanId = myPlan?.status === 'active'
+    ? myPlan.planId
+    : userPlanType === 'FREE'
+      ? freePlanId
+      : null;
   const selectedPlan = useMemo(
     () => plans.find((plan) => getPlanId(plan) === selectedPlanId) ?? null,
     [plans, selectedPlanId]
@@ -113,7 +125,7 @@ export function PricingPlans({
             transition={{ duration: 0.2, delay: Math.min(index * 0.05, 0.2) }}
             className={`flex flex-col rounded-lg border bg-white p-6 shadow-sm ${
               isCurrentPlan
-                ? 'border-black ring-2 ring-[#d9f99d]'
+                ? 'pricing-plan-current border-[#0b7668] ring-2 ring-[#d9f99d]/70'
                 : isFeatured
                   ? 'border-black/20'
                   : 'border-black/10'
@@ -163,10 +175,10 @@ export function PricingPlans({
             <button
               type="button"
               onClick={() => requestPurchase(plan)}
-              disabled={isPending}
-              className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              disabled={isPending || isCurrentPlan}
+              className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-medium transition disabled:cursor-not-allowed ${
                 isCurrentPlan
-                  ? 'border border-black bg-[#d9f99d] text-black hover:bg-[#c8ef80]'
+                  ? 'pricing-current-action'
                   : 'bg-black text-white hover:bg-black/90'
               }`}
             >
@@ -174,8 +186,8 @@ export function PricingPlans({
                 'Đang tạo thanh toán...'
               ) : isCurrentPlan ? (
                 <>
-                  <CreditCard size={14} />
-                  Gia hạn gói
+                  <Check size={14} />
+                  Đang sử dụng
                 </>
               ) : !isSignedIn ? (
                 <>

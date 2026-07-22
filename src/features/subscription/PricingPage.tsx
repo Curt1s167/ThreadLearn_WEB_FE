@@ -121,7 +121,12 @@ export const PricingPage: React.FC = () => {
           </div>
         </DemoWhitePanel>
       ) : (
-        <PricingPlans plans={activePlans} myPlan={myPlan} isSignedIn={Boolean(user)} />
+        <PricingPlans
+          plans={activePlans}
+          myPlan={myPlan}
+          userPlanType={user?.planType}
+          isSignedIn={Boolean(user)}
+        />
       )}
     </DemoPageRoot>
   );

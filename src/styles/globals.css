@@ -208,6 +208,30 @@
   .lesson-list-row-complete { background: rgb(11 118 104 / 0.05); }
   .lesson-list-title { color: var(--tl-text); }
   .lesson-list-meta, .lesson-list-duration { color: var(--tl-text-muted); }
+  .pricing-plan-current {
+    background: linear-gradient(145deg, rgb(217 249 157 / 0.13), var(--tl-surface));
+  }
+  .pricing-current-action {
+    border: 1px solid rgb(16 43 38 / 0.16);
+    background: rgb(16 43 38 / 0.1);
+    color: rgb(16 43 38 / 0.72);
+  }
+  .dashboard-course-card { overflow: hidden; border-radius: 1.25rem; }
+  .dashboard-course-progress {
+    margin-top: -0.25rem;
+    border: 1px solid var(--tl-border);
+    border-top: 0;
+    border-radius: 0 0 1.25rem 1.25rem;
+    background: var(--tl-surface);
+    color: var(--tl-text-muted);
+  }
+  .dashboard-course-progress span:last-child { color: var(--tl-text); }
+  .dashboard-stat-card {
+    border-top: 3px solid #0b7668;
+    background: linear-gradient(145deg, var(--tl-surface), var(--tl-surface-subtle));
+    box-shadow: var(--tl-card-shadow);
+  }
+  .dashboard-stat-card > svg { color: #0b7668; }
   .dashboard-streak-panel {
     background: linear-gradient(145deg, #d9f99d, #c7f277);
     color: #102b26;
@@ -630,6 +654,22 @@ html.dark .lesson-list-row-current { background: #1a3a2c; }
 html.dark .lesson-list-row-complete { background: #10271f; }
 html.dark .lesson-list-title { color: #edf7ef !important; }
 html.dark .lesson-list-meta, html.dark .lesson-list-duration { color: rgb(220 237 225 / 0.74) !important; }
+html.dark .pricing-plan-current {
+  background: linear-gradient(145deg, #183426, #10211c) !important;
+  border-color: rgb(217 249 157 / 0.42) !important;
+}
+html.dark .pricing-current-action {
+  border-color: rgb(217 249 157 / 0.16) !important;
+  background: rgb(217 249 157 / 0.1) !important;
+  color: rgb(237 247 239 / 0.7) !important;
+}
+html.dark .dashboard-course-progress {
+  background: #10211c !important;
+  border-color: var(--tl-border) !important;
+  color: var(--tl-text-muted) !important;
+}
+html.dark .dashboard-course-progress span:last-child { color: #edf7ef !important; }
+html.dark .dashboard-stat-card { background: linear-gradient(145deg, #10271f, #10211c) !important; }
 html.dark .input-field:-webkit-autofill,
 html.dark .input-field:-webkit-autofill:hover,
 html.dark .input-field:-webkit-autofill:focus {
