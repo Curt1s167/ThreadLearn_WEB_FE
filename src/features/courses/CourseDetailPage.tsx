@@ -379,7 +379,7 @@ export const CourseDetailPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="space-y-6">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
         <div className="course-lessons-panel rounded-lg border border-black/10 bg-white p-4 sm:p-5">
           <h2 className="text-xl font-semibold">Lessons</h2>
           {!hasRealLessons ? (
@@ -388,7 +388,7 @@ export const CourseDetailPage: React.FC = () => {
             </p>
           ) : null}
           {displayLessons.length > 0 ? (
-            <div className="lesson-list mt-5 overflow-hidden rounded-xl border border-black/10">
+            <div className="course-lesson-list mt-5 w-full overflow-hidden rounded-xl border border-black/10">
               {displayLessons.map((lesson, index) => {
                 const done = completedSet.has(lesson._id);
                 const isCurrent = continueLessonId === lesson._id && isEnrolled && !done;

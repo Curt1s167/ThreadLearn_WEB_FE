@@ -223,7 +223,7 @@
     background: #10231f;
     color: rgb(231 245 234 / 0.78);
   }
-  .lesson-list { background: var(--tl-surface-subtle); border-color: var(--tl-border); }
+  .course-lesson-list { background: var(--tl-surface-subtle); border-color: var(--tl-border); }
   .lesson-list-row { border-bottom: 1px solid var(--tl-border); }
   .lesson-list-row:last-child { border-bottom: 0; }
   .lesson-list-row:hover { background: rgb(11 118 104 / 0.065); }
@@ -755,7 +755,7 @@ html.dark .auth-brand-logo {
   box-shadow: 0 8px 20px rgb(0 0 0 / 0.16);
 }
 html.dark .public-tech-strip { background: #07130f !important; color: rgb(231 245 234 / 0.78) !important; }
-html.dark .lesson-list { background: #0c1a15; border-color: var(--tl-border) !important; }
+html.dark .course-lesson-list { background: #0c1a15; border-color: var(--tl-border) !important; }
 html.dark .lesson-list-row { border-color: var(--tl-border) !important; }
 html.dark .lesson-list-row:hover { background: #142d23; }
 html.dark .lesson-list-row-current { background: #1a3a2c; }
