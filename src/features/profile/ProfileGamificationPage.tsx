@@ -218,17 +218,17 @@ export const ProfileGamificationPage: React.FC = () => {
 
         {/* Main — certificates placeholder + full stats widget */}
         <section className="space-y-5">
-          <div className="rounded-lg bg-[#d9f99d] p-6">
+          <div className="accent-surface rounded-lg p-6">
             <Award size={24} />
-            <h2 className="mt-4 text-2xl font-semibold text-ink">Certificates</h2>
-            <p className="mt-2 text-sm text-black/65">
+            <h2 className="accent-surface-title mt-4 text-2xl font-semibold">Certificates</h2>
+            <p className="accent-surface-copy mt-2 text-sm">
               Certificate module is not wired on FE yet. Placeholder UI until certificates API is
               connected.
             </p>
             <button
               type="button"
               disabled
-              className="mt-5 cursor-not-allowed rounded-full bg-black/40 px-4 py-2 text-sm font-medium text-white"
+              className="accent-surface-disabled mt-5 cursor-not-allowed rounded-full px-4 py-2 text-sm font-medium"
               title="Coming soon"
             >
               Download certificate

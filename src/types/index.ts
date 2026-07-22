@@ -101,6 +101,7 @@ export interface Course {
   _id: string;
   id?: string;
   title: string;
+  slug?: string;
   description: string;
   shortDescription?: string;
   thumbnailUrl?: string;
@@ -111,6 +112,8 @@ export interface Course {
   isPremium?: boolean;
   price?: number;
   status?: string;
+  prerequisites?: string[];
+  prerequisiteThreshold?: number;
   isDeleted?: boolean;
   lessonCount?: number;
   enrollmentCount?: number;

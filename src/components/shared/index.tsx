@@ -13,7 +13,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses = {
-  primary: 'bg-black hover:bg-black/85 text-white border-transparent rounded-full',
+  primary: 'bg-[#102b26] hover:bg-[#16433a] text-white border-transparent rounded-full shadow-[0_8px_18px_rgb(16_43_38_/_0.12)]',
   ghost: 'bg-transparent hover:bg-black/[0.05] text-ink-muted hover:text-ink border-transparent',
   outline: 'bg-transparent hover:bg-black/[0.03] text-ink-muted hover:text-ink border-black/10 hover:border-black/25',
   danger: 'bg-rose-500/10 hover:bg-rose-500/15 text-rose-700 border-rose-500/20',
@@ -35,7 +35,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => (
   <button
-    className={`inline-flex items-center justify-center font-medium border transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-black/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+    className={`inline-flex items-center justify-center font-semibold border transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#0b7668]/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream disabled:opacity-50 disabled:cursor-not-allowed active:translate-y-px ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
     disabled={disabled || loading}
     {...props}
   >
@@ -184,13 +184,13 @@ export const CountUpNumber: React.FC<{
 };
 
 // ─── Course Card (PR10 demo-fidelity) ─────────────────────────────────────────
-const COURSE_ACCENTS = ['bg-[#d9f99d]', 'bg-[#f5d0fe]', 'bg-[#bfdbfe]', 'bg-[#fde68a]'];
+const COURSE_ACCENTS = ['bg-[#d8f4b2]', 'bg-[#e5dcff]', 'bg-[#cfe5ff]', 'bg-[#ffe8a6]'];
 
 const levelPillClass = (level?: CourseLevel) => {
-  if (level === 'BEGINNER') return 'bg-[#d9f99d] text-black';
-  if (level === 'INTERMEDIATE') return 'bg-[#f5d0fe] text-black';
-  if (level === 'ADVANCED') return 'bg-[#bfdbfe] text-black';
-  return 'bg-black text-white';
+  if (level === 'BEGINNER') return 'bg-[#d9f99d] text-[#102b26]';
+  if (level === 'INTERMEDIATE') return 'bg-[#e5dcff] text-[#33205d]';
+  if (level === 'ADVANCED') return 'bg-[#cfe5ff] text-[#123a68]';
+  return 'bg-[#102b26] text-white';
 };
 
 export const CourseCard: React.FC<{
@@ -220,9 +220,9 @@ export const CourseCard: React.FC<{
           onClick();
         }
       }}
-      className={`group block overflow-hidden rounded-lg border border-black/10 bg-white transition-all duration-200 motion-safe:hover:-translate-y-1 hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`course-card group block overflow-hidden rounded-[1.25rem] transition-all duration-200 motion-safe:hover:-translate-y-1 outline-none focus-visible:ring-2 focus-visible:ring-[#0b7668]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-cream ${onClick ? 'cursor-pointer' : ''} ${className}`}
     >
-      <div className={`relative overflow-hidden ${compact ? 'aspect-[16/9] max-h-28' : 'aspect-video'} ${accent} p-4 sm:p-5`}>
+      <div className={`course-card-media relative overflow-hidden ${compact ? 'aspect-[16/9] max-h-28' : 'aspect-video'} ${accent} p-4 sm:p-5`}>
         {thumbnailUrl ? (
           <Image
             src={thumbnailUrl}
@@ -233,9 +233,9 @@ export const CourseCard: React.FC<{
             onError={() => setImageFailed(true)}
           />
         ) : null}
-        <div className={`relative flex h-full flex-col justify-between rounded-md bg-white/65 p-4 ${thumbnailUrl ? 'bg-white/80 backdrop-blur-[1px]' : ''}`}>
+        <div className="course-card-media-overlay relative flex h-full flex-col justify-between rounded-xl p-4">
           <div className="flex items-center justify-between gap-2">
-            <Code2 size={compact ? 20 : 26} className="text-ink shrink-0" />
+            <Code2 size={compact ? 20 : 26} className="course-card-media-icon shrink-0" />
             <div className="flex flex-wrap items-center justify-end gap-1.5">
               {course.level ? (
                 <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${levelPillClass(course.level)}`}>
@@ -243,12 +243,12 @@ export const CourseCard: React.FC<{
                 </span>
               ) : null}
               {course.isPremium ? (
-                <span className="inline-flex rounded-full bg-black px-2.5 py-0.5 text-[10px] font-medium text-white">
+                <span className="inline-flex rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-medium text-white">
                   Premium
                 </span>
               ) : null}
               {!course.isPublished ? (
-                <span className="inline-flex rounded-full bg-black/10 px-2.5 py-0.5 text-[10px] font-medium text-black/55">
+                <span className="inline-flex rounded-full bg-white/20 px-2.5 py-0.5 text-[10px] font-medium text-white/80">
                   Draft
                 </span>
               ) : null}
@@ -256,33 +256,33 @@ export const CourseCard: React.FC<{
           </div>
           <div>
             {course.language ? (
-              <p className="text-xs uppercase tracking-[0.18em] text-black/45">{course.language}</p>
+              <p className="course-card-media-eyebrow text-xs uppercase tracking-[0.18em]">{course.language}</p>
             ) : null}
-            <p className={`mt-1 font-semibold text-ink leading-snug line-clamp-2 ${compact ? 'text-base' : 'text-lg'}`}>
+            <p className={`course-card-media-title mt-1 font-semibold leading-snug line-clamp-2 ${compact ? 'text-base' : 'text-lg'}`}>
               {course.title}
             </p>
           </div>
         </div>
       </div>
 
-      <div className={compact ? 'p-4' : 'p-5'}>
+      <div className={`course-card-body ${compact ? 'p-4' : 'p-5'}`}>
         {(course.shortDescription || course.description) ? (
-          <p className="line-clamp-2 min-h-11 text-sm text-black/60">
+          <p className="course-card-description line-clamp-2 min-h-11 text-sm">
             {course.shortDescription || course.description}
           </p>
         ) : null}
 
         {course.tags && course.tags.length > 0 ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="course-card-tags mt-4 flex flex-wrap content-start gap-2">
             {course.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className="rounded bg-black/[0.04] px-2 py-1 text-xs text-black/55">
+              <span key={tag} className="course-card-tag rounded px-2 py-1 text-xs">
                 #{tag}
               </span>
             ))}
           </div>
         ) : null}
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-4 text-xs text-black/50">
+        <div className="course-card-meta mt-5 flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-xs">
           <span className="flex items-center gap-1">
             <BookOpen size={13} />
             {lessons} lessons

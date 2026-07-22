@@ -12,17 +12,17 @@ type BrandLogoSize = 'xs' | 'sm' | 'md' | 'lg';
 
 const MARK_PX: Record<BrandLogoSize, number> = {
   xs: 24,
-  sm: 28,
-  md: 32,
-  lg: 40,
+  sm: 30,
+  md: 34,
+  lg: 42,
 };
 
 /** Full wordmark target height; width follows aspect of tight logo (4:1). */
 const FULL_H: Record<BrandLogoSize, number> = {
   xs: 22,
-  sm: 26,
-  md: 30,
-  lg: 36,
+  sm: 30,
+  md: 34,
+  lg: 40,
 };
 
 const FULL_ASPECT = 4; // width / height for threadlearn-logo-tight.png (640×160)
@@ -32,7 +32,7 @@ export interface BrandLogoProps {
   size?: BrandLogoSize;
   className?: string;
   priority?: boolean;
-  /** When true, wraps mark in a light rounded chip for contrast on dark surfaces. */
+  /** Force the light contrast surface; otherwise it is applied automatically in dark mode. */
   onDark?: boolean;
 }
 
@@ -43,33 +43,23 @@ export function BrandLogo({
   priority = false,
   onDark = false,
 }: BrandLogoProps) {
+  const adaptiveSurface = onDark
+    ? 'rounded-lg bg-[#edf7ef] px-2 py-1 ring-1 ring-black/5'
+    : 'dark:rounded-lg dark:bg-[#edf7ef] dark:px-2 dark:py-1 dark:ring-1 dark:ring-white/10';
+
   if (variant === 'mark') {
     const px = MARK_PX[size];
-    const image = (
-      <Image
-        src="/brand/threadlearn-mark.png"
-        alt="ThreadLearn"
-        width={px}
-        height={px}
-        priority={priority}
-        className={`object-contain shrink-0 ${className}`.trim()}
-      />
-    );
-
-    if (!onDark) return image;
-
     return (
       <span
-        className={`inline-grid place-items-center rounded-lg bg-white shrink-0 ${className}`.trim()}
-        style={{ width: px + 6, height: px + 6 }}
+        className={`inline-flex shrink-0 items-center justify-center ${adaptiveSurface} ${className}`.trim()}
       >
         <Image
           src="/brand/threadlearn-mark.png"
           alt="ThreadLearn"
-          width={px - 2}
-          height={px - 2}
+          width={px}
+          height={px}
           priority={priority}
-          className="object-contain"
+          className="shrink-0 object-contain"
         />
       </span>
     );
@@ -79,15 +69,19 @@ export function BrandLogo({
   const w = Math.round(h * FULL_ASPECT);
 
   return (
-    <Image
-      src="/brand/threadlearn-logo-tight.png"
-      alt="ThreadLearn"
-      width={w}
-      height={h}
-      priority={priority}
-      className={`object-contain object-left shrink-0 ${className}`.trim()}
-      style={{ width: w, height: h }}
-    />
+    <span
+      className={`inline-flex shrink-0 items-center justify-center ${adaptiveSurface} ${className}`.trim()}
+    >
+      <Image
+        src="/brand/threadlearn-logo-tight.png"
+        alt="ThreadLearn"
+        width={w}
+        height={h}
+        priority={priority}
+        className="shrink-0 object-contain object-left"
+        style={{ width: w, height: h }}
+      />
+    </span>
   );
 }
 

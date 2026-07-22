@@ -16,7 +16,6 @@ import {
   DemoPageRoot,
   DemoPill,
 } from '../ui-reskin/demo-ui';
-import { FALLBACK_COURSES } from '../ui-reskin/demo-fallbacks';
 
 const LEVELS: CourseLevel[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 
@@ -42,11 +41,8 @@ export const CoursesPage: React.FC = () => {
   });
 
   const courses = data?.items ?? [];
-  const useMockCourses = !isLoading && (isError || courses.length === 0);
-  const visibleCourses = useMockCourses ? FALLBACK_COURSES : courses;
-
   useEffect(() => {
-    if (isError) toast.error('Failed to load courses. Showing demo preview.');
+    if (isError) toast.error('Failed to load courses');
   }, [isError]);
 
   return (
@@ -57,21 +53,19 @@ export const CoursesPage: React.FC = () => {
           <div>
             <DemoDisplayTitle>All courses</DemoDisplayTitle>
             <DemoMuted>
-              {useMockCourses
-                ? 'Demo course previews are shown because the backend has no catalog data yet.'
-                : data?.total != null
+              {data?.total != null
                 ? `${data.total} courses available — focused paths for async programming and production-safe backend patterns.`
                 : 'A focused path for async programming, concurrency bugs, and production-safe backend patterns.'}
             </DemoMuted>
           </div>
-          <label className="flex min-w-0 items-center gap-2 rounded-full border border-black/10 bg-[#f7f4ee] px-4 py-3 text-sm lg:w-80">
-            <Search size={16} className="shrink-0 text-black/40" />
+          <label className="catalog-search flex min-w-0 items-center gap-2 rounded-full px-4 py-3 text-sm lg:w-80">
+            <Search size={16} className="catalog-search-icon shrink-0" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search courses..."
-              className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-black/40"
+              className="min-w-0 flex-1 bg-transparent outline-none"
             />
           </label>
         </div>
@@ -80,10 +74,10 @@ export const CoursesPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setLevel('')}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`catalog-filter rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
               level === ''
-                ? 'bg-black text-white'
-                : 'border border-black/10 bg-white text-black/60 hover:border-black/20'
+                ? 'catalog-filter-active'
+                : ''
             }`}
           >
             All levels
@@ -93,10 +87,10 @@ export const CoursesPage: React.FC = () => {
               key={item}
               type="button"
               onClick={() => setLevel(item === level ? '' : item)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+              className={`catalog-filter rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
                 level === item
-                  ? 'bg-black text-white'
-                  : 'border border-black/10 bg-white text-black/60 hover:border-black/20'
+                  ? 'catalog-filter-active'
+                  : ''
               }`}
             >
               {item.toLowerCase()}
@@ -114,7 +108,13 @@ export const CoursesPage: React.FC = () => {
             <Skeleton key={i} className="h-72 rounded-lg" />
           ))}
         </div>
-      ) : visibleCourses.length === 0 ? (
+      ) : isError ? (
+        <EmptyState
+          icon={<BookOpen size={36} />}
+          title="Could not load courses"
+          description="Please try again in a moment."
+        />
+      ) : courses.length === 0 ? (
         <EmptyState
           icon={<BookOpen size={36} />}
           title="No courses found"
@@ -122,18 +122,13 @@ export const CoursesPage: React.FC = () => {
         />
       ) : (
         <>
-          {useMockCourses ? (
-            <div className="rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
-              Mock catalog preview from the demo flow. Connect coursesService.list data to replace these cards.
-            </div>
-          ) : null}
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {visibleCourses.map((course) => (
+            {courses.map((course) => (
               <CourseCard
                 key={course._id}
                 course={course}
-                onClick={useMockCourses ? undefined : () => router.push(`/courses/${course._id}`)}
-                onIntent={useMockCourses ? undefined : () => {
+                onClick={() => router.push(`/courses/${course._id}`)}
+                onIntent={() => {
                   router.prefetch(`/courses/${course._id}`);
                   void queryClient.prefetchQuery({
                     queryKey: ['course-detail', course._id],

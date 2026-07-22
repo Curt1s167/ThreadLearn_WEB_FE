@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   BookOpen,
@@ -20,10 +21,12 @@ import {
   CreditCard,
   CheckCircle,
   History,
+  Code2,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar } from '../components/shared';
 import { BrandLogo } from '../components/shared/BrandLogo';
+import { coursesService, enrollmentsService, notificationsService } from '../services';
 import {
   SIDEBAR_COLLAPSED_CLASS,
   SIDEBAR_EXPANDED_CLASS,
@@ -46,6 +49,7 @@ interface NavGroup {
 const studentNavItems: NavItem[] = [
   { to: '/dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
   { to: '/courses', icon: <BookOpen size={16} />, label: 'Courses' },
+  { to: '/ide', icon: <Code2 size={16} />, label: 'Code Lab' },
   {
     to: '/quiz/history',
     icon: <History size={16} />,
@@ -90,18 +94,55 @@ function itemActive(item: NavItem, pathname: string): boolean {
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuthStore();
-  const { sidebarCollapsed, toggleSidebarCollapse } = useUIStore();
+  const { sidebarCollapsed, sidebarOpen, setSidebarOpen, toggleSidebarCollapse } = useUIStore();
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN';
   const navGroups = isAdmin ? adminNavGroups : studentNavGroups;
-  const warmRoute = (route: string) => router.prefetch(route);
+
+  React.useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname, setSidebarOpen]);
+
+  const warmRoute = (route: string) => {
+    router.prefetch(route);
+
+    if (route === '/courses') {
+      void queryClient.prefetchQuery({
+        queryKey: ['courses', '', ''],
+        queryFn: () => coursesService.list({}),
+      });
+    }
+    if (route === '/dashboard') {
+      void queryClient.prefetchQuery({
+        queryKey: ['my-enrollments'],
+        queryFn: enrollmentsService.getMyEnrollments,
+      });
+    }
+    if (route === '/notifications') {
+      void queryClient.prefetchQuery({
+        queryKey: ['notifications'],
+        queryFn: notificationsService.getAll,
+      });
+    }
+  };
 
   return (
+    <>
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 cursor-default bg-black/35 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close navigation"
+        />
+      )}
     <aside
-      className={`fixed left-0 top-0 h-full z-30 flex flex-col bg-white/90 backdrop-blur-xl border-r border-black/10 transition-all duration-200 ${
+      className={`shell-sidebar fixed left-0 top-0 z-40 flex h-[100dvh] flex-col border-r backdrop-blur-xl transition-[transform,width] duration-200 ${
         sidebarCollapsed ? SIDEBAR_COLLAPSED_CLASS : SIDEBAR_EXPANDED_CLASS
-      }`}
+      } ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      aria-label="Primary navigation"
     >
       <div className="h-14 flex items-center justify-between px-3 border-b border-black/10 shrink-0">
         {!sidebarCollapsed && (
@@ -164,6 +205,7 @@ export const Sidebar: React.FC = () => {
                 <Link
                   key={item.to}
                   href={item.to}
+                  onClick={() => setSidebarOpen(false)}
                   onMouseEnter={() => warmRoute(item.to)}
                   onFocus={() => warmRoute(item.to)}
                   className={`${active ? 'sidebar-item-active' : 'sidebar-item'} ${
@@ -183,6 +225,7 @@ export const Sidebar: React.FC = () => {
       <div className="border-t border-black/10 p-2 shrink-0">
         <Link
           href="/profile"
+          onClick={() => setSidebarOpen(false)}
           onMouseEnter={() => warmRoute('/profile')}
           onFocus={() => warmRoute('/profile')}
           className={`flex items-center gap-2.5 p-2 rounded-lg hover:bg-black/[0.04] transition-colors ${
@@ -199,5 +242,6 @@ export const Sidebar: React.FC = () => {
         </Link>
       </div>
     </aside>
+    </>
   );
 };
