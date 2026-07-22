@@ -447,7 +447,7 @@ export const CourseDetailPage: React.FC = () => {
           ) : null}
         </div>
 
-        <aside className="rounded-lg border border-black/10 bg-white p-5">
+        <aside className="self-start rounded-lg border border-black/10 bg-white p-5">
           <h2 className="text-xl font-semibold">What you will learn</h2>
           <div className="mt-5 space-y-3">
             {displayOutcomes.map((outcome) => (
