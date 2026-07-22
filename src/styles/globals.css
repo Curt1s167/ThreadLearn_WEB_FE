@@ -273,6 +273,44 @@
   }
   .course-detail-hero-title { color: #102b26; }
   .course-detail-hero-summary { color: rgb(16 43 38 / 0.76); }
+  .course-hero-status-card {
+    isolation: isolate;
+    min-height: clamp(16rem, 24vw, 20rem);
+    border: 1px solid rgb(242 255 243 / 0.36);
+    background: #102b26;
+    box-shadow: 0 16px 28px rgb(16 43 38 / 0.18);
+  }
+  .course-hero-status-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(135deg, rgb(8 37 31 / 0.88) 0%, rgb(8 37 31 / 0.76) 55%, rgb(8 37 31 / 0.58) 100%);
+    pointer-events: none;
+  }
+  .course-hero-status-image { z-index: 0; opacity: 0.72; }
+  .course-hero-status-content {
+    display: flex;
+    min-height: calc(clamp(16rem, 24vw, 20rem) - 2.5rem);
+    flex-direction: column;
+    z-index: 2;
+  }
+  .course-hero-status-label { color: rgb(242 255 243 / 0.78); }
+  .course-hero-status-content > .text-4xl { color: #f2fff3; font-size: clamp(2.4rem, 4vw, 3.25rem); line-height: 1; }
+  .course-hero-progress-track { height: 0.5rem; overflow: hidden; border-radius: 999px; background: rgb(242 255 243 / 0.2); }
+  .course-hero-progress-fill { height: 100%; border-radius: inherit; background: #d9f99d; box-shadow: 0 0 0.75rem rgb(217 249 157 / 0.24); }
+  .course-hero-status-content > .course-hero-status-action { margin-top: auto !important; }
+  .course-hero-access-card {
+    border: 1px solid rgb(16 43 38 / 0.12);
+    background: #ffffff;
+    color: #10231f;
+    box-shadow: 0 12px 24px rgb(0 0 0 / 0.14);
+  }
+  .course-lessons-panel { min-width: 0; }
+  @media (max-width: 34rem) {
+    .lesson-list-row { grid-template-columns: 2.5rem minmax(0, 1fr) !important; }
+    .lesson-list-duration { grid-column-start: 2; }
+  }
   .course-card {
     border: 1px solid var(--tl-border);
     background: var(--tl-surface);

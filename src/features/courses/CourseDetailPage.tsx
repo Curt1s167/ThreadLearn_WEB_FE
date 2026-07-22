@@ -261,7 +261,7 @@ export const CourseDetailPage: React.FC = () => {
       </button>
 
       <section className={`course-detail-hero ${accent} relative overflow-hidden rounded-[1.5rem] border border-white/70 p-6 shadow-[0_18px_36px_rgb(16_43_38_/_0.08)] sm:p-8`}>
-        <div className="grid gap-7 lg:grid-cols-[1fr_340px] lg:items-end">
+        <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(19rem,24rem)] xl:items-end">
           <div>
             <div className="mb-5 flex flex-wrap gap-2">
               {course.level ? <DemoPill tone={levelTone(course.level)}>{course.level.toLowerCase()}</DemoPill> : null}
@@ -290,9 +290,9 @@ export const CourseDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-2xl border border-white/70 bg-[#102b26]/92 p-5 text-white shadow-[0_16px_28px_rgb(16_43_38_/_0.16)] backdrop-blur-sm">
+          <div className="course-hero-status-card relative overflow-hidden rounded-2xl p-5 text-white">
             {course.thumbnailUrl ? (
-              <div className="pointer-events-none absolute inset-0 opacity-20">
+              <div className="course-hero-status-image pointer-events-none absolute inset-0">
                 <Image src={course.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
               </div>
             ) : (
@@ -307,19 +307,19 @@ export const CourseDetailPage: React.FC = () => {
                 </div>
               </div>
             )}
-            <div className="relative">
-              <p className="on-forest-copy text-sm">
+            <div className="course-hero-status-content relative">
+              <p className="course-hero-status-label text-sm">
                 {isEnrolled ? 'Course progress' : blockReason ? 'Access requirement' : 'Ready to start'}
               </p>
               <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
-              <div className="mt-4 h-2 rounded-full bg-white/15">
+              <div className="course-hero-progress-track mt-4">
                 <div
-                  className="h-2 rounded-full bg-[#d9f99d] transition-all"
+                  className="course-hero-progress-fill transition-all"
                   style={{ width: `${isEnrolled ? progress : 0}%` }}
                 />
               </div>
               {blockReason ? (
-                <div className="mt-5 rounded-xl border border-white/15 bg-white p-3 text-left text-black shadow-sm">
+                <div className="course-hero-access-card mt-5 rounded-xl p-4 text-left">
                   <div className="flex gap-2.5">
                     <div className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${blockReason === 'premium' ? 'bg-amber-400/20 text-amber-800' : 'bg-sky-500/10 text-sky-800'}`}>
                       {blockReason === 'premium' ? <Crown size={15} /> : <Milestone size={15} />}
@@ -337,7 +337,7 @@ export const CourseDetailPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <Button onClick={accessAction} className="mt-3 w-full" size="sm">
+                  <Button onClick={accessAction} className="course-hero-status-action mt-3 w-full" size="sm">
                     {blockReason === 'premium' ? 'View Premium plans' : firstMissingPrerequisite?.course ? 'Open required course' : 'Browse courses'}
                     <ArrowRight size={14} />
                   </Button>
@@ -347,7 +347,7 @@ export const CourseDetailPage: React.FC = () => {
                   onClick={() => (isEnrolled ? handleContinue() : enroll())}
                   loading={enrolling}
                   disabled={!isEnrolled && !courseObjectId}
-                  className="mt-5 w-full bg-[#d9f99d] text-[#102b26] hover:bg-[#bef264]"
+                  className="course-hero-status-action mt-5 w-full bg-[#d9f99d] text-[#102b26] hover:bg-[#bef264]"
                 >
                   {isEnrolled ? (
                     <>
@@ -363,8 +363,8 @@ export const CourseDetailPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-lg border border-black/10 bg-white p-5">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+        <div className="course-lessons-panel rounded-lg border border-black/10 bg-white p-4 sm:p-5">
           <h2 className="text-xl font-semibold">Lessons</h2>
           {!hasRealLessons ? (
             <p className="accent-surface-subtle mt-2 rounded-lg px-3 py-2 text-xs">
@@ -393,7 +393,7 @@ export const CourseDetailPage: React.FC = () => {
                       }
                       router.push(`/lessons/${lesson._id}`);
                     }}
-                    className={`lesson-list-row flex w-full items-center gap-4 px-4 py-4 text-left transition ${
+                    className={`lesson-list-row grid w-full grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-4 text-left transition sm:grid-cols-[2.75rem_minmax(0,1fr)_auto] sm:px-5 ${
                       done ? 'lesson-list-row-complete' : isCurrent ? 'lesson-list-row-current' : ''
                     }`}
                   >
