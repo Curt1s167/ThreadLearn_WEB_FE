@@ -311,13 +311,29 @@ export const CourseDetailPage: React.FC = () => {
               <p className="course-hero-status-label text-sm">
                 {isEnrolled ? 'Course progress' : blockReason ? 'Access requirement' : 'Ready to start'}
               </p>
-              <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
-              <div className="course-hero-progress-track mt-4">
-                <div
-                  className="course-hero-progress-fill transition-all"
-                  style={{ width: `${isEnrolled ? progress : 0}%` }}
-                />
-              </div>
+              {isEnrolled ? (
+                <>
+                  <p className="mt-2 text-4xl font-semibold">{`${progress}%`}</p>
+                  <div className="course-hero-progress-track mt-4">
+                    <div
+                      className="course-hero-progress-fill transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </>
+              ) : !blockReason ? (
+                <div className="course-hero-start-state mt-4">
+                  <span className="course-hero-start-icon">
+                    <BookOpen size={18} />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-white">Your learning path is ready</p>
+                    <p className="course-hero-start-copy mt-1 text-sm">
+                      Enroll to unlock {displayLessonCount} lessons and start at your own pace.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               {blockReason ? (
                 <div className="course-hero-access-card mt-5 rounded-xl p-4 text-left">
                   <div className="flex gap-2.5">

@@ -299,6 +299,19 @@
   .course-hero-status-content > .text-4xl { color: #f2fff3; font-size: clamp(2.4rem, 4vw, 3.25rem); line-height: 1; }
   .course-hero-progress-track { height: 0.5rem; overflow: hidden; border-radius: 999px; background: rgb(242 255 243 / 0.2); }
   .course-hero-progress-fill { height: 100%; border-radius: inherit; background: #d9f99d; box-shadow: 0 0 0.75rem rgb(217 249 157 / 0.24); }
+  .course-hero-start-state { display: flex; align-items: flex-start; gap: 0.75rem; max-width: 22rem; }
+  .course-hero-start-icon {
+    display: grid;
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    border: 1px solid rgb(217 249 157 / 0.32);
+    border-radius: 0.75rem;
+    color: #d9f99d;
+    background: rgb(217 249 157 / 0.1);
+  }
+  .course-hero-start-copy { color: rgb(242 255 243 / 0.76); line-height: 1.45; }
   .course-hero-status-content > .course-hero-status-action { margin-top: auto !important; }
   .course-hero-access-card {
     border: 1px solid rgb(16 43 38 / 0.12);
