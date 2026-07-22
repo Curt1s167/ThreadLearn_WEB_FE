@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCheck, Zap, Trophy, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { notificationsService } from '../../services';
-import { normalizeMojibakeText } from '../../utils';
+import { formatNotificationMessage, normalizeMojibakeText } from '../../utils';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
 import type { NotificationType } from '../../types';
 import {
@@ -132,7 +132,7 @@ export const NotificationsPage: React.FC = () => {
                   <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">{notif.type}</span>
                   {!notif.isRead && <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">new</span>}
                 </div>
-                <p className="mt-1 text-sm text-black/60">{normalizeMojibakeText(notif.message)}</p>
+                <p className="mt-1 text-sm text-black/60">{formatNotificationMessage(notif)}</p>
               </div>
               <p className="text-xs text-black/40 sm:text-right">
                 {new Date(notif.createdAt).toLocaleString()}

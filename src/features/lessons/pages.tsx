@@ -300,7 +300,7 @@ export const LessonPage: React.FC = () => {
       ) : lesson ? (
         <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
           <article className="space-y-5">
-            <div className="rounded-lg bg-white p-6 sm:p-8">
+            <div className="lesson-header p-5 sm:p-7">
               <Link href={courseHref} className="text-sm text-black/50 hover:text-black">
                 Back to course
               </Link>
@@ -318,7 +318,7 @@ export const LessonPage: React.FC = () => {
                     ) : null}
                     {lesson.videoUrl ? <DemoPill tone="pink">Video</DemoPill> : null}
                   </div>
-                  <h1 className="text-4xl font-light tracking-tight text-ink">{lesson.title}</h1>
+                  <h1 className="text-3xl font-semibold leading-tight tracking-[-0.035em] text-ink sm:text-4xl">{lesson.title}</h1>
                   {lesson.attachmentUrl ? (
                     <a
                       href={lesson.attachmentUrl}
@@ -334,7 +334,7 @@ export const LessonPage: React.FC = () => {
                   type="button"
                   onClick={() => toggleBookmark()}
                   disabled={bookmarking}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
+                  className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     isBookmarked ? 'bg-[#d9f99d] text-ink' : 'bg-black text-white hover:bg-black/90'
                   }`}
                 >
@@ -346,7 +346,7 @@ export const LessonPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-lg border border-black/10 bg-white p-6 sm:p-8">
+            <div className="lesson-surface p-4 sm:p-6 lg:p-7">
               {lesson.videoUrl ? (
                 <div className="mb-6 aspect-video overflow-hidden rounded-lg border border-black/10 bg-black">
                   <iframe
@@ -378,11 +378,11 @@ export const LessonPage: React.FC = () => {
               ) : null}
 
               {(prevLesson || nextLesson) ? (
-                <div className="mt-8 flex flex-wrap items-stretch justify-between gap-3 border-t border-black/10 pt-6">
+                <div className="mt-8 grid gap-3 border-t border-black/10 pt-6 sm:grid-cols-2">
                   {prevLesson ? (
                     <Link
                       href={`/lessons/${prevLesson._id}`}
-                      className="group min-w-[200px] flex-1 rounded-lg border border-black/10 bg-[#fafafa] px-4 py-3 transition hover:border-black/20 hover:bg-white"
+                      className="lesson-route-card group px-4 py-3"
                     >
                       <span className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.14em] text-black/40">
                         <ArrowLeft size={12} /> Bài trước
@@ -392,12 +392,12 @@ export const LessonPage: React.FC = () => {
                       </span>
                     </Link>
                   ) : (
-                    <div className="flex-1" />
+                    <div className="hidden sm:block" />
                   )}
                   {nextLesson ? (
                     <Link
                       href={`/lessons/${nextLesson._id}`}
-                      className="group min-w-[200px] flex-1 rounded-lg border border-black/10 bg-black px-4 py-3 text-right text-white transition hover:bg-black/90"
+                      className="lesson-route-card lesson-route-card-primary group px-4 py-3 text-right"
                     >
                       <span className="inline-flex items-center justify-end gap-1 text-xs uppercase tracking-[0.14em] text-white/50">
                         Bài tiếp <ArrowRight size={12} />
@@ -405,7 +405,7 @@ export const LessonPage: React.FC = () => {
                       <span className="mt-1 block text-sm font-medium">{nextLesson.title}</span>
                     </Link>
                   ) : (
-                    <div className="flex-1" />
+                    <div className="hidden sm:block" />
                   )}
                 </div>
               ) : null}

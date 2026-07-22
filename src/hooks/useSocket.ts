@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store';
 import type { Notification, NotificationType } from '../types';
+import { formatNotificationMessage, normalizeMojibakeText } from '../utils';
 
 type RealtimeNotification = {
   id: string;
@@ -74,19 +75,8 @@ export function useSocket() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
       // Show toast
-      const icons: Record<string, string> = {
-        LEVEL_UP: '⚡',
-        QUIZ_PASSED: '✅',
-        COURSE_COMPLETED: '📚',
-        ACHIEVEMENT: '🏆',
-        LEADERBOARD: '🏆',
-        COURSE_ENROLLED: '📚',
-        LESSON_COMPLETED: '📚',
-        QUIZ_FAILED: '🔁',
-      };
-      toast(notif.title, {
-        description: notif.message,
-        icon: icons[notif.type] || '🔔',
+      toast(normalizeMojibakeText(nextNotification.title), {
+        description: formatNotificationMessage(nextNotification),
       });
     });
 

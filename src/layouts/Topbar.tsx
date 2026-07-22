@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
 import { notificationsService } from '../services';
-import { normalizeMojibakeText } from '../utils';
+import { formatNotificationMessage, normalizeMojibakeText } from '../utils';
 import type { Notification, NotificationType } from '../types';
 import {
   TOPBAR_COLLAPSED_LEFT,
@@ -198,7 +198,7 @@ export const Topbar: React.FC = () => {
                           <span className="line-clamp-1 text-sm font-medium text-ink">{normalizeMojibakeText(notification.title)}</span>
                           <span className="shrink-0 text-[11px] text-ink-faint">{formatNotificationTime(notification.createdAt)}</span>
                         </span>
-                        <span className="mt-1 line-clamp-2 block text-xs leading-5 text-ink-muted">{normalizeMojibakeText(notification.message)}</span>
+                        <span className="mt-1 line-clamp-2 block text-xs leading-5 text-ink-muted">{formatNotificationMessage(notification)}</span>
                       </span>
                     </button>
                   ))}
