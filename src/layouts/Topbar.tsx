@@ -63,6 +63,7 @@ export const Topbar: React.FC = () => {
 
   const level = stats?.level ?? 1;
   const xp = stats?.xp;
+  const isAdmin = String(user?.role ?? '').toUpperCase() === 'ADMIN';
 
   const handleLogout = () => {
     logout();
@@ -113,7 +114,7 @@ export const Topbar: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-1">
-        {user && (
+        {user && !isAdmin && (
           <div className="topbar-xp-chip hidden sm:flex items-center gap-2 rounded-full px-4 py-2 mr-2">
             <span className="topbar-xp-label">Lv.</span>
             <span className="topbar-xp-level">{level}</span>
@@ -250,11 +251,13 @@ export const Topbar: React.FC = () => {
                   <p className="text-[11px] text-ink-faint truncate">
                     {user?.email}
                   </p>
-                  <div className="mt-1">
-                    <Badge color={user?.planType === 'PREMIUM' ? 'amber' : 'gray'}>
-                      {user?.planType}
-                    </Badge>
-                  </div>
+                  {!isAdmin && (
+                    <div className="mt-1">
+                      <Badge color={user?.planType === 'PREMIUM' ? 'amber' : 'gray'}>
+                        {user?.planType}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 <button
                   type="button"
