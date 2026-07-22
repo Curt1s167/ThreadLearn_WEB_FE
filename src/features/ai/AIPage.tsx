@@ -237,10 +237,10 @@ export const AIPage: React.FC = () => {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-lg bg-[#d9f99d] p-6">
+          <div className="accent-surface rounded-lg p-6">
             <Brain size={24} />
-            <h2 className="mt-5 text-2xl font-semibold">About this AI</h2>
-            <div className="mt-5 space-y-4 text-sm text-black/70">
+            <h2 className="accent-surface-title mt-5 text-2xl font-semibold">About this AI</h2>
+            <div className="accent-surface-copy mt-5 space-y-4 text-sm">
               <div className="flex items-start gap-2">
                 <Cpu size={15} className="mt-0.5 shrink-0" />
                 <p><strong>Model:</strong> Qwen2.5-Coder-1.5B, fine-tuned with QLoRA (r=16, alpha=32) on race-condition patterns.</p>

@@ -138,7 +138,7 @@ export const BookmarksPage: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
+          <div className="accent-surface rounded-lg p-4 text-sm">
             Mock bookmark preview from the demo flow. Real bookmarks will replace these cards.
           </div>
           <div className="grid gap-4 md:grid-cols-2">

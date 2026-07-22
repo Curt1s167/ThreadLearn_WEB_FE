@@ -10,7 +10,6 @@ import {
   BookOpen,
   Brain,
   CheckCircle2,
-  Code2,
   Flame,
   Play,
   Trophy,
@@ -24,12 +23,11 @@ import {
   leaderboardService,
   studentsService,
 } from '../../services';
-import type { Enrollment } from '../../types';
+import type { Course, Enrollment } from '../../types';
+import { CourseCard } from '../../components/shared';
 import {
-  COURSE_ACCENT_COLORS,
   DemoHeroInk,
   DemoPageRoot,
-  DemoPill,
   UI_PLACEHOLDERS,
   formatXp,
 } from '../ui-reskin/demo-ui';
@@ -47,21 +45,64 @@ const getCourseTitle = (enrollment: Enrollment) =>
     ? `Course #${enrollment.courseId.slice(-6)}`
     : enrollment.courseId.title ?? `Course #${getCourseId(enrollment).slice(-6)}`;
 
-const getCourseLanguage = (enrollment: Enrollment) =>
-  typeof enrollment.courseId === 'string'
-    ? 'Course'
-    : enrollment.courseId.language ?? 'Course';
+const getEnrollmentCourse = (enrollment: Enrollment): Course => {
+  if (typeof enrollment.courseId !== 'string') {
+    const source = enrollment.courseId;
+    const id = source._id ?? source.id ?? enrollment._id;
+    return {
+      _id: id,
+      id,
+      title: source.title ?? `Course #${id.slice(-6)}`,
+      description: 'Continue this course from your personal learning dashboard.',
+      shortDescription: 'Continue this course from your personal learning dashboard.',
+      tags: [],
+      thumbnailUrl: source.thumbnailUrl,
+      level: (source.level as Course['level']) ?? 'BEGINNER',
+      language: source.language ?? 'Course',
+      isPremium: source.isPremium,
+      isPublished: source.status !== 'DRAFT',
+      totalLessons: source.totalLessons ?? enrollment.totalLessons ?? 0,
+      totalEnrollments: 0,
+      createdAt: '',
+      updatedAt: '',
+    };
+  }
 
-const getCourseLevelTone = (
-  enrollment: Enrollment
-): 'lime' | 'pink' | 'blue' | 'default' => {
-  if (typeof enrollment.courseId === 'string') return 'default';
-  const level = (enrollment.courseId.level ?? '').toString().toLowerCase();
-  if (level.includes('begin')) return 'lime';
-  if (level.includes('inter')) return 'pink';
-  if (level.includes('adv')) return 'blue';
-  return 'default';
+  return FALLBACK_COURSES.find((course) => course._id === enrollment.courseId) ?? {
+    _id: enrollment.courseId,
+    title: `Course #${enrollment.courseId.slice(-6)}`,
+    description: 'Continue this course from your personal learning dashboard.',
+    shortDescription: 'Continue this course from your personal learning dashboard.',
+    tags: [],
+    level: 'BEGINNER',
+    language: 'Course',
+    isPublished: true,
+    totalLessons: 0,
+    totalEnrollments: 0,
+    createdAt: '',
+    updatedAt: '',
+  };
 };
+
+function DashboardCourseCard({
+  course,
+  progress,
+  onOpen,
+}: {
+  course: Course;
+  progress: number;
+  onOpen: () => void;
+}) {
+  return (
+    <div className="dashboard-course-card">
+      <CourseCard course={course} onClick={onOpen} />
+      <div className="dashboard-course-progress flex items-center justify-between gap-4 px-5 py-3 text-xs">
+        <span className="inline-flex items-center gap-1"><BookOpen size={13} /> Your progress</span>
+        <span className="font-semibold">{progress}%</span>
+      </div>
+    </div>
+  );
+}
 
 /**
  * PR4 — layout fidelity to DemoDashboardPage:
@@ -119,11 +160,11 @@ export const DashboardPage: React.FC = () => {
     <DemoPageRoot>
       <section className="grid gap-5 lg:grid-cols-[1.45fr_0.55fr]">
         <DemoHeroInk>
-          <p className="text-xs uppercase tracking-[0.18em] text-white/45">Your progress</p>
+          <p className="on-forest-label text-xs uppercase tracking-[0.18em]">Your progress</p>
           <h1 className="mt-3 text-4xl font-light tracking-tight">
             Continue learning, {firstName}.
           </h1>
-          <p className="mt-4 max-w-2xl text-white/60">
+          <p className="on-forest-copy mt-4 max-w-2xl">
             {resumeLoading
               ? 'Loading your resume target…'
               : resume
@@ -157,23 +198,23 @@ export const DashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.05 }}
-          className="rounded-lg bg-[#d9f99d] p-6"
+          className="dashboard-streak-panel rounded-[1.5rem] p-6"
         >
-          <Flame size={26} />
-          <p className="mt-5 text-4xl font-semibold">
+          <Flame size={26} className="dashboard-streak-icon" />
+          <p className="dashboard-streak-value mt-5 text-4xl font-semibold">
             {statsLoading ? '…' : `${streak} day${streak === 1 ? '' : 's'}`}
           </p>
-          <p className="mt-2 text-sm text-black/60">
+          <p className="dashboard-streak-copy mt-2 text-sm">
             Learning streak. Keep one short lesson per day.
           </p>
           <div className="mt-6 grid grid-cols-7 gap-1">
             {UI_PLACEHOLDERS.weekdays.map((day, index) => (
               <div
                 key={`${day}-${index}`}
-                className={`grid aspect-square place-items-center rounded text-xs ${
+                className={`dashboard-streak-day grid aspect-square place-items-center rounded text-xs ${
                   index < Math.min(streak, 7)
-                    ? 'bg-black text-white'
-                    : 'bg-white/60 text-black/35'
+                    ? 'dashboard-streak-day-active'
+                    : 'dashboard-streak-day-idle'
                 }`}
               >
                 {day}
@@ -209,7 +250,7 @@ export const DashboardPage: React.FC = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, delay: 0.05 * i }}
-            className="rounded-lg border border-black/10 bg-white p-5"
+            className="dashboard-stat-card rounded-lg border border-black/10 p-5"
           >
             <Icon size={22} />
             <p className="mt-4 text-3xl font-semibold">{value}</p>
@@ -235,113 +276,34 @@ export const DashboardPage: React.FC = () => {
             </div>
           ) : enrollments && enrollments.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2">
-              {enrollments.slice(0, 2).map((enrollment, index) => {
+              {enrollments.slice(0, 2).map((enrollment) => {
                 const courseId = getCourseId(enrollment);
                 const pct = enrollment.progressPercent ?? enrollment.progress ?? 0;
-                const tone = getCourseLevelTone(enrollment);
-                const accent = COURSE_ACCENT_COLORS[index % COURSE_ACCENT_COLORS.length];
                 return (
-                  <motion.div
+                  <DashboardCourseCard
                     key={enrollment._id}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.18 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/courses/${courseId}`)}
-                      className="group block w-full overflow-hidden rounded-lg border border-black/10 bg-white text-left outline-none focus-visible:ring-2 focus-visible:ring-black/25"
-                    >
-                      {/* Demo CourseCard-style media block */}
-                      <div className={`aspect-video ${accent} p-5`}>
-                        <div className="flex h-full flex-col justify-between rounded-md bg-white/65 p-4">
-                          <div className="flex items-center justify-between">
-                            <Code2 size={26} />
-                            <DemoPill tone={tone === 'default' ? 'default' : tone}>
-                              {typeof enrollment.courseId === 'string'
-                                ? `${pct}%`
-                                : (enrollment.courseId.level ?? `${pct}%`)}
-                            </DemoPill>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.18em] text-black/45">
-                              {getCourseLanguage(enrollment)}
-                            </p>
-                            <p className="mt-1 text-lg font-semibold text-black line-clamp-2">
-                              {getCourseTitle(enrollment)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="border-t border-black/5 px-4 py-3">
-                        <div className="flex items-center justify-between text-xs text-black/50">
-                          <span className="inline-flex items-center gap-1">
-                            <BookOpen size={12} /> Progress
-                          </span>
-                          <span className="font-medium text-black">{pct}%</span>
-                        </div>
-                        <div className="mt-2 h-1.5 rounded-full bg-black/5">
-                          <div
-                            className="h-1.5 rounded-full bg-black transition-all"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    </button>
-                  </motion.div>
+                    course={getEnrollmentCourse(enrollment)}
+                    progress={pct}
+                    onOpen={() => router.push(`/courses/${courseId}`)}
+                  />
                 );
               })}
             </div>
           ) : (
             <>
-              <div className="mb-4 rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
+              <div className="dashboard-accent-note mb-4 rounded-lg p-4 text-sm">
                 Mock course progress preview from the demo flow. Enrollments from BE will replace these cards.
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 {FALLBACK_COURSES.slice(0, 2).map((course, index) => {
-                  const accent = COURSE_ACCENT_COLORS[index % COURSE_ACCENT_COLORS.length];
                   const pct = index === 0 ? 68 : 24;
                   return (
-                    <motion.div
+                    <DashboardCourseCard
                       key={course._id}
-                      whileHover={{ y: -4 }}
-                      transition={{ duration: 0.18 }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => router.push('/courses')}
-                        className="group block w-full overflow-hidden rounded-lg border border-black/10 bg-white text-left outline-none focus-visible:ring-2 focus-visible:ring-black/25"
-                      >
-                        <div className={`aspect-video ${accent} p-5`}>
-                          <div className="flex h-full flex-col justify-between rounded-md bg-white/65 p-4">
-                            <div className="flex items-center justify-between">
-                              <Code2 size={26} />
-                              <DemoPill tone={index === 0 ? 'lime' : 'pink'}>
-                                {course.level.toLowerCase()}
-                              </DemoPill>
-                            </div>
-                            <div>
-                              <p className="text-xs uppercase tracking-[0.18em] text-black/45">
-                                {course.language}
-                              </p>
-                              <p className="mt-1 text-lg font-semibold text-black line-clamp-2">
-                                {course.title}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="border-t border-black/5 px-4 py-3">
-                          <div className="flex items-center justify-between text-xs text-black/50">
-                            <span className="inline-flex items-center gap-1">
-                              <BookOpen size={12} /> Mock progress
-                            </span>
-                            <span className="font-medium text-black">{pct}%</span>
-                          </div>
-                          <div className="mt-2 h-1.5 rounded-full bg-black/5">
-                            <div className="h-1.5 rounded-full bg-black" style={{ width: `${pct}%` }} />
-                          </div>
-                        </div>
-                      </button>
-                    </motion.div>
+                      course={course}
+                      progress={pct}
+                      onOpen={() => router.push('/courses')}
+                    />
                   );
                 })}
               </div>

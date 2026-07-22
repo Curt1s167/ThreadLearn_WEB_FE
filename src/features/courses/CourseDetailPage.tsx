@@ -66,7 +66,7 @@ const isLessonAccessible = (
   isPremiumCourse: boolean,
   canAccessPremiumCourses: boolean,
 ) => {
-  if (lesson.isLocked || lesson.status === 'locked') return false;
+  if (lesson.isLocked) return false;
   if (lesson.isPreview) return true;
   return isEnrolled && (!isPremiumCourse || canAccessPremiumCourses);
 };
@@ -427,7 +427,7 @@ export const CourseDetailPage: React.FC = () => {
                         isPremiumCourse,
                         canAccessPremiumCourses,
                       );
-                      const lockMessage = lesson.isLocked || lesson.status === 'locked'
+                      const lockMessage = lesson.isLocked
                         ? 'Lesson locked by instructor'
                         : requiresPremium && !lesson.isPreview
                           ? 'Premium required'

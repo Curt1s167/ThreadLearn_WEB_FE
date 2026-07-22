@@ -43,15 +43,17 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
   }
 
   return (
-    <div className="min-h-screen bg-canvas-cream text-ink">
+    <div className="app-shell min-h-[100dvh] text-ink">
       <Sidebar />
       <Topbar />
       <main
+        id="main-content"
+        tabIndex={-1}
         className={`pt-14 min-h-screen transition-all duration-200 ${
           sidebarCollapsed ? MAIN_COLLAPSED_PL : MAIN_EXPANDED_PL
         }`}
       >
-        <div className="p-6">
+        <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6 lg:px-8 lg:py-9">
           <ErrorBoundary>
             {children}
           </ErrorBoundary>
