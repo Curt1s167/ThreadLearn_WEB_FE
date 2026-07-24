@@ -6,7 +6,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCheck, Zap, Trophy, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { notificationsService } from '../../services';
-import { Button, Skeleton } from '../../components/shared';
+import { formatNotificationMessage, normalizeMojibakeText } from '../../utils';
+import { Button, EmptyState, Skeleton } from '../../components/shared';
 import type { NotificationType } from '../../types';
 import {
   DemoDisplayTitle,
@@ -15,7 +16,6 @@ import {
   DemoPill,
   DemoWhitePanel,
 } from '../ui-reskin/demo-ui';
-import { FALLBACK_NOTIFICATIONS } from '../ui-reskin/demo-fallbacks';
 
 const notifIcons: Partial<Record<NotificationType, React.ReactNode>> = {
   LEVEL_UP: <Zap size={18} />,
@@ -62,13 +62,11 @@ export const NotificationsPage: React.FC = () => {
     onError: () => toast.error('Failed to mark notification as read'),
   });
 
-  const realNotifications = notifications ?? [];
-  const useMockNotifications = !isLoading && (isError || realNotifications.length === 0);
-  const visibleNotifications = useMockNotifications ? FALLBACK_NOTIFICATIONS : realNotifications;
+  const visibleNotifications = notifications ?? [];
   const unread = visibleNotifications.filter((n) => !n.isRead).length;
 
   useEffect(() => {
-    if (isError) toast.error('Failed to load notifications. Showing demo preview.');
+    if (isError) toast.error('Failed to load notifications');
   }, [isError]);
 
   return (
@@ -82,7 +80,7 @@ export const NotificationsPage: React.FC = () => {
               Live records from the notification service, including quiz, gamification, course, and payment events.
             </p>
           </div>
-          {!useMockNotifications && unread > 0 && (
+          {unread > 0 && (
             <Button variant="outline" onClick={() => markAll()} className="rounded-full">
               <CheckCheck size={14} />
               Mark all read
@@ -92,7 +90,6 @@ export const NotificationsPage: React.FC = () => {
         <div className="mt-6 flex flex-wrap gap-2">
           <DemoPill tone={unread > 0 ? 'lime' : 'default'}>{unread} unread</DemoPill>
           <DemoPill tone="pink">{visibleNotifications.length} total</DemoPill>
-          {useMockNotifications ? <DemoPill>Mock preview</DemoPill> : null}
         </div>
       </DemoHeroWhite>
 
@@ -102,22 +99,28 @@ export const NotificationsPage: React.FC = () => {
             <Skeleton key={i} className="h-24 rounded-lg" />
           ))}
         </div>
+      ) : isError ? (
+        <EmptyState
+          icon={<Bell size={36} />}
+          title="Could not load notifications"
+          description="Please try again in a moment."
+        />
       ) : visibleNotifications.length > 0 ? (
         <DemoWhitePanel className="divide-y divide-black/10">
           {visibleNotifications.map((notif) => (
             <div
               key={notif._id}
-              role={!useMockNotifications && !notif.isRead ? 'button' : undefined}
-              tabIndex={!useMockNotifications && !notif.isRead ? 0 : undefined}
-              onClick={() => !useMockNotifications && !notif.isRead && markRead(notif._id)}
+              role={!notif.isRead ? 'button' : undefined}
+              tabIndex={!notif.isRead ? 0 : undefined}
+              onClick={() => !notif.isRead && markRead(notif._id)}
               onKeyDown={(event) => {
-                if (!useMockNotifications && !notif.isRead && (event.key === 'Enter' || event.key === ' ')) {
+                if (!notif.isRead && (event.key === 'Enter' || event.key === ' ')) {
                   event.preventDefault();
                   markRead(notif._id);
                 }
               }}
               className={`grid gap-4 p-5 transition hover:bg-black/[0.025] sm:grid-cols-[44px_1fr_auto] ${
-                !notif.isRead ? `${useMockNotifications ? '' : 'cursor-pointer'} bg-[#d9f99d]/20` : ''
+                !notif.isRead ? 'cursor-pointer bg-[#d9f99d]/20' : ''
               }`}
             >
               <span className={`grid h-11 w-11 place-items-center rounded-full ${notifTone(notif.type)}`}>
@@ -125,12 +128,11 @@ export const NotificationsPage: React.FC = () => {
               </span>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-semibold">{notif.title}</h2>
+                  <h2 className="font-semibold">{normalizeMojibakeText(notif.title)}</h2>
                   <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">{notif.type}</span>
                   {!notif.isRead && <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">new</span>}
-                  {useMockNotifications ? <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">mock</span> : null}
                 </div>
-                <p className="mt-1 text-sm text-black/60">{notif.message}</p>
+                <p className="mt-1 text-sm text-black/60">{formatNotificationMessage(notif)}</p>
               </div>
               <p className="text-xs text-black/40 sm:text-right">
                 {new Date(notif.createdAt).toLocaleString()}
@@ -138,7 +140,13 @@ export const NotificationsPage: React.FC = () => {
             </div>
           ))}
         </DemoWhitePanel>
-      ) : null}
+      ) : (
+        <EmptyState
+          icon={<Bell size={36} />}
+          title="No notifications yet"
+          description="Learning and account updates will appear here."
+        />
+      )}
     </DemoPageRoot>
   );
 };

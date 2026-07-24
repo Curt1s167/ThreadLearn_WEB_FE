@@ -36,6 +36,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={jetBrainsMono.variable}>
+        <a className="skip-link" href="#main-content">
+          Skip to main content
+        </a>
         <Providers>{children}</Providers>
       </body>
     </html>

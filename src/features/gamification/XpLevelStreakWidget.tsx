@@ -116,28 +116,28 @@ export const XpLevelStreakWidget: React.FC = () => {
   return (
     <div className="flex flex-col gap-5">
       <div
-        className={`rounded-lg border border-black/10 bg-white p-6 shadow-sm transition-shadow duration-200 ${
+        className={`gamification-level-card rounded-lg border p-5 transition-shadow duration-200 sm:p-6 ${
           levelJustChanged ? 'ring-2 ring-[#d9f99d] motion-safe:animate-level-pop' : ''
         }`}
       >
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#d9f99d]">
-            <GraduationCap size={26} className="text-ink" />
+        <div className="flex items-center gap-4 sm:gap-5">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#d9f99d]">
+            <GraduationCap size={29} className="text-ink" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="text-sm font-semibold text-ink">Level {level}</span>
-              <span className="text-xs text-black/50">
+            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-base font-semibold text-ink">Level {level}</span>
+              <span className="text-sm tabular-nums text-ink-muted">
                 <CountUpNumber value={xp} /> / {nextLevelXp.toLocaleString()} XP
               </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-black/5">
+            <div className="gamification-level-track h-2.5 overflow-hidden rounded-full">
               <div
-                className="h-full rounded-full bg-black transition-all duration-200"
+                className="gamification-level-fill h-full rounded-full transition-all duration-200"
                 style={{ width: `${levelProgress}%` }}
               />
             </div>
-            <p className="mt-2 text-xs text-black/45">Last active: {lastActiveDate}</p>
+            <p className="mt-2.5 text-sm text-ink-faint">Last active: {lastActiveDate}</p>
           </div>
         </div>
       </div>

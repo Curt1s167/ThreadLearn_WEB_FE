@@ -16,11 +16,30 @@ export interface LessonOutlineItem {
 export interface LessonContentSection {
   id: string;
   title: string;
-  /** Full markdown slice for this H2 block (includes the H2 heading line). */
+  /** Markdown body for this H2 block. The section heading is rendered by LessonReader. */
   markdown: string;
 }
 
 const HEADING_RE = /^(#{2,3})\s+(.+?)\s*$/;
+
+/** Remove a leading Markdown H1 when the lesson page already renders that title. */
+export function stripRepeatedLessonTitle(markdown: string, lessonTitle?: string): string {
+  if (!lessonTitle) return markdown;
+
+  const lines = markdown.replace(/^\uFEFF/, '').split(/\r?\n/);
+  const firstContentIndex = lines.findIndex((line) => line.trim().length > 0);
+  if (firstContentIndex < 0) return markdown;
+
+  const match = lines[firstContentIndex].match(/^#(?!#)\s+(.+?)\s*$/);
+  if (!match) return markdown;
+
+  const markdownTitle = match[1].replace(/\s+#*\s*$/, '').trim();
+  if (slugifyHeading(markdownTitle) !== slugifyHeading(lessonTitle)) return markdown;
+
+  lines.splice(firstContentIndex, 1);
+  while (lines[firstContentIndex]?.trim() === '') lines.splice(firstContentIndex, 1);
+  return lines.join('\n').trim();
+}
 
 export function slugifyHeading(text: string): string {
   const base = text
@@ -69,7 +88,8 @@ export function parseLessonOutline(markdown: string): LessonOutlineItem[] {
 
 /**
  * Split lesson body into H2 sections for "read by part" mode.
- * Content before the first H2 becomes an intro section.
+ * Content before the first H2 becomes an intro section. The H2 line itself is
+ * omitted because LessonReader renders the section title in its header.
  */
 export function splitLessonSections(markdown: string): LessonContentSection[] {
   const lines = markdown.split(/\r?\n/);
@@ -95,7 +115,7 @@ export function splitLessonSections(markdown: string): LessonContentSection[] {
       sawH2 = true;
       currentTitle = match[2].replace(/\s+#*\s*$/, '').trim() || 'Phần';
       currentId = uniqueId(currentTitle, used);
-      buffer = [line];
+      buffer = [];
       continue;
     }
     buffer.push(line);

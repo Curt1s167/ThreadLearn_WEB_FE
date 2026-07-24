@@ -15,7 +15,6 @@ import {
   DemoPageRoot,
   DemoPill,
 } from '../ui-reskin/demo-ui';
-import { FALLBACK_BOOKMARKS } from '../ui-reskin/demo-fallbacks';
 
 type BookmarksQueryData = {
   data: Bookmark[];
@@ -137,27 +136,11 @@ export const BookmarksPage: React.FC = () => {
           ))}
         </div>
       ) : (
-        <>
-          <div className="rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
-            Mock bookmark preview from the demo flow. Real bookmarks will replace these cards.
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {FALLBACK_BOOKMARKS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => router.push(item.href)}
-                className="rounded-lg border border-black/10 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <p className="text-xs uppercase tracking-[0.18em] text-black/40">{item.course}</p>
-                <h2 className="mt-3 text-xl font-semibold text-ink">{item.title}</h2>
-                <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-ink">
-                  Open course catalog <ArrowRight size={15} />
-                </p>
-              </button>
-            ))}
-          </div>
-        </>
+        <EmptyState
+          icon={<BookmarkIcon size={36} />}
+          title="No saved lessons"
+          description="Bookmark a lesson to keep it here for quick review."
+        />
       )}
     </DemoPageRoot>
   );

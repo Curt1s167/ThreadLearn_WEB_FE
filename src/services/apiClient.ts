@@ -148,3 +148,9 @@ export const extractApiError = (
   }
   return error instanceof Error && error.message ? error.message : fallback;
 };
+
+export const extractApiErrorCode = (error: unknown): string | undefined => {
+  if (!axios.isAxiosError(error)) return undefined;
+  const code = error.response?.data?.code;
+  return typeof code === 'string' ? code : undefined;
+};
