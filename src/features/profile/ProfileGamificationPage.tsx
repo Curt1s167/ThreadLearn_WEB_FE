@@ -10,6 +10,7 @@ import { authService } from '../../services/auth.service';
 import { adminService, gamificationService } from '../../services';
 import { useAuthStore } from '../../store';
 import { Avatar, Skeleton } from '../../components/shared';
+import { ProfileNameForm } from './ProfileNameForm';
 import {
   DemoPageRoot,
   DemoPill,
@@ -114,6 +115,7 @@ export const ProfileGamificationPage: React.FC = () => {
               <DemoPill tone="default">System account</DemoPill>
             </div>
             <p className="mt-4 text-xs text-black/40">Member since {memberSince}</p>
+            <ProfileNameForm />
           </aside>
 
           <section className="space-y-5">
@@ -194,6 +196,8 @@ export const ProfileGamificationPage: React.FC = () => {
           <p className="mt-4 text-xs text-black/40">
             Member since {memberSince}
           </p>
+
+          <ProfileNameForm />
 
           <div className="mt-6 grid grid-cols-2 gap-3">
             <div className="rounded-lg bg-[#f7f4ee] p-4">
