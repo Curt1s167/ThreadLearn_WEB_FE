@@ -96,6 +96,8 @@ export interface UserStats {
 // ─── Courses ─────────────────────────────────────────────────────────────────
 
 export type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+export type CourseStatus = 'draft' | 'published' | 'hidden' | 'archived' | 'deleted';
+export type CourseLanguage = 'javascript' | 'java' | 'python';
 
 export interface Course {
   _id: string;
@@ -106,12 +108,13 @@ export interface Course {
   shortDescription?: string;
   thumbnailUrl?: string;
   tags: string[];
+  category?: string;
   level: CourseLevel;
-  language: string;
+  language: CourseLanguage | string;
   isPublished: boolean;
   isPremium?: boolean;
   price?: number;
-  status?: string;
+  status?: CourseStatus;
   prerequisites?: string[];
   prerequisiteThreshold?: number;
   isDeleted?: boolean;
@@ -128,10 +131,23 @@ export interface Course {
 export interface CourseCreatePayload {
   title: string;
   description: string;
+  shortDescription?: string;
   tags?: string[];
   level?: CourseLevel;
-  language?: string;
+  language?: CourseLanguage;
   thumbnailUrl?: string;
+  category?: string;
+  isPremium?: boolean;
+  price?: number;
+  prerequisites?: string[];
+  prerequisiteThreshold?: number;
+  estimatedDuration?: number;
+}
+
+export type CourseUpdatePayload = Partial<CourseCreatePayload>;
+
+export interface CourseStatusPayload {
+  status: Extract<CourseStatus, 'draft' | 'published' | 'hidden'>;
 }
 
 export interface CourseSection {
@@ -143,6 +159,14 @@ export interface CourseSection {
   orderIndex: number;
   isPublished?: boolean;
   status?: string;
+}
+
+export interface CourseSectionPayload {
+  courseId: string;
+  title: string;
+  description?: string;
+  orderIndex?: number;
+  isPublished?: boolean;
 }
 
 export interface CourseDetail {
@@ -182,6 +206,22 @@ export interface Lesson {
   isLocked?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LessonManagementPayload {
+  courseId: string;
+  sectionId?: string;
+  title: string;
+  description?: string;
+  contentMarkdown?: string;
+  lessonType?: NonNullable<Lesson['lessonType']>;
+  videoUrl?: string;
+  attachments?: string[];
+  codeSnippets?: LessonCodeSnippet[];
+  orderIndex?: number;
+  estimatedTime?: number;
+  isPreview?: boolean;
+  isLocked?: boolean;
 }
 
 export interface LessonCompleteResult {
@@ -675,10 +715,18 @@ export type PaginatedApiResponse<T> = ApiResponse<PaginatedResponse<T>>;
 // ─── Filters ──────────────────────────────────────────────────────────────────
 
 export interface CourseFilters {
+  q?: string;
   search?: string;
   level?: CourseLevel;
-  language?: string;
+  language?: CourseLanguage;
+  tag?: string;
   tags?: string[];
+  category?: string;
+  isPremium?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  status?: CourseStatus;
+  includeAll?: boolean;
   page?: number;
   limit?: number;
 }
