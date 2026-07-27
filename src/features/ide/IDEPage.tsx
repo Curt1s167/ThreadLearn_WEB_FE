@@ -21,6 +21,7 @@ export function IDEPage() {
   const [sourceCode, setSourceCode] = useState(STARTER_CODE.javascript);
   const [stdin, setStdin] = useState('');
   const [result, setResult] = useState<CodeExecutionResult | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
 
   useEffect(() => {
     try {
@@ -54,9 +55,9 @@ export function IDEPage() {
     },
   });
 
-  const { data: history = [] } = useQuery({
-    queryKey: ['code-execution-history'],
-    queryFn: codeExecutionService.history,
+  const { data: history } = useQuery({
+    queryKey: ['code-execution-history', historyPage],
+    queryFn: () => codeExecutionService.history(historyPage),
   });
 
   const output = useMemo(() => {
@@ -124,12 +125,18 @@ export function IDEPage() {
           <div className="rounded-xl border border-black/10 bg-white p-4">
             <p className="text-sm font-semibold text-ink">Recent executions</p>
             <div className="mt-3 space-y-2">
-              {history.slice(0, 5).map((item) => (
+              {history?.items.map((item) => (
                 <button key={item._id} type="button" onClick={() => { if (item.sourceCode) setSourceCode(item.sourceCode); }} className="w-full rounded-md border border-black/10 p-2 text-left text-xs hover:bg-black/[0.03]">
                   <span className="font-medium">{item.status.description}</span> · {item.runtime}s · {item.memory} KB
                 </button>
               ))}
-              {history.length === 0 ? <p className="text-xs text-black/45">No execution history yet.</p> : null}
+              {history?.items.length === 0 ? <p className="text-xs text-black/45">No execution history yet.</p> : null}
+              {history?.meta.totalPages && history.meta.totalPages > 1 ? (
+                <div className="flex justify-between pt-2 text-xs">
+                  <button type="button" disabled={historyPage === 1} onClick={() => setHistoryPage((page) => page - 1)}>Previous</button>
+                  <button type="button" disabled={!history.meta.hasMore} onClick={() => setHistoryPage((page) => page + 1)}>Next</button>
+                </div>
+              ) : null}
             </div>
           </div>
           <div className="rounded-xl border border-black/10 bg-white p-4">

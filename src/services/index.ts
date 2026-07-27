@@ -353,8 +353,8 @@ export const codeExecutionService = {
     const { data } = await apiClient.post<ApiResponse<CodeExecutionResult>>('/code-execution/run', payload);
     return data.data;
   },
-  history: async () => {
-    const { data } = await apiClient.get<ApiResponse<Array<CodeExecutionResult & { sourceCode?: string; stdin?: string }>>>('/code-execution/history');
+  history: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<CodeExecutionResult>>>('/code-execution/history', { params: { page, limit } });
     return data.data;
   },
 };
@@ -516,8 +516,8 @@ export const aiService = {
     );
     return data.data;
   },
-  getHistory: async () => {
-    const { data } = await apiClient.get<ApiResponse<AIHistoryLog[]>>('/ai/history');
+  getHistory: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<AIHistoryLog>>>('/ai/history', { params: { page, limit } });
     return data.data;
   },
   getHistoryById: async (id: string) => {
