@@ -74,7 +74,7 @@ export function useAnalyzeStream() {
     setPartialIssues([]);
   }, []);
 
-  const run = useCallback(async (inputCode: string, language: string): Promise<void> => {
+  const run = useCallback(async (inputCode: string, language: string, codeExecutionId?: string): Promise<void> => {
     reset();
     setIsStreaming(true);
     startTimeRef.current = Date.now();
@@ -90,7 +90,7 @@ export function useAnalyzeStream() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ inputCode, language }),
+        body: JSON.stringify({ inputCode, language, codeExecutionId }),
         signal: controller.signal,
       });
 

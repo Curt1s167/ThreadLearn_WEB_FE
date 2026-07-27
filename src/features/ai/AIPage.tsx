@@ -35,7 +35,7 @@ export const AIPage: React.FC = () => {
     isError: historyError,
   } = useQuery({
     queryKey: ['ai-history'],
-    queryFn: aiService.getHistory,
+    queryFn: () => aiService.getHistory(),
   });
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export const AIPage: React.FC = () => {
   }, [historyError]);
 
   const { steps, isStreaming, streamError, result, llmProgress, partialIssues, run, reset } = useAnalyzeStream();
-  const { logs: runLogs, isRunning, runError, hasRun, run: runCode, reset: resetRun } = useRunCode();
+  const { logs: runLogs, isRunning, runError, hasRun, executionId, run: runCode, reset: resetRun } = useRunCode();
   const wasStreaming = useRef(false);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export const AIPage: React.FC = () => {
   }, [isStreaming, streamError, queryClient]);
 
   function handleAnalyze() {
-    run(code, 'javascript');
+    run(code, 'javascript', executionId);
   }
 
   function handleRun() {
@@ -83,7 +83,7 @@ export const AIPage: React.FC = () => {
     resetRun();
   }
 
-  const latestLog = history?.[0];
+  const latestLog = history?.items[0];
   const [sidebarWidth, setSidebarWidth] = useState(380);
   const dragging = useRef(false);
   const startX = useRef(0);
@@ -278,7 +278,7 @@ export const AIPage: React.FC = () => {
         </aside>
       </section>
 
-      {history && history.length > 1 && <HistoryTrendChart history={history} />}
+      {history && history.items.length > 1 && <HistoryTrendChart history={history.items} />}
 
       <DemoWhitePanel>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 p-5">
@@ -286,15 +286,15 @@ export const AIPage: React.FC = () => {
             <p className="text-xs uppercase tracking-[0.18em] text-black/45">History</p>
             <h2 className="mt-1 text-xl font-semibold">Analysis history</h2>
           </div>
-          <DemoPill tone="blue">{history?.length ?? 0} records</DemoPill>
+          <DemoPill tone="blue">{history?.meta.total ?? 0} records</DemoPill>
         </div>
 
         {historyLoading ? (
           <div className="space-y-3 p-5">
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-lg" />)}
           </div>
-        ) : history && history.length > 0 ? (
-          <HistoryList history={history} />
+        ) : history && history.items.length > 0 ? (
+          <HistoryList history={history.items} />
         ) : (
           <div className="p-8 text-center text-sm text-black/60">
             No analysis history yet.

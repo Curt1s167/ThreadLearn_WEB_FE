@@ -337,19 +337,25 @@ export const commentsService = {
 
 // ─── Bookmarks (UC38–UC39) ────────────────────────────────────────────────────
 export const bookmarksService = {
-  getAll: async () => {
+  getAll: async (page = 1, limit = 20) => {
     const { data } = await apiClient.get<ApiResponse<Bookmark[]>>('/bookmarks', {
-      params: { targetType: 'LESSON' },
+      params: { targetType: 'LESSON', page, limit },
     });
     return {
       data: data.data,
       meta: data.meta,
     };
   },
-  toggle: async (lessonId: string, title = 'Lesson bookmark') => {
+  check: async (lessonId: string) => {
+    const { data } = await apiClient.get<ApiResponse<{ bookmarked: boolean }>>('/bookmarks/check', {
+      params: { targetType: 'LESSON', targetId: lessonId },
+    });
+    return data.data.bookmarked;
+  },
+  toggle: async (lessonId: string) => {
     const { data } = await apiClient.post<ApiResponse<BookmarkToggleResult>>(
       '/bookmarks/toggle',
-      { targetType: 'LESSON', targetId: lessonId, title }
+      { targetType: 'LESSON', targetId: lessonId }
     );
     return data.data;
   },
@@ -398,6 +404,10 @@ export const codeExecutionService = {
     const { data } = await apiClient.post<ApiResponse<CodeExecutionResult>>('/code-execution/run', payload);
     return data.data;
   },
+  history: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<CodeExecutionResult>>>('/code-execution/history', { params: { page, limit } });
+    return data.data;
+  },
 };
 
 // ─── Notifications (UC32) ─────────────────────────────────────────────────────
@@ -405,6 +415,12 @@ export const notificationsService = {
   getAll: async () => {
     const { data } = await apiClient.get<ApiResponse<Notification[]>>('/notifications');
     return data.data;
+  },
+  getPage: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<Notification[]>>('/notifications', {
+      params: { page, limit },
+    });
+    return { data: data.data, meta: data.meta };
   },
   markRead: async (id: string) => {
     const { data } = await apiClient.patch<ApiResponse<Notification>>(
@@ -551,8 +567,8 @@ export const aiService = {
     );
     return data.data;
   },
-  getHistory: async () => {
-    const { data } = await apiClient.get<ApiResponse<AIHistoryLog[]>>('/ai/history');
+  getHistory: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<AIHistoryLog>>>('/ai/history', { params: { page, limit } });
     return data.data;
   },
   getHistoryById: async (id: string) => {

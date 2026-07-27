@@ -37,8 +37,9 @@ export function useSocket() {
     if (!isAuthenticated || !accessToken || !userId) return;
 
     const socket = io(SOCKET_URL, {
-      auth: { token: accessToken, userId },
-      query: { userId },
+      // The server derives the room exclusively from this verified JWT. Never
+      // send a caller-controlled userId as a room selector.
+      auth: { token: accessToken },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 3000,

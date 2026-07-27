@@ -410,6 +410,8 @@ export interface CodeExecutionResult {
   language: string;
   languageId: number;
   createdAt: string;
+  sourceCode?: string;
+  stdin?: string;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
@@ -581,6 +583,11 @@ export interface AIHistoryLog {
   cached?: boolean;
   analyzeTimeMs?: number;
   createdAt: string;
+}
+
+export interface HistoryPage<T> {
+  items: T[];
+  meta: PaginationMeta;
 }
 
 // ─── Analytics (Admin) ────────────────────────────────────────────────────────

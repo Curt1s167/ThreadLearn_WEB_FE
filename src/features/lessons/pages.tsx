@@ -298,18 +298,17 @@ export const LessonPage: React.FC = () => {
     if (isError && !isEnrollmentRequired) toast.error('Failed to load lesson');
   }, [isEnrollmentRequired, isError]);
 
-  const { data: bookmarksPage } = useQuery({
-    queryKey: ['bookmarks'],
-    queryFn: bookmarksService.getAll,
+  const { data: isBookmarked = false } = useQuery({
+    queryKey: ['bookmark-check', id],
+    queryFn: () => bookmarksService.check(id!),
     enabled: !!id,
     retry: false,
   });
-  const isBookmarked = !!bookmarksPage?.data?.some((bm) => bm.targetId === id);
-
   const { mutate: toggleBookmark, isPending: bookmarking } = useMutation({
-    mutationFn: () => bookmarksService.toggle(id!, lesson?.title),
+    mutationFn: () => bookmarksService.toggle(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+      queryClient.invalidateQueries({ queryKey: ['bookmark-check', id] });
       toast.success(isBookmarked ? 'Bookmark removed' : 'Bookmarked');
     },
     onError: () => toast.error('Failed to toggle bookmark'),
