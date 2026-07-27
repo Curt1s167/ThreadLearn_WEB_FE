@@ -115,7 +115,6 @@ export const ProfileGamificationPage: React.FC = () => {
               <DemoPill tone="default">System account</DemoPill>
             </div>
             <p className="mt-4 text-xs text-black/40">Member since {memberSince}</p>
-            <ProfileNameForm />
           </aside>
 
           <section className="space-y-5">
