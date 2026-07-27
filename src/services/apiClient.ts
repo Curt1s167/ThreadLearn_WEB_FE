@@ -116,8 +116,9 @@ apiClient.interceptors.response.use(
           { refreshToken },
           { timeout: API_TIMEOUT_MS }
         );
-        const { accessToken } = response.data.data;
+        const { accessToken, refreshToken: rotatedRefreshToken } = response.data.data;
         setLocalStorageItem('accessToken', accessToken);
+        setLocalStorageItem('refreshToken', rotatedRefreshToken);
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
