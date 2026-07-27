@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { coursesService, enrollmentsService } from '../../services';
+import { extractApiError, extractApiErrorCode } from '../../services/apiClient';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { useAuthStore } from '../../store';
 import type { CourseLevel, CourseSection, Enrollment, Lesson, User } from '../../types';
@@ -34,6 +35,11 @@ const getEnrollmentCourseRef = (enrollment: Enrollment) => {
     id: enrollment.courseId._id ?? enrollment.courseId.id,
     slug: enrollment.courseId.slug,
   };
+};
+
+const getEnrollmentCourseTitle = (enrollment?: Enrollment) => {
+  if (!enrollment || typeof enrollment.courseId === 'string') return undefined;
+  return enrollment.courseId.title;
 };
 
 const levelTone = (level?: CourseLevel): 'lime' | 'pink' | 'blue' | 'default' => {
@@ -115,6 +121,31 @@ export const CourseDetailPage: React.FC = () => {
     () => new Set(enrollment?.completedLessons ?? []),
     [enrollment?.completedLessons],
   );
+  const prerequisiteThreshold = course?.prerequisiteThreshold ?? 80;
+  const prerequisites = useMemo(
+    () =>
+      (course?.prerequisites ?? []).map((prerequisiteId) => {
+        const prerequisiteEnrollment = myEnrollments.find((item) => {
+          const ref = getEnrollmentCourseRef(item);
+          return ref.id === prerequisiteId || ref.slug === prerequisiteId;
+        });
+        const prerequisiteProgress = Math.round(
+          prerequisiteEnrollment?.progressPercent ?? prerequisiteEnrollment?.progress ?? 0,
+        );
+
+        return {
+          id: prerequisiteId,
+          title: getEnrollmentCourseTitle(prerequisiteEnrollment) ?? `Prerequisite ${prerequisiteId.slice(-6)}`,
+          progress: prerequisiteProgress,
+          isMet: prerequisiteProgress >= prerequisiteThreshold,
+          isEnrolled: !!prerequisiteEnrollment,
+        };
+      }),
+    [course?.prerequisites, myEnrollments, prerequisiteThreshold],
+  );
+  const unmetPrerequisites = prerequisites.filter((item) => !item.isMet);
+  const blockedByPrerequisites = !isEnrolled && unmetPrerequisites.length > 0;
+  const firstUnmetPrerequisite = unmetPrerequisites[0];
 
   const accent =
     COURSE_ACCENT_COLORS[(course?.title?.length ?? 0) % COURSE_ACCENT_COLORS.length];
@@ -144,6 +175,14 @@ export const CourseDetailPage: React.FC = () => {
     toast.info('Không có bài học nào đang mở để tiếp tục.');
   };
 
+  const handlePrerequisiteAction = () => {
+    if (!firstUnmetPrerequisite) return;
+    toast.info(
+      `Finish ${firstUnmetPrerequisite.title} to ${prerequisiteThreshold}% before enrolling.`,
+    );
+    router.push(`/courses/${firstUnmetPrerequisite.id}`);
+  };
+
   const { mutate: enroll, isPending: enrolling } = useMutation({
     mutationFn: () => {
       if (!courseObjectId) {
@@ -156,7 +195,15 @@ export const CourseDetailPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['course-detail', courseId] });
       toast.success('Enrolled in course');
     },
-    onError: () => toast.error('Could not enroll in this course'),
+    onError: (error) => {
+      const code = extractApiErrorCode(error);
+      const message = extractApiError(error, 'Could not enroll in this course');
+      toast.error(
+        code === 'COURSE_PREREQUISITE_REQUIRED'
+          ? 'Complete the required prerequisite before enrolling in this course.'
+          : message,
+      );
+    },
   });
 
   useEffect(() => {
@@ -314,7 +361,13 @@ export const CourseDetailPage: React.FC = () => {
             )}
             <div className="course-hero-status-content relative">
               <p className="course-hero-status-label text-sm">
-                {requiresPremium ? 'Premium access required' : isEnrolled ? 'Course progress' : 'Ready to start'}
+                {requiresPremium
+                  ? 'Premium access required'
+                  : blockedByPrerequisites
+                    ? 'Prerequisite required'
+                    : isEnrolled
+                      ? 'Course progress'
+                      : 'Ready to start'}
               </p>
               <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
               <div className="course-hero-progress-track mt-4">
@@ -327,6 +380,10 @@ export const CourseDetailPage: React.FC = () => {
                 onClick={() => {
                   if (requiresPremium) {
                     router.push('/pricing');
+                    return;
+                  }
+                  if (blockedByPrerequisites) {
+                    handlePrerequisiteAction();
                     return;
                   }
                   if (isEnrolled) {
@@ -351,6 +408,10 @@ export const CourseDetailPage: React.FC = () => {
                   <>
                     Continue lesson <ArrowRight size={16} />
                   </>
+                ) : blockedByPrerequisites ? (
+                  <>
+                    Continue prerequisite <ArrowRight size={16} />
+                  </>
                 ) : (
                   'Enroll'
                 )}
@@ -359,6 +420,55 @@ export const CourseDetailPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {blockedByPrerequisites ? (
+        <section className="rounded-lg border border-[#d9f99d]/40 bg-[#d9f99d]/10 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-3">
+              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#d9f99d] text-[#102b26]">
+                <Lock size={17} />
+              </span>
+              <div>
+                <h2 className="font-semibold text-ink">Prerequisite required</h2>
+                <p className="mt-1 text-sm leading-6 text-black/60">
+                  Premium access is active, but this course also requires prior progress.
+                  Complete the prerequisite course to at least {prerequisiteThreshold}% before enrolling.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrerequisiteAction}
+              className="shrink-0"
+            >
+              Open prerequisite <ArrowRight size={15} />
+            </Button>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {unmetPrerequisites.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-md border border-black/10 bg-white/80 px-4 py-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="font-medium text-ink">{item.title}</span>
+                  <span className="text-black/55">
+                    {item.progress}% / {prerequisiteThreshold}% required
+                  </span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/10">
+                  <div
+                    className="h-full rounded-full bg-[#102b26]"
+                    style={{ width: `${Math.min(item.progress, 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="course-lessons-panel rounded-lg border border-black/10 bg-white p-5 sm:p-6">
