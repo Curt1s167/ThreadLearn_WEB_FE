@@ -24,6 +24,7 @@ import {
   coursesService,
   enrollmentsService,
   lessonsService,
+  quizService,
 } from '../../services';
 import { Button, EmptyState } from '../../components/shared';
 import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
@@ -245,6 +246,19 @@ export const LessonPage: React.FC = () => {
 
   const isEnrollmentRequired = getHttpStatus(error) === 403;
   const lessonCourseId = lesson?.courseId;
+
+  // Quizzes are optional per lesson. Resolve availability here so students are
+  // never sent to a quiz route that can only return a 404.
+  const {
+    data: lessonQuiz,
+    isLoading: isQuizLoading,
+    isError: isQuizUnavailable,
+  } = useQuery({
+    queryKey: ['quiz-availability', id],
+    queryFn: () => quizService.getByLesson(id!),
+    enabled: Boolean(id && lesson),
+    retry: false,
+  });
 
   const { data: enrollments = [] } = useQuery({
     queryKey: ['my-enrollments'],
@@ -528,15 +542,27 @@ export const LessonPage: React.FC = () => {
               <Zap size={22} className="lesson-assist-icon" />
               <h2 className="lesson-assist-title mt-4 text-xl font-semibold">Quiz check-in</h2>
               <p className="lesson-assist-copy mt-3 text-sm">
-                Lock in this lesson with a short quiz. Timer and auto-submit stay on the quiz flow.
+                {lessonQuiz
+                  ? 'Lock in this lesson with a short quiz. Timer and auto-submit stay on the quiz flow.'
+                  : 'A quiz has not been assigned to this lesson yet.'}
               </p>
-              <button
-                type="button"
-                onClick={() => router.push(`/quiz/${id}`)}
-                className="lesson-assist-action mt-5 inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2 text-sm font-semibold"
-              >
-                Take quiz
-              </button>
+              {isQuizLoading ? (
+                <span className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-black/10 px-5 py-2 text-sm font-semibold text-black/55">
+                  Checking quiz…
+                </span>
+              ) : lessonQuiz ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/quiz/${id}`)}
+                  className="lesson-assist-action mt-5 inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2 text-sm font-semibold"
+                >
+                  Take quiz
+                </button>
+              ) : isQuizUnavailable ? (
+                <span className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-black/10 px-5 py-2 text-sm font-semibold text-black/55">
+                  No quiz available
+                </span>
+              ) : null}
             </div>
 
             <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
