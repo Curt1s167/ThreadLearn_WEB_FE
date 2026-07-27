@@ -3,12 +3,13 @@
 
 import React, { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { Bell, CheckCheck, Zap, Trophy, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { notificationsService } from '../../services';
 import { formatNotificationMessage, normalizeMojibakeText } from '../../utils';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
-import type { NotificationType } from '../../types';
+import type { Notification, NotificationType } from '../../types';
 import {
   DemoDisplayTitle,
   DemoHeroWhite,
@@ -37,6 +38,7 @@ const notifTone = (type: NotificationType) => {
 
 export const NotificationsPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const {
     data: notifications,
@@ -68,6 +70,11 @@ export const NotificationsPage: React.FC = () => {
   useEffect(() => {
     if (isError) toast.error('Failed to load notifications');
   }, [isError]);
+
+  const openNotification = (notification: Notification) => {
+    if (!notification.isRead) markRead(notification._id);
+    if (notification.link?.startsWith('/')) router.push(notification.link);
+  };
 
   return (
     <DemoPageRoot className="mx-auto max-w-4xl">
@@ -110,17 +117,24 @@ export const NotificationsPage: React.FC = () => {
           {visibleNotifications.map((notif) => (
             <div
               key={notif._id}
-              role={!notif.isRead ? 'button' : undefined}
-              tabIndex={!notif.isRead ? 0 : undefined}
-              onClick={() => !notif.isRead && markRead(notif._id)}
+              role={!notif.isRead || notif.link?.startsWith('/') ? 'button' : undefined}
+              tabIndex={!notif.isRead || notif.link?.startsWith('/') ? 0 : undefined}
+              onClick={() => openNotification(notif)}
               onKeyDown={(event) => {
-                if (!notif.isRead && (event.key === 'Enter' || event.key === ' ')) {
+                if (
+                  (!notif.isRead || notif.link?.startsWith('/')) &&
+                  (event.key === 'Enter' || event.key === ' ')
+                ) {
                   event.preventDefault();
-                  markRead(notif._id);
+                  openNotification(notif);
                 }
               }}
               className={`grid gap-4 p-5 transition hover:bg-black/[0.025] sm:grid-cols-[44px_1fr_auto] ${
-                !notif.isRead ? 'cursor-pointer bg-[#d9f99d]/20' : ''
+                !notif.isRead || notif.link?.startsWith('/')
+                  ? 'cursor-pointer'
+                  : ''
+              } ${
+                !notif.isRead ? 'bg-[#d9f99d]/20' : ''
               }`}
             >
               <span className={`grid h-11 w-11 place-items-center rounded-full ${notifTone(notif.type)}`}>
