@@ -8,6 +8,7 @@ import type {
   UserStats,
   VerifyEmailPayload,
 } from '../types';
+import { getDisplayName } from '../utils';
 
 type BackendUser = Partial<User> & {
   id?: string;
@@ -18,9 +19,8 @@ type BackendUser = Partial<User> & {
 
 export const normalizeUser = (user: BackendUser): User => {
   const id = user._id ?? user.id ?? '';
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
   const email = user.email ?? '';
-  const name = (user.name ?? fullName) || email || 'ThreadLearn user';
+  const name = getDisplayName(user);
 
   return {
     ...user,
