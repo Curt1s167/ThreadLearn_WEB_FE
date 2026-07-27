@@ -43,7 +43,7 @@ export const AIPage: React.FC = () => {
   }, [historyError]);
 
   const { steps, isStreaming, streamError, result, llmProgress, partialIssues, run, reset } = useAnalyzeStream();
-  const { logs: runLogs, isRunning, runError, hasRun, run: runCode, reset: resetRun } = useRunCode();
+  const { logs: runLogs, isRunning, runError, hasRun, executionId, run: runCode, reset: resetRun } = useRunCode();
   const wasStreaming = useRef(false);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export const AIPage: React.FC = () => {
   }, [isStreaming, streamError, queryClient]);
 
   function handleAnalyze() {
-    run(code, 'javascript');
+    run(code, 'javascript', executionId);
   }
 
   function handleRun() {

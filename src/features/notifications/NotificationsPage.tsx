@@ -1,8 +1,9 @@
 // ─── Notifications Page ───────────────────────────────────────────────────────
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { Bell, CheckCheck, Zap, Trophy, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { notificationsService } from '../../services';
@@ -37,14 +38,16 @@ const notifTone = (type: NotificationType) => {
 
 export const NotificationsPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const [page, setPage] = useState(1);
 
   const {
     data: notifications,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: notificationsService.getAll,
+    queryKey: ['notifications', page],
+    queryFn: () => notificationsService.getPage(page),
   });
 
   const { mutate: markAll } = useMutation({
@@ -62,8 +65,19 @@ export const NotificationsPage: React.FC = () => {
     onError: () => toast.error('Failed to mark notification as read'),
   });
 
-  const visibleNotifications = notifications ?? [];
+  const visibleNotifications = notifications?.data ?? [];
   const unread = visibleNotifications.filter((n) => !n.isRead).length;
+
+  const openNotification = (notification: (typeof visibleNotifications)[number]) => {
+    const navigate = () => {
+      if (notification.link) router.push(notification.link);
+    };
+    if (notification.isRead) {
+      navigate();
+      return;
+    }
+    markRead(notification._id, { onSuccess: navigate });
+  };
 
   useEffect(() => {
     if (isError) toast.error('Failed to load notifications');
@@ -106,17 +120,18 @@ export const NotificationsPage: React.FC = () => {
           description="Please try again in a moment."
         />
       ) : visibleNotifications.length > 0 ? (
+        <>
         <DemoWhitePanel className="divide-y divide-black/10">
           {visibleNotifications.map((notif) => (
             <div
               key={notif._id}
               role={!notif.isRead ? 'button' : undefined}
               tabIndex={!notif.isRead ? 0 : undefined}
-              onClick={() => !notif.isRead && markRead(notif._id)}
+              onClick={() => openNotification(notif)}
               onKeyDown={(event) => {
-                if (!notif.isRead && (event.key === 'Enter' || event.key === ' ')) {
+                if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  markRead(notif._id);
+                  openNotification(notif);
                 }
               }}
               className={`grid gap-4 p-5 transition hover:bg-black/[0.025] sm:grid-cols-[44px_1fr_auto] ${
@@ -140,6 +155,14 @@ export const NotificationsPage: React.FC = () => {
             </div>
           ))}
         </DemoWhitePanel>
+        {notifications?.meta?.hasMore ? (
+          <div className="mt-4 flex justify-center">
+            <Button variant="outline" onClick={() => setPage((current) => current + 1)}>
+              Load more notifications
+            </Button>
+          </div>
+        ) : null}
+        </>
       ) : (
         <EmptyState
           icon={<Bell size={36} />}
