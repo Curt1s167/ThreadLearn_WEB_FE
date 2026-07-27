@@ -6,9 +6,14 @@ import type {
   Course,
   CourseDetail,
   CourseCreatePayload,
+  CourseUpdatePayload,
+  CourseStatusPayload,
   CourseFilters,
   Lesson,
+  LessonManagementPayload,
   LessonCompleteResult,
+  CourseSection,
+  CourseSectionPayload,
   Quiz,
   QuizAttempt,
   PaginationMeta,
@@ -47,8 +52,9 @@ import type {
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
 export const coursesService = {
   list: async (filters: CourseFilters = {}) => {
+    const { tags, ...query } = filters;
     const { data } = await apiClient.get<ApiResponse<Course[]>>('/courses', {
-      params: filters,
+      params: { ...query, tag: filters.tag ?? tags?.[0] },
     });
     const meta = data.meta ?? {
       page: filters.page ?? 1,
@@ -73,18 +79,30 @@ export const coursesService = {
     const { data } = await apiClient.post<ApiResponse<Course>>('/courses', payload);
     return data.data;
   },
-  update: async (id: string, payload: Partial<CourseCreatePayload>) => {
+  update: async (id: string, payload: CourseUpdatePayload) => {
     const { data } = await apiClient.put<ApiResponse<Course>>(`/courses/${id}`, payload);
     return data.data;
   },
   uploadThumbnail: async (courseId: string, file: File) => {
     const form = new FormData();
     form.append('thumbnail', file);
-    const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string }>>(
+    const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string; course: Course }>>(
       `/courses/${courseId}/thumbnail`,
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
+    return data.data;
+  },
+  setStatus: async (id: string, payload: CourseStatusPayload) => {
+    const { data } = await apiClient.patch<ApiResponse<Course>>(`/courses/${id}/publish`, payload);
+    return data.data;
+  },
+  remove: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<Course>>(`/courses/${id}`);
+    return data.data;
+  },
+  restore: async (id: string) => {
+    const { data } = await apiClient.post<ApiResponse<Course>>(`/courses/${id}/restore`);
     return data.data;
   },
 };
@@ -101,11 +119,11 @@ export const lessonsService = {
     const { data } = await apiClient.get<ApiResponse<Lesson>>(`/lessons/${id}`);
     return data.data;
   },
-  create: async (payload: Partial<Lesson>) => {
+  create: async (payload: LessonManagementPayload) => {
     const { data } = await apiClient.post<ApiResponse<Lesson>>('/lessons', payload);
     return data.data;
   },
-  update: async (id: string, payload: Partial<Lesson>) => {
+  update: async (id: string, payload: Partial<LessonManagementPayload>) => {
     const { data } = await apiClient.put<ApiResponse<Lesson>>(`/lessons/${id}`, payload);
     return data.data;
   },
@@ -113,10 +131,43 @@ export const lessonsService = {
     const { data } = await apiClient.delete<ApiResponse<null>>(`/lessons/${id}`);
     return data;
   },
+  setLock: async (id: string, locked: boolean) => {
+    const { data } = await apiClient.patch<ApiResponse<Lesson>>(`/lessons/${id}/lock`, { locked });
+    return data.data;
+  },
   complete: async (id: string) => {
     const { data } = await apiClient.post<ApiResponse<LessonCompleteResult>>(
       `/lessons/${id}/complete`
     );
+    return data.data;
+  },
+};
+
+// ——— Course sections (UC54) ————————————————————————————————————————————
+export const sectionsService = {
+  listByCourse: async (courseId: string) => {
+    const { data } = await apiClient.get<ApiResponse<CourseSection[]>>('/sections', {
+      params: { courseId },
+    });
+    return data.data;
+  },
+  create: async (payload: CourseSectionPayload) => {
+    const { data } = await apiClient.post<ApiResponse<CourseSection>>('/sections', payload);
+    return data.data;
+  },
+  update: async (id: string, payload: Partial<CourseSectionPayload>) => {
+    const { data } = await apiClient.patch<ApiResponse<CourseSection>>(`/sections/${id}`, payload);
+    return data.data;
+  },
+  remove: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ id: string }>>(`/sections/${id}`);
+    return data.data;
+  },
+  reorder: async (courseId: string, items: Array<{ id: string; orderIndex: number }>) => {
+    const { data } = await apiClient.post<ApiResponse<CourseSection[]>>('/sections/reorder', {
+      courseId,
+      items,
+    });
     return data.data;
   },
 };
