@@ -5,9 +5,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { authService } from '../../services/auth.service';
 import { useAuthStore } from '../../store';
+import { extractApiError } from '../../services/apiClient';
+import { getDisplayName } from '../../utils';
 
 export function ProfileNameForm() {
-  const { user, setUser } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
   const { data: profile } = useQuery({
     queryKey: ['auth-me'],
@@ -48,11 +50,14 @@ export function ProfileNameForm() {
         firstName: trimmedFirstName,
         lastName: trimmedLastName,
       });
-      setUser(updatedUser);
-      queryClient.setQueryData(['auth-me'], updatedUser);
+      const nextUser = { ...updatedUser, name: getDisplayName(updatedUser) };
+      updateUser(nextUser);
+      queryClient.setQueryData<typeof nextUser>(['auth-me'], (current) =>
+        current ? { ...current, ...nextUser } : nextUser
+      );
       toast.success('Profile updated successfully.');
-    } catch {
-      setError('Unable to update your profile. Please try again.');
+    } catch (error) {
+      setError(extractApiError(error, 'Unable to update your profile. Please try again.'));
     } finally {
       setIsSaving(false);
     }
