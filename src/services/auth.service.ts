@@ -129,9 +129,9 @@ export const authService = {
     return data.data;
   },
 
-  // Update profile
-  updateProfile: async (payload: { firstName?: string; lastName?: string; avatarUrl?: string }) => {
+  // UC09 â€” update the authenticated user's name only.
+  updateProfile: async (payload: { firstName?: string; lastName?: string }) => {
     const { data } = await apiClient.patch<ApiResponse<User>>('/users/profile', payload);
-    return data.data;
+    return normalizeUser(data.data);
   },
 };
