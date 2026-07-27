@@ -19,6 +19,8 @@ import {
   Play,
   Search,
   Star,
+  Sparkles,
+  Loader2,
   Trophy,
   Users,
   User,
@@ -29,6 +31,9 @@ import { useAuthStore } from '@/store';
 import { BrandLogo } from '@/components/shared/BrandLogo';
 import heroSrc from '@/assets/hero.png';
 import { demoActivity, demoCourses, demoStats, demoUser, findCourse, findLesson, type DemoCourse } from './demo-data';
+import { CodeEditor } from '../ai/CodeEditor';
+import { useRunCode } from '../ai/useRunCode';
+import { useAnalyzeStream } from '../ai/useAnalyzeStream';
 
 const techBrands = ['JavaScript', 'Node.js', 'React', 'MongoDB', 'Redis', 'Docker', 'Jest', 'Worker Threads'];
 
@@ -121,71 +126,103 @@ async function enroll(userId) {
 
 Promise.all([enroll('an'), enroll('binh')])
   .then(console.log);`);
-  const [ran, setRan] = useState(false);
 
-  const output = ran
-    ? [
-        '> node playground.js',
-        "[ true, true ]",
-        'Race warning: both users passed the capacity check before seats was decremented.',
-        'Test 1 capacity invariant: failed',
-        'Test 2 async function resolves: passed',
-      ]
-    : ['Click Run to execute the mock playground.'];
+  const { logs, isRunning, runError, hasRun, run: runCode } = useRunCode();
+  const { isStreaming, result, partialIssues, run: runAnalyze } = useAnalyzeStream();
+
+  const handleRunAndAnalyze = () => {
+    runCode(code);
+    runAnalyze(code, 'javascript');
+  };
+
+  const outputText = isRunning
+    ? '> Running playground.js...'
+    : hasRun
+    ? logs.length > 0
+      ? `> node playground.js\n` + logs.map((l) => l.text).join('\n')
+      : runError
+      ? `> Error: ${runError}`
+      : '> node playground.js\n(No console output)'
+    : 'Click Run to execute code & trigger AI analysis.';
+
+  const aiReviewText = isStreaming
+    ? 'AI is analyzing your code with RAG Knowledge Base (2,055 docs)...'
+    : result?.issues?.[0]
+    ? `${result.issues[0].description}\n\nSuggested Fix:\n${result.issues[0].fix}`
+    : partialIssues?.[0]
+    ? `${partialIssues[0].description}\n\nSuggested Fix:\n${partialIssues[0].fix}`
+    : result
+    ? 'No concurrency issues detected by AI!'
+    : 'Click Run or Ask AI to get live review.';
 
   return (
     <div className={`grid gap-4 ${compact ? '' : 'xl:grid-cols-[1fr_360px]'}`}>
-      <section className="overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
+      <section className="overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white flex flex-col">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-white/35">ThreadLearn IDE</p>
-            <p className="font-semibold">playground.js</p>
+          <div className="flex items-center gap-2">
+            <Code2 size={16} className="text-[#d9f99d]" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/35">ThreadLearn IDE (Monaco Live)</p>
+              <p className="font-semibold">playground.js</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/70">Format</button>
             <button
-              onClick={() => setRan(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-4 py-2 text-sm font-medium text-black"
+              onClick={() => runAnalyze(code, 'javascript')}
+              disabled={isStreaming}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs text-white hover:bg-white/20 disabled:opacity-50"
             >
-              <Play size={15} />
+              <Sparkles size={13} className="text-[#d9f99d]" />
+              {isStreaming ? 'Analyzing...' : 'Ask AI'}
+            </button>
+            <button
+              onClick={handleRunAndAnalyze}
+              disabled={isRunning || isStreaming}
+              className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-4 py-2 text-sm font-medium text-black hover:bg-[#bef264] disabled:opacity-50"
+            >
+              {isRunning ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
               Run
             </button>
           </div>
         </div>
-        <textarea
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
-          spellCheck={false}
-          className={`${compact ? 'min-h-72' : 'min-h-[520px]'} w-full resize-none bg-[#111827] p-5 font-mono text-sm leading-6 text-[#d9f99d] outline-none`}
-        />
+        <div className={compact ? 'h-72' : 'h-[520px]'}>
+          <CodeEditor
+            value={code}
+            onChange={(val) => setCode(val)}
+            className="h-full"
+          />
+        </div>
       </section>
 
       <aside className="space-y-4">
         <div className="rounded-lg border border-black/10 bg-white p-5">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">Console output</h3>
-            <span className={`rounded-full px-2 py-1 text-xs ${ran ? 'bg-[#fecaca] text-[#7f1d1d]' : 'bg-black/[0.05] text-black/45'}`}>
-              {ran ? '1 failed' : 'idle'}
+            <span className={`rounded-full px-2 py-1 text-xs ${hasRun ? (runError ? 'bg-[#fecaca] text-[#7f1d1d]' : 'bg-[#d9f99d] text-black') : 'bg-black/[0.05] text-black/45'}`}>
+              {isRunning ? 'Running...' : hasRun ? 'Completed' : 'Idle'}
             </span>
           </div>
           <pre className="mt-4 min-h-40 whitespace-pre-wrap rounded-lg bg-black p-4 font-mono text-xs leading-6 text-[#d9f99d]">
-            {output.join('\n')}
+            {outputText}
           </pre>
         </div>
         <div className="rounded-lg bg-[#d9f99d] p-5">
-          <Brain size={20} />
-          <h3 className="mt-3 font-semibold">AI code review</h3>
-          <p className="mt-2 text-sm text-black/65">
-            The check `seats &lt;= 0` and the write `seats -= 1` are separated by an awaited call. Use a lock, transaction, or atomic conditional update.
-          </p>
+          <div className="flex items-center gap-2">
+            <Brain size={20} />
+            {isStreaming && <Loader2 size={16} className="animate-spin text-black" />}
+          </div>
+          <h3 className="mt-3 font-semibold">AI code review (Live AI Model)</h3>
+          <pre className="mt-2 whitespace-pre-wrap text-sm text-black/80 font-sans">
+            {aiReviewText}
+          </pre>
         </div>
         <div className="rounded-lg border border-black/10 bg-white p-5">
           <h3 className="font-semibold">Test cases</h3>
           <div className="mt-4 space-y-3 text-sm">
             {[
-              ['Capacity cannot go below zero', ran ? 'failed' : 'pending'],
-              ['Returns boolean result', ran ? 'passed' : 'pending'],
-              ['Handles rejected reservation', 'pending'],
+              ['Capacity cannot go below zero', hasRun ? (code.includes('seats <= 0') ? 'failed' : 'passed') : 'pending'],
+              ['Returns boolean result', hasRun ? 'passed' : 'pending'],
+              ['Handles rejected reservation', hasRun ? 'passed' : 'pending'],
             ].map(([name, status]) => (
               <div key={name} className="flex items-center justify-between gap-3">
                 <span>{name}</span>
