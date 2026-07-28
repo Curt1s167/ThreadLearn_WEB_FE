@@ -66,8 +66,8 @@ export const NotesPanel: React.FC<Props> = ({ lessonId, selection }) => {
       const payload = {
         noteText: noteText.trim(),
         anchorText: anchorText.trim() || undefined,
-        anchorStart,
-        anchorEnd,
+        anchorStart: editingNote && anchorStart === undefined ? null : anchorStart,
+        anchorEnd: editingNote && anchorEnd === undefined ? null : anchorEnd,
         codeSnippet: codeSnippet.trim() || undefined,
       };
       return editingNote

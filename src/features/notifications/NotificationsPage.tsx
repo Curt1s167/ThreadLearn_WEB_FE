@@ -10,6 +10,7 @@ import { notificationsService } from '../../services';
 import { formatNotificationMessage, normalizeMojibakeText } from '../../utils';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
 import type { NotificationType } from '../../types';
+import { isSafeInternalPath } from '../../utils/safeNavigation';
 import {
   DemoDisplayTitle,
   DemoHeroWhite,
@@ -78,7 +79,7 @@ export const NotificationsPage: React.FC = () => {
 
   const openNotification = (notification: (typeof visibleNotifications)[number]) => {
     const navigate = () => {
-      if (notification.link) router.push(notification.link);
+      if (isSafeInternalPath(notification.link)) router.push(notification.link);
     };
     if (notification.isRead) {
       navigate();

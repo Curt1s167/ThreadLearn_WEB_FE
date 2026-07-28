@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Play, Terminal } from 'lucide-react';
+import { AlertCircle, Play, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import { codeExecutionService } from '../../services';
 import type { CodeExecutionResult } from '../../types';
@@ -55,9 +55,26 @@ export function IDEPage() {
     },
   });
 
-  const { data: history } = useQuery({
+  const {
+    data: history,
+    isLoading: isHistoryLoading,
+    isError: isHistoryError,
+  } = useQuery({
     queryKey: ['code-execution-history', historyPage],
     queryFn: () => codeExecutionService.history(historyPage),
+  });
+
+  const { mutate: loadExecution, isPending: isLoadingExecution } = useMutation({
+    mutationFn: codeExecutionService.detail,
+    onSuccess: (execution) => {
+      setResult(execution);
+      if (execution.sourceCode) setSourceCode(execution.sourceCode);
+      if (execution.language === 'javascript' || execution.language === 'python') {
+        setLanguage(execution.language);
+      }
+      setStdin(execution.stdin ?? '');
+    },
+    onError: () => toast.error('Could not load this execution'),
   });
 
   const output = useMemo(() => {
@@ -69,6 +86,7 @@ export function IDEPage() {
       result.stdout ? `\nstdout\n${result.stdout}` : '',
       result.stderr ? `\nstderr\n${result.stderr}` : '',
       result.compileOutput ? `\ncompiler output\n${result.compileOutput}` : '',
+      result.outputTruncated ? '\nOutput was truncated to protect execution history storage.' : '',
     ].filter(Boolean).join('\n');
   }, [result]);
 
@@ -125,12 +143,18 @@ export function IDEPage() {
           <div className="rounded-xl border border-black/10 bg-white p-4">
             <p className="text-sm font-semibold text-ink">Recent executions</p>
             <div className="mt-3 space-y-2">
+              {isHistoryLoading ? <p className="text-xs text-black/45">Loading execution history...</p> : null}
+              {isHistoryError ? (
+                <p className="flex items-center gap-1 text-xs text-rose-600">
+                  <AlertCircle size={13} /> Could not load execution history.
+                </p>
+              ) : null}
               {history?.items.map((item) => (
-                <button key={item._id} type="button" onClick={() => { if (item.sourceCode) setSourceCode(item.sourceCode); }} className="w-full rounded-md border border-black/10 p-2 text-left text-xs hover:bg-black/[0.03]">
+                <button key={item._id} type="button" onClick={() => loadExecution(item._id)} disabled={isLoadingExecution} className="w-full rounded-md border border-black/10 p-2 text-left text-xs hover:bg-black/[0.03] disabled:opacity-50">
                   <span className="font-medium">{item.status.description}</span> · {item.runtime}s · {item.memory} KB
                 </button>
               ))}
-              {history?.items.length === 0 ? <p className="text-xs text-black/45">No execution history yet.</p> : null}
+              {!isHistoryLoading && !isHistoryError && history?.items.length === 0 ? <p className="text-xs text-black/45">No execution history yet.</p> : null}
               {history?.meta.totalPages && history.meta.totalPages > 1 ? (
                 <div className="flex justify-between pt-2 text-xs">
                   <button type="button" disabled={historyPage === 1} onClick={() => setHistoryPage((page) => page - 1)}>Previous</button>

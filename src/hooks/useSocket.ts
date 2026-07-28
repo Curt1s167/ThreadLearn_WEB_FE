@@ -74,6 +74,7 @@ export function useSocket() {
 
       // Invalidate cache so notification list refreshes
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
 
       // Show toast
       toast(normalizeMojibakeText(nextNotification.title), {

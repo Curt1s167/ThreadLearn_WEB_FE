@@ -407,6 +407,7 @@ export interface CodeExecutionResult {
   stdout: string;
   stderr: string;
   compileOutput: string;
+  outputTruncated?: boolean;
   status: { id: number; description: string };
   runtime: string;
   memory: number;
@@ -550,7 +551,7 @@ export interface AIIssue {
   lineRange: string;
   severity: 'high' | 'medium' | 'low';
   description: string;
-  fix: string;
+  fix?: string;
   codeSnippet?: string;
 }
 

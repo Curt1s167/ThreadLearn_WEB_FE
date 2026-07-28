@@ -53,13 +53,15 @@ export const AIPage: React.FC = () => {
 
   useEffect(() => {
     if (wasStreaming.current && !isStreaming) {
-      if (!streamError) {
+      if (!streamError && result) {
         queryClient.invalidateQueries({ queryKey: ['ai-history'] });
         toast.success('Code analyzed!');
+      } else if (!streamError) {
+        toast.error('AI analysis ended without a result');
       }
     }
     wasStreaming.current = isStreaming;
-  }, [isStreaming, streamError, queryClient]);
+  }, [isStreaming, result, streamError, queryClient]);
 
   function handleAnalyze() {
     run(code, 'javascript', executionId);
