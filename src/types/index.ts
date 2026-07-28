@@ -15,6 +15,7 @@ export interface User {
   role: UserRole;
   planType: PlanType;
   subscriptionExpiresAt?: string;
+  subscriptionFeatures?: string[];
   isLocked?: boolean;
   isActive?: boolean;
   isVerified?: boolean;
@@ -95,21 +96,27 @@ export interface UserStats {
 // ─── Courses ─────────────────────────────────────────────────────────────────
 
 export type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+export type CourseStatus = 'draft' | 'published' | 'hidden' | 'archived' | 'deleted';
+export type CourseLanguage = 'javascript' | 'java' | 'python';
 
 export interface Course {
   _id: string;
   id?: string;
   title: string;
+  slug?: string;
   description: string;
   shortDescription?: string;
   thumbnailUrl?: string;
   tags: string[];
+  category?: string;
   level: CourseLevel;
-  language: string;
+  language: CourseLanguage | string;
   isPublished: boolean;
   isPremium?: boolean;
   price?: number;
-  status?: string;
+  status?: CourseStatus;
+  prerequisites?: string[];
+  prerequisiteThreshold?: number;
   isDeleted?: boolean;
   lessonCount?: number;
   enrollmentCount?: number;
@@ -124,37 +131,97 @@ export interface Course {
 export interface CourseCreatePayload {
   title: string;
   description: string;
+  shortDescription?: string;
   tags?: string[];
   level?: CourseLevel;
-  language?: string;
+  language?: CourseLanguage;
   thumbnailUrl?: string;
+  category?: string;
+  isPremium?: boolean;
+  price?: number;
+  prerequisites?: string[];
+  prerequisiteThreshold?: number;
+  estimatedDuration?: number;
+}
+
+export type CourseUpdatePayload = Partial<CourseCreatePayload>;
+
+export interface CourseStatusPayload {
+  status: Extract<CourseStatus, 'draft' | 'published' | 'hidden'>;
+}
+
+export interface CourseSection {
+  _id: string;
+  id?: string;
+  courseId: string;
+  title: string;
+  description?: string;
+  orderIndex: number;
+  isPublished?: boolean;
+  status?: string;
+}
+
+export interface CourseSectionPayload {
+  courseId: string;
+  title: string;
+  description?: string;
+  orderIndex?: number;
+  isPublished?: boolean;
 }
 
 export interface CourseDetail {
   course: Course;
-  sections: unknown[];
+  sections: CourseSection[];
   lessons: Lesson[];
 }
 
 // ─── Lessons ─────────────────────────────────────────────────────────────────
 
+export interface LessonCodeSnippet {
+  language: string;
+  code: string;
+  description?: string;
+}
+
 export interface Lesson {
   _id: string;
   id?: string;
   courseId: string;
+  sectionId?: string;
   title: string;
-  content?: string; // Markdown
-  contentMarkdown?: string;
+  slug?: string;
+  description?: string;
+  content?: string; // Markdown (legacy mirror)
+  contentMarkdown?: string; // Canonical body — Markdown
+  lessonType?: 'article' | 'video' | 'coding' | 'quiz' | 'assignment' | 'mixed' | string;
   attachmentUrl?: string;
   attachments?: string[];
   videoUrl?: string;
+  codeSnippets?: LessonCodeSnippet[];
   duration?: number; // minutes
   estimatedTime?: number;
   order?: number;
   orderIndex?: number;
+  isPreview?: boolean;
   isLocked?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface LessonManagementPayload {
+  courseId: string;
+  sectionId?: string;
+  title: string;
+  description?: string;
+  contentMarkdown?: string;
+  lessonType?: NonNullable<Lesson['lessonType']>;
+  videoUrl?: string;
+  attachments?: string[];
+  codeSnippets?: LessonCodeSnippet[];
+  orderIndex?: number;
+  estimatedTime?: number;
+  isPreview?: boolean;
+  isLocked?: boolean;
 }
 
 export interface LessonCompleteResult {
@@ -285,6 +352,10 @@ export interface Comment {
   user?: Pick<User, '_id' | 'name' | 'avatarUrl'>;
   content: string;
   parentId?: string;
+  isAnonymous: boolean;
+  status?: 'active' | 'hidden' | 'deleted';
+  isEdited?: boolean;
+  editedAt?: string;
   likes: string[];
   createdAt: string;
   updatedAt: string;
@@ -319,7 +390,31 @@ export interface Note {
   lessonId: string;
   noteText: string;
   codeSnippet?: string;
+  anchorText?: string;
+  anchorStart?: number;
+  anchorEnd?: number;
   updatedAt: string;
+  createdAt?: string;
+  lesson?: {
+    _id: string;
+    title: string;
+    courseId: string;
+  };
+}
+
+export interface CodeExecutionResult {
+  _id: string;
+  stdout: string;
+  stderr: string;
+  compileOutput: string;
+  status: { id: number; description: string };
+  runtime: string;
+  memory: number;
+  language: string;
+  languageId: number;
+  createdAt: string;
+  sourceCode?: string;
+  stdin?: string;
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
@@ -337,6 +432,7 @@ export type NotificationType =
   | 'LEVEL_UP'
   | 'BOOKMARK_COURSE_UPDATED'
   | 'PAYMENT_SUCCESS'
+  | 'USER_REGISTERED'
   | 'NEW_USER_REGISTERED'
   | 'STUDENT_COMMENT_REPORT'
   | 'COMMENT_REPLY'
@@ -354,6 +450,14 @@ export interface Notification {
   link?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AdminNotificationFilters {
+  page?: number;
+  limit?: number;
+  isRead?: boolean;
+  type?: NotificationType;
 }
 
 // ─── Leaderboard ──────────────────────────────────────────────────────────────
@@ -378,9 +482,16 @@ export interface SubscriptionPlan {
   currency: string;
   durationDays: number;
   features: string[];
+  featureDetails?: SubscriptionFeature[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SubscriptionFeature {
+  key: string;
+  label: string;
+  description: string;
 }
 
 export interface PlanCreatePayload {
@@ -477,6 +588,11 @@ export interface AIHistoryLog {
   createdAt: string;
 }
 
+export interface HistoryPage<T> {
+  items: T[];
+  meta: PaginationMeta;
+}
+
 // ─── Analytics (Admin) ────────────────────────────────────────────────────────
 
 export interface PlatformStats {
@@ -492,11 +608,15 @@ export interface PlatformStats {
 export type AdminDashboardMetricValue = string | number | boolean | null | undefined;
 
 export interface AdminDashboardSummary {
-  totalUsers?: number;
+  totalUsers: number;
   totalStudents?: number;
-  totalCourses?: number;
-  totalEnrollments?: number;
-  totalQuizAttempts?: number;
+  totalCourses: number;
+  totalEnrollments: number;
+  totalQuizAttempts: number;
+  totalRevenue: number;
+  successfulPayments: number;
+  lockedUsers: number;
+  unreadNotifications: number;
   courseCompletionRate?: number;
   quizPassRate?: number;
   [key: string]: AdminDashboardMetricValue;
@@ -525,9 +645,54 @@ export type AdminDashboardChartValue =
   | null
   | undefined;
 
-export interface AdminDashboardStatistics {
-  summary?: AdminDashboardSummary | null;
-  charts?: Record<string, AdminDashboardChartValue> | null;
+export interface UserGrowthPoint extends AdminDashboardChartPoint {
+  label: string;
+  count: number;
+}
+
+export interface RevenueTrendPoint extends AdminDashboardChartPoint {
+  label: string;
+  revenue: number;
+}
+
+export interface TopPurchasedCoursePoint extends AdminDashboardChartPoint {
+  courseId: string;
+  title: string;
+  purchases: number;
+  revenue: number;
+}
+
+export interface PaymentStatusPoint extends AdminDashboardChartPoint {
+  status: string;
+  count: number;
+}
+
+export interface UserStatusPoint extends AdminDashboardChartPoint {
+  status: string;
+  count: number;
+}
+
+export interface NotificationTypePoint extends AdminDashboardChartPoint {
+  type: string;
+  count: number;
+}
+
+export interface AdminDashboardStatisticsResponse {
+  summary: AdminDashboardSummary;
+  charts: {
+    userGrowth: UserGrowthPoint[];
+    revenueTrend: RevenueTrendPoint[];
+    topPurchasedCourses: TopPurchasedCoursePoint[];
+    paymentStatusDistribution: PaymentStatusPoint[];
+    userStatusDistribution: UserStatusPoint[];
+    notificationsByType: NotificationTypePoint[];
+  };
+}
+
+export type AdminDashboardStatistics = AdminDashboardStatisticsResponse;
+
+export interface AdminDashboardStatisticsParams {
+  months?: number;
 }
 
 // ─── API Responses ────────────────────────────────────────────────────────────
@@ -560,10 +725,18 @@ export type PaginatedApiResponse<T> = ApiResponse<PaginatedResponse<T>>;
 // ─── Filters ──────────────────────────────────────────────────────────────────
 
 export interface CourseFilters {
+  q?: string;
   search?: string;
   level?: CourseLevel;
-  language?: string;
+  language?: CourseLanguage;
+  tag?: string;
   tags?: string[];
+  category?: string;
+  isPremium?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  status?: CourseStatus;
+  includeAll?: boolean;
   page?: number;
   limit?: number;
 }

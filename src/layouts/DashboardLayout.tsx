@@ -28,22 +28,37 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
 
   if (!hasHydrated || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-canvas-cream flex items-center justify-center">
-        <div className="h-10 w-10 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+      <div className="min-h-screen bg-canvas-cream p-6">
+        <div className="h-14 rounded-lg border border-black/10 bg-white/80" />
+        <div className="mx-auto mt-12 max-w-6xl space-y-6">
+          <div className="h-12 w-72 rounded-lg skeleton" />
+          <div className="grid gap-5 md:grid-cols-3">
+            {[0, 1, 2].map((item) => <div key={item} className="h-36 rounded-lg skeleton" />)}
+          </div>
+          <div className="h-80 rounded-lg skeleton" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-canvas-cream text-ink">
+    <div className="app-shell min-h-[100dvh] text-ink">
       <Sidebar />
       <Topbar />
       <main
+        id="main-content"
+        tabIndex={-1}
         className={`pt-14 min-h-screen transition-all duration-200 ${
           sidebarCollapsed ? MAIN_COLLAPSED_PL : MAIN_EXPANDED_PL
         }`}
       >
-        <div className={isFullWidthPage ? 'w-full p-4 sm:p-6 lg:py-9' : 'p-6'}>
+        <div
+          className={
+            isFullWidthPage
+              ? 'w-full p-4 sm:p-6 lg:py-9'
+              : 'mx-auto w-full max-w-[1440px] p-4 sm:p-6 lg:px-8 lg:py-9'
+          }
+        >
           <ErrorBoundary>{children}</ErrorBoundary>
         </div>
       </main>

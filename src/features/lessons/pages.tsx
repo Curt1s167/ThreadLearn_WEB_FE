@@ -1,34 +1,39 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
+  ArrowLeft,
+  ArrowRight,
   Bookmark,
   Brain,
   CheckCircle2,
   Code2,
   Clock,
-  MessageCircle,
   Play,
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { bookmarksService, lessonsService } from '../../services';
+import {
+  bookmarksService,
+  codeExecutionService,
+  coursesService,
+  enrollmentsService,
+  lessonsService,
+  quizService,
+} from '../../services';
 import { Button, EmptyState } from '../../components/shared';
 import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
-import {
-  DEMO_AI_RESPONSE,
-  DEMO_CODE_SAMPLE,
-  LESSON_FALLBACK_MARKDOWN,
-} from '../ui-reskin/demo-fallbacks';
+import { useAuthStore } from '../../store';
+import type { CodeExecutionResult, Enrollment } from '../../types';
 
-const LessonMarkdown = dynamic(
-  () => import('./LessonMarkdown').then((module) => module.LessonMarkdown),
-  { loading: () => <div className="h-32 skeleton rounded-lg" /> },
+const LessonReader = dynamic(
+  () => import('./LessonReader').then((module) => module.LessonReader),
+  { loading: () => <div className="h-48 skeleton rounded-lg" /> },
 );
 const CommentsSection = dynamic(
   () => import('./CommentsSection').then((module) => module.CommentsSection),
@@ -42,52 +47,124 @@ const NotesPanel = dynamic(
 const getHttpStatus = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status;
 
-function DemoCodeRunner() {
-  const [code, setCode] = useState(DEMO_CODE_SAMPLE);
-  const [ran, setRan] = useState(false);
-  const output = ran
+const runnableLanguages = new Set(['javascript', 'js', 'java', 'python', 'py', 'cpp', 'c']);
+
+type LessonReviewProgress = {
+  key: string;
+  explanationReviewed: boolean;
+  mediaReviewed: boolean;
+};
+
+function LessonCodeRunner({
+  lessonId,
+  courseId,
+  language,
+  initialCode,
+  onReviewed,
+}: {
+  lessonId: string;
+  courseId: string;
+  language: string;
+  initialCode: string;
+  onReviewed?: () => void;
+}) {
+  const [code, setCode] = useState(initialCode);
+  const [result, setResult] = useState<CodeExecutionResult | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+
+  const { mutate: runCode, isPending } = useMutation({
+    mutationFn: () =>
+      codeExecutionService.run({
+        sourceCode: code,
+        language,
+        lessonId,
+        courseId,
+      }),
+    onSuccess: (execution) => {
+      setResult(execution);
+      setRunError(null);
+    },
+    onError: (error) => {
+      setResult(null);
+      setRunError(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Could not run this code. Check your connection and try again.',
+      );
+    },
+  });
+
+  const output = result
     ? [
-        '> node playground.js',
-        '[ true, true ]',
-        'Race warning: both users passed the capacity check before seats was decremented.',
-        'Test 1 capacity invariant: failed',
-        'Test 2 async function resolves: passed',
-      ]
-    : ['Click Run to execute the mock playground.'];
+        `Status: ${result.status.description}`,
+        `Runtime: ${result.runtime}s`,
+        result.stdout ? `\nstdout\n${result.stdout}` : '',
+        result.stderr ? `\nstderr\n${result.stderr}` : '',
+        result.compileOutput ? `\ncompiler output\n${result.compileOutput}` : '',
+      ].filter(Boolean)
+    : runError
+      ? [runError]
+      : ['Run the code currently in the editor to see its actual output.'];
+  const status = isPending
+    ? 'running'
+    : result
+      ? result.status.description
+      : runError
+        ? 'failed'
+        : 'idle';
 
   return (
-    <div className="mt-6 grid gap-4 xl:grid-cols-[1fr_320px]">
+    <div id="lesson-code-runner" className="mt-8 grid scroll-mt-28 gap-4 xl:grid-cols-[1fr_320px]">
       <section className="overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-2">
             <Code2 size={16} className="text-[#d9f99d]" />
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-white/35">ThreadLearn IDE</p>
-              <p className="text-sm font-semibold">playground.js</p>
+              <p className="text-sm font-semibold">{language}</p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setRan(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-4 py-2 text-sm font-medium text-black"
+            onClick={() => {
+              if (!code.trim()) {
+                setResult(null);
+                setRunError('Write some code before running the playground.');
+                return;
+              }
+              onReviewed?.();
+              runCode();
+            }}
+            disabled={isPending}
+            className="inline-flex items-center gap-2 rounded-full bg-[#d9f99d] px-4 py-2 text-sm font-medium text-black disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Play size={15} />
-            Run
+            {isPending ? 'Running...' : 'Run'}
           </button>
         </div>
         <textarea
           value={code}
-          onChange={(event) => setCode(event.target.value)}
+          onChange={(event) => {
+            setCode(event.target.value);
+            setResult(null);
+            setRunError(null);
+          }}
           spellCheck={false}
           className="min-h-72 w-full resize-y bg-[#111827] p-5 font-mono text-sm leading-6 text-[#d9f99d] outline-none"
+          aria-label="Lesson code editor"
         />
       </section>
 
       <aside className="rounded-lg border border-black/10 bg-white p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h3 className="font-semibold text-ink">Console output</h3>
-          <span className={`rounded-full px-2 py-1 text-xs ${ran ? 'bg-[#fecaca] text-[#7f1d1d]' : 'bg-black/[0.05] text-black/45'}`}>
-            {ran ? '1 failed' : 'idle'}
+          <span className={`rounded-full px-2 py-1 text-xs ${
+            result?.status.id === 3
+              ? 'bg-emerald-100 text-emerald-800'
+              : runError || (result && result.status.id !== 3)
+                ? 'bg-[#fecaca] text-[#7f1d1d]'
+                : 'bg-black/[0.05] text-black/45'
+          }`}>
+            {status}
           </span>
         </div>
         <pre className="mt-4 min-h-40 whitespace-pre-wrap rounded-lg bg-black p-4 font-mono text-xs leading-6 text-[#d9f99d]">
@@ -106,7 +183,60 @@ export const LessonPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const [activePanel, setActivePanel] = useState<'notes' | 'comments'>('notes');
+  const [selectedNoteAnchor, setSelectedNoteAnchor] = useState<{
+    text: string;
+    anchorStart: number;
+    anchorEnd: number;
+  }>();
+  const reviewStorageKey = `threadlearn:lesson-review:${user?._id ?? 'anonymous'}:${id}`;
+  const [reviewProgress, setReviewProgress] = useState<LessonReviewProgress>({
+    key: reviewStorageKey,
+    explanationReviewed: false,
+    mediaReviewed: false,
+  });
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(reviewStorageKey);
+      const parsed = saved
+        ? JSON.parse(saved) as Partial<Omit<LessonReviewProgress, 'key'>>
+        : {};
+      setReviewProgress({
+        key: reviewStorageKey,
+        explanationReviewed: Boolean(parsed.explanationReviewed),
+        mediaReviewed: Boolean(parsed.mediaReviewed),
+      });
+    } catch {
+      setReviewProgress({
+        key: reviewStorageKey,
+        explanationReviewed: false,
+        mediaReviewed: false,
+      });
+    }
+  }, [reviewStorageKey]);
+
+  const setReviewStep = (
+    step: 'explanationReviewed' | 'mediaReviewed',
+    value: boolean,
+  ) => {
+    setReviewProgress((current) => {
+      const base = current.key === reviewStorageKey
+        ? current
+        : { key: reviewStorageKey, explanationReviewed: false, mediaReviewed: false };
+      const next = { ...base, [step]: value };
+      try {
+        window.localStorage.setItem(reviewStorageKey, JSON.stringify({
+          explanationReviewed: next.explanationReviewed,
+          mediaReviewed: next.mediaReviewed,
+        }));
+      } catch {
+        // Preserve in-memory progress if storage is blocked by the browser.
+      }
+      return next;
+    });
+  };
 
   const {
     data: lesson,
@@ -120,23 +250,70 @@ export const LessonPage: React.FC = () => {
   });
 
   const isEnrollmentRequired = getHttpStatus(error) === 403;
+  const lessonCourseId = lesson?.courseId;
+
+  // Quizzes are optional per lesson. Resolve availability here so students are
+  // never sent to a quiz route that can only return a 404.
+  const {
+    data: lessonQuiz,
+    isLoading: isQuizLoading,
+    isError: isQuizUnavailable,
+  } = useQuery({
+    queryKey: ['quiz-availability', id],
+    queryFn: () => quizService.getByLesson(id!),
+    enabled: Boolean(id && lesson),
+    retry: false,
+  });
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['my-enrollments'],
+    queryFn: enrollmentsService.getMyEnrollments,
+    enabled: Boolean(lessonCourseId),
+    retry: false,
+  });
+  const enrollment = enrollments.find((item) => {
+    const courseId = typeof item.courseId === 'string' ? item.courseId : item.courseId?._id ?? item.courseId?.id;
+    return courseId === lessonCourseId;
+  });
+  const isLessonCompleted = Boolean(enrollment?.completedLessons?.includes(id!));
+
+  const { data: courseDetail } = useQuery({
+    queryKey: ['course-detail', lessonCourseId],
+    queryFn: () => coursesService.getById(lessonCourseId!),
+    enabled: Boolean(lessonCourseId),
+    retry: false,
+  });
+
+  const { prevLesson, nextLesson } = useMemo(() => {
+    const lessons = (courseDetail?.lessons ?? [])
+      .slice()
+      .sort(
+        (a, b) =>
+          (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0),
+      );
+    const idx = lessons.findIndex((item) => item._id === id);
+    if (idx < 0) return { prevLesson: undefined, nextLesson: undefined };
+    return {
+      prevLesson: idx > 0 ? lessons[idx - 1] : undefined,
+      nextLesson: idx < lessons.length - 1 ? lessons[idx + 1] : undefined,
+    };
+  }, [courseDetail?.lessons, id]);
 
   useEffect(() => {
     if (isError && !isEnrollmentRequired) toast.error('Failed to load lesson');
   }, [isEnrollmentRequired, isError]);
 
-  const { data: bookmarksPage } = useQuery({
-    queryKey: ['bookmarks'],
-    queryFn: bookmarksService.getAll,
+  const { data: isBookmarked = false } = useQuery({
+    queryKey: ['bookmark-check', id],
+    queryFn: () => bookmarksService.check(id!),
     enabled: !!id,
     retry: false,
   });
-  const isBookmarked = !!bookmarksPage?.data?.some((bm) => bm.targetId === id);
-
   const { mutate: toggleBookmark, isPending: bookmarking } = useMutation({
-    mutationFn: () => bookmarksService.toggle(id!, lesson?.title),
+    mutationFn: () => bookmarksService.toggle(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+      queryClient.invalidateQueries({ queryKey: ['bookmark-check', id] });
       toast.success(isBookmarked ? 'Bookmark removed' : 'Bookmarked');
     },
     onError: () => toast.error('Failed to toggle bookmark'),
@@ -145,6 +322,14 @@ export const LessonPage: React.FC = () => {
   const { mutate: completeLesson, isPending: completing } = useMutation({
     mutationFn: () => lessonsService.complete(id!),
     onSuccess: (data) => {
+      if (data.enrollment) {
+        queryClient.setQueryData<Enrollment[]>(['my-enrollments'], (current = []) => {
+          const exists = current.some((item) => item._id === data.enrollment?._id);
+          return exists
+            ? current.map((item) => (item._id === data.enrollment?._id ? data.enrollment! : item))
+            : [...current, data.enrollment!];
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['lesson', id] });
       queryClient.invalidateQueries({ queryKey: ['my-enrollments'] });
       queryClient.invalidateQueries({ queryKey: ['gamification-stats'] });
@@ -156,8 +341,26 @@ export const LessonPage: React.FC = () => {
   const duration = lesson?.estimatedTime ?? lesson?.duration ?? 0;
   const order = lesson?.orderIndex ?? lesson?.order;
   const content = lesson?.contentMarkdown ?? lesson?.content ?? '';
-  const displayContent = content.trim() ? content : LESSON_FALLBACK_MARKDOWN;
-  const isMockContent = !content.trim();
+  const runnableSnippet = lesson?.codeSnippets?.find((snippet) =>
+    runnableLanguages.has(snippet.language.toLowerCase()),
+  );
+  const hasMarkdownCode = /```[^\n]*\n[\s\S]*?```/.test(content);
+  const hasCodeMaterial = Boolean(lesson?.codeSnippets?.length || hasMarkdownCode);
+  const requiresMediaReview = Boolean(lesson?.videoUrl || hasCodeMaterial);
+  const currentReview = reviewProgress.key === reviewStorageKey
+    ? reviewProgress
+    : { key: reviewStorageKey, explanationReviewed: false, mediaReviewed: false };
+  const explanationStepDone = currentReview.explanationReviewed || isLessonCompleted;
+  const mediaStepDone = currentReview.mediaReviewed || isLessonCompleted;
+  const mediaReviewLabel = lesson?.videoUrl && hasCodeMaterial
+    ? 'Review the code and video'
+    : lesson?.videoUrl
+      ? 'Watch the lesson video'
+      : runnableSnippet
+        ? 'Run the code example'
+        : 'Review the code example';
+  const canCompleteLesson = explanationStepDone
+    && (!requiresMediaReview || mediaStepDone);
   const courseHref =
     typeof lesson?.courseId === 'string' ? `/courses/${lesson.courseId}` : '/courses';
 
@@ -189,7 +392,7 @@ export const LessonPage: React.FC = () => {
       ) : lesson ? (
         <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
           <article className="space-y-5">
-            <div className="rounded-lg bg-white p-6 sm:p-8">
+            <div className="lesson-header p-5 sm:p-7">
               <Link href={courseHref} className="text-sm text-black/50 hover:text-black">
                 Back to course
               </Link>
@@ -207,7 +410,7 @@ export const LessonPage: React.FC = () => {
                     ) : null}
                     {lesson.videoUrl ? <DemoPill tone="pink">Video</DemoPill> : null}
                   </div>
-                  <h1 className="text-4xl font-light tracking-tight text-ink">{lesson.title}</h1>
+                  <h1 className="text-3xl font-semibold leading-tight tracking-[-0.035em] text-ink sm:text-4xl">{lesson.title}</h1>
                   {lesson.attachmentUrl ? (
                     <a
                       href={lesson.attachmentUrl}
@@ -223,7 +426,7 @@ export const LessonPage: React.FC = () => {
                   type="button"
                   onClick={() => toggleBookmark()}
                   disabled={bookmarking}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
+                  className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
                     isBookmarked ? 'bg-[#d9f99d] text-ink' : 'bg-black text-white hover:bg-black/90'
                   }`}
                 >
@@ -235,9 +438,9 @@ export const LessonPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-lg border border-black/10 bg-white p-6 sm:p-8">
+            <div className="lesson-surface p-4 sm:p-6 lg:p-7">
               {lesson.videoUrl ? (
-                <div className="mb-6 aspect-video overflow-hidden rounded-lg border border-black/10 bg-black">
+                <div id="lesson-video" className="mb-6 aspect-video scroll-mt-28 overflow-hidden rounded-lg border border-black/10 bg-black">
                   <iframe
                     src={lesson.videoUrl}
                     className="h-full w-full"
@@ -247,15 +450,67 @@ export const LessonPage: React.FC = () => {
                   />
                 </div>
               ) : null}
-              {isMockContent ? (
-                <div className="mb-5 rounded-lg bg-[#d9f99d]/40 px-4 py-3 text-sm text-black/60">
-                  Mock lesson content from the demo flow. Replace when lesson.content is available from BE.
+              {content.trim() ? (
+                <LessonReader
+                  content={content}
+                  lessonTitle={lesson.title}
+                  checklistStorageKey={`${user?._id ?? 'anonymous'}:${id}`}
+                  onReadComplete={() => setReviewStep('explanationReviewed', true)}
+                  onTextSelected={(selection) => {
+                    setSelectedNoteAnchor(selection);
+                    setActivePanel('notes');
+                  }}
+                />
+              ) : (
+                <EmptyState
+                  icon={<AlertCircle size={32} />}
+                  title="Lesson content is unavailable"
+                  description="This lesson has not been published with learning content yet. Body must be Markdown (contentMarkdown)."
+                />
+              )}
+              {runnableSnippet ? (
+                <LessonCodeRunner
+                  key={id}
+                  lessonId={id!}
+                  courseId={lesson.courseId}
+                  language={runnableSnippet.language}
+                  initialCode={runnableSnippet.code}
+                  onReviewed={() => setReviewStep('mediaReviewed', true)}
+                />
+              ) : null}
+
+              {(prevLesson || nextLesson) ? (
+                <div className="mt-8 grid gap-3 border-t border-black/10 pt-6 sm:grid-cols-2">
+                  {prevLesson ? (
+                    <Link
+                      href={`/lessons/${prevLesson._id}`}
+                      className="lesson-route-card group px-4 py-3"
+                    >
+                      <span className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.14em] text-black/40">
+                        <ArrowLeft size={12} /> Bài trước
+                      </span>
+                      <span className="mt-1 block text-sm font-medium text-ink group-hover:underline">
+                        {prevLesson.title}
+                      </span>
+                    </Link>
+                  ) : (
+                    <div className="hidden sm:block" />
+                  )}
+                  {nextLesson ? (
+                    <Link
+                      href={`/lessons/${nextLesson._id}`}
+                      className="lesson-route-card lesson-route-card-primary group px-4 py-3 text-right"
+                    >
+                      <span className="inline-flex items-center justify-end gap-1 text-xs uppercase tracking-[0.14em] text-white/50">
+                        Bài tiếp <ArrowRight size={12} />
+                      </span>
+                      <span className="mt-1 block text-sm font-medium">{nextLesson.title}</span>
+                    </Link>
+                  ) : (
+                    <div className="hidden sm:block" />
+                  )}
                 </div>
               ) : null}
-              <div className="prose prose-neutral max-w-none text-base leading-8 text-black/70 [&_a]:text-black [&_code]:rounded [&_code]:bg-black/[0.04] [&_code]:px-1 [&_h1]:text-ink [&_h2]:text-ink [&_h3]:text-ink [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-black/10 [&_pre]:bg-[#111827] [&_pre]:p-4 [&_pre]:text-[#d9f99d]">
-                <LessonMarkdown content={displayContent} />
-              </div>
-              <DemoCodeRunner />
             </div>
 
             <div className="rounded-lg border border-black/10 bg-white p-6 xl:hidden">
@@ -273,79 +528,130 @@ export const LessonPage: React.FC = () => {
                   </button>
                 ))}
               </div>
-              {activePanel === 'notes' ? <NotesPanel lessonId={id!} /> : <CommentsSection lessonId={id!} />}
+              {activePanel === 'notes'
+                ? <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
+                : <CommentsSection lessonId={id!} />}
             </div>
           </article>
 
           <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-            <div className="rounded-lg bg-[#d9f99d] p-5">
-              <Brain size={22} className="text-ink" />
-              <h2 className="mt-4 text-xl font-semibold text-ink">AI race condition hint</h2>
-              <p className="mt-3 text-sm text-black/65">{DEMO_AI_RESPONSE}</p>
+            <div className="lesson-assist-card p-5">
+              <Brain size={22} className="lesson-assist-icon" />
+              <h2 className="lesson-assist-title mt-4 text-xl font-semibold">Need help with this lesson?</h2>
+              <p className="lesson-assist-copy mt-3 text-sm">Open AI Advisor to analyse your own code or ask a focused question.</p>
               <button
                 type="button"
                 onClick={() => router.push('/ai')}
-                className="mt-5 rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/90"
+                className="lesson-assist-action mt-5 inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2 text-sm font-semibold"
               >
                 Open AI analysis
               </button>
             </div>
 
-            <div className="rounded-lg bg-[#d9f99d] p-5">
-              <Zap size={22} className="text-ink" />
-              <h2 className="mt-4 text-xl font-semibold text-ink">Quiz check-in</h2>
-              <p className="mt-3 text-sm text-black/65">
-                Lock in this lesson with a short quiz. Timer and auto-submit stay on the quiz flow.
+            <div className="lesson-assist-card p-5">
+              <Zap size={22} className="lesson-assist-icon" />
+              <h2 className="lesson-assist-title mt-4 text-xl font-semibold">Quiz check-in</h2>
+              <p className="lesson-assist-copy mt-3 text-sm">
+                {lessonQuiz
+                  ? 'Lock in this lesson with a short quiz. Timer and auto-submit stay on the quiz flow.'
+                  : 'A quiz has not been assigned to this lesson yet.'}
               </p>
-              <button
-                type="button"
-                onClick={() => router.push(`/quiz/${id}`)}
-                className="mt-5 rounded-full bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/90"
-              >
-                Take quiz
-              </button>
+              {isQuizLoading ? (
+                <span className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-black/10 px-5 py-2 text-sm font-semibold text-black/55">
+                  Checking quiz…
+                </span>
+              ) : lessonQuiz ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/quiz/${id}`)}
+                  className="lesson-assist-action mt-5 inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2 text-sm font-semibold"
+                >
+                  Take quiz
+                </button>
+              ) : isQuizUnavailable ? (
+                <span className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-black/10 px-5 py-2 text-sm font-semibold text-black/55">
+                  No quiz available
+                </span>
+              ) : null}
             </div>
 
             <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
-              <NotesPanel lessonId={id!} />
+              <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
             </div>
 
-            <div className="rounded-lg border border-black/10 bg-white p-5">
+            <div className="lesson-checklist-card rounded-lg border p-5">
               <h2 className="font-semibold text-ink">Lesson checklist</h2>
-              <div className="mt-4 space-y-3 text-sm">
-                {[
-                  { label: 'Read the explanation', done: true },
-                  { label: 'Review the code / video', done: !!content || !!lesson.videoUrl },
-                  { label: 'Mark lesson complete', done: false },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-3 text-black/70">
-                    <span
-                      className={`grid h-5 w-5 place-items-center rounded-full ${
-                        item.done ? 'bg-black text-white' : 'bg-black/10'
-                      }`}
-                    >
-                      {item.done ? <CheckCircle2 size={13} /> : null}
+              <p className="mt-1 text-xs leading-5 text-ink-faint">
+                Your review steps are saved on this device. Final completion is saved to your account.
+              </p>
+              <div className="mt-4 space-y-2">
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={explanationStepDone}
+                  disabled={isLessonCompleted}
+                  onClick={() => setReviewStep('explanationReviewed', !currentReview.explanationReviewed)}
+                  className="lesson-checklist-step"
+                >
+                  <span className={`lesson-checklist-status ${explanationStepDone ? 'lesson-checklist-status-done' : ''}`}>
+                    {explanationStepDone ? <CheckCircle2 size={15} /> : null}
+                  </span>
+                  <span>
+                    <span className="block font-medium text-ink">Read the explanation</span>
+                    <span className="mt-0.5 block text-xs text-ink-faint">Mark this after reading the lesson sections.</span>
+                  </span>
+                </button>
+
+                {requiresMediaReview ? (
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={mediaStepDone}
+                    disabled={isLessonCompleted}
+                    onClick={() => setReviewStep('mediaReviewed', !currentReview.mediaReviewed)}
+                    className="lesson-checklist-step"
+                  >
+                    <span className={`lesson-checklist-status ${mediaStepDone ? 'lesson-checklist-status-done' : ''}`}>
+                      {mediaStepDone ? <CheckCircle2 size={15} /> : null}
                     </span>
-                    {item.label}
-                  </div>
-                ))}
+                    <span>
+                      <span className="block font-medium text-ink">{mediaReviewLabel}</span>
+                      <span className="mt-0.5 block text-xs text-ink-faint">
+                        {runnableSnippet
+                          ? 'Running the playground checks this automatically.'
+                          : 'Check this after reviewing the learning material.'}
+                      </span>
+                    </span>
+                  </button>
+                ) : null}
+
+                <div className="lesson-checklist-step lesson-checklist-step-static">
+                  <span className={`lesson-checklist-status ${isLessonCompleted ? 'lesson-checklist-status-done' : ''}`}>
+                    {isLessonCompleted ? <CheckCircle2 size={15} /> : null}
+                  </span>
+                  <span>
+                    <span className="block font-medium text-ink">Mark lesson complete</span>
+                    <span className="mt-0.5 block text-xs text-ink-faint">Saved by ThreadLearn and awards progress/XP.</span>
+                  </span>
+                </div>
               </div>
               <Button
                 size="sm"
-                className="mt-5 w-full"
+                className="mt-5 min-h-11 w-full"
                 onClick={() => completeLesson()}
                 loading={completing}
+                disabled={isLessonCompleted || !canCompleteLesson}
+                title={!canCompleteLesson && !isLessonCompleted ? 'Complete the review steps above first' : undefined}
               >
                 <CheckCircle2 size={14} />
-                Mark complete
+                {isLessonCompleted ? 'Completed' : 'Mark complete'}
               </Button>
+              {!isLessonCompleted && !canCompleteLesson ? (
+                <p className="mt-2 text-center text-xs text-ink-faint">Complete the review steps above to continue.</p>
+              ) : null}
             </div>
 
             <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
-              <div className="mb-4 flex items-center gap-2">
-                <MessageCircle size={18} />
-                <h2 className="font-semibold text-ink">Discussion</h2>
-              </div>
               <CommentsSection lessonId={id!} />
             </div>
           </aside>

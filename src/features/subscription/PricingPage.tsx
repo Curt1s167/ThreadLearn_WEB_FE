@@ -7,6 +7,7 @@ import { AlertCircle, Crown, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { subscriptionService } from '../../services';
 import { Skeleton } from '../../components/shared';
+import { useAuthStore } from '../../store';
 import {
   DemoDisplayTitle,
   DemoHeroWhite,
@@ -33,6 +34,7 @@ const PricingPlans = dynamic(
  * Queries: getPlans / getMyPlan only — no purchase logic here.
  */
 export const PricingPage: React.FC = () => {
+  const { user } = useAuthStore();
   const {
     data: plans,
     isLoading: plansLoading,
@@ -50,18 +52,19 @@ export const PricingPage: React.FC = () => {
   } = useQuery({
     queryKey: ['my-subscription'],
     queryFn: subscriptionService.getMyPlan,
+    enabled: Boolean(user),
   });
 
   useEffect(() => {
     if (plansError) {
       toast.error('Failed to load subscription plans');
     }
-    if (myPlanError) {
+    if (user && myPlanError) {
       toast.error('Failed to load current subscription');
     }
-  }, [plansError, myPlanError]);
+  }, [plansError, myPlanError, user]);
 
-  if (plansLoading || myPlanLoading) {
+  if (plansLoading || (Boolean(user) && myPlanLoading)) {
     return (
       <DemoPageRoot>
         <Skeleton className="h-40 rounded-lg" />
@@ -78,28 +81,27 @@ export const PricingPage: React.FC = () => {
     <DemoPageRoot>
       <DemoHeroWhite>
         <div className="flex flex-wrap items-center gap-2">
-          <DemoPill tone="lime">Subscription</DemoPill>
+          <DemoPill tone="lime">Gói dịch vụ</DemoPill>
           <Crown size={18} className="text-black/50" />
         </div>
-        <DemoDisplayTitle>Service plans for ThreadLearn</DemoDisplayTitle>
+        <DemoDisplayTitle>Nâng cấp trải nghiệm học tập</DemoDisplayTitle>
         <DemoMuted>
-          Choose a plan to unlock premium learning features. Purchase creates a payment session
-          via the subscription API (UC51–UC52).
+          Chọn gói phù hợp để mở khóa nội dung nâng cao và trợ lý AI chuyên sâu.
         </DemoMuted>
       </DemoHeroWhite>
 
       {myPlan ? (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-black/10 bg-[#d9f99d] p-5">
+        <div className="accent-surface flex flex-wrap items-center justify-between gap-4 rounded-lg p-5">
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-black/45">Current subscription</p>
-            <p className="mt-1 text-sm font-medium text-ink">
-              Plan #{myPlan.planId.slice(-6)} · {myPlan.status}
+            <p className="accent-surface-copy text-xs uppercase tracking-[0.16em]">Gói đang sử dụng</p>
+            <p className="accent-surface-title mt-1 text-sm font-medium">
+              Mã gói #{myPlan.planId.slice(-6)} · Đang hoạt động
             </p>
-            <p className="mt-0.5 text-sm text-black/60">
-              Expires {new Date(myPlan.expiresAt).toLocaleDateString()}
+            <p className="accent-surface-copy mt-0.5 text-sm">
+              Hết hạn ngày {new Date(myPlan.expiresAt).toLocaleDateString('vi-VN')}
             </p>
           </div>
-          <Sparkles size={22} className="text-black/50 shrink-0" />
+          <Sparkles size={22} className="accent-surface-copy shrink-0" />
         </div>
       ) : null}
 
@@ -109,17 +111,22 @@ export const PricingPage: React.FC = () => {
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 text-rose-600" size={20} />
               <div>
-                <h2 className="font-semibold text-black">Could not load subscription plans</h2>
+                <h2 className="font-semibold text-black">Không thể tải danh sách gói</h2>
                 <p className="mt-1 text-sm text-black/55">
-                  Check the subscription plan API or create active plans from the admin screen.
+                  Kết nối đang gián đoạn. Hãy thử lại sau ít phút.
                 </p>
               </div>
             </div>
-            <DemoPrimaryButton onClick={() => refetchPlans()}>Retry</DemoPrimaryButton>
+            <DemoPrimaryButton onClick={() => refetchPlans()}>Thử lại</DemoPrimaryButton>
           </div>
         </DemoWhitePanel>
       ) : (
-        <PricingPlans plans={activePlans} myPlan={myPlan} />
+        <PricingPlans
+          plans={activePlans}
+          myPlan={myPlan}
+          userPlanType={user?.planType}
+          isSignedIn={Boolean(user)}
+        />
       )}
     </DemoPageRoot>
   );

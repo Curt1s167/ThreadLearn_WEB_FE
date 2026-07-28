@@ -3,7 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, Trophy } from 'lucide-react';
+import { AlertCircle, RefreshCw, Trophy } from 'lucide-react';
 import { leaderboardService } from '../../services';
 import { useAuthStore } from '../../store';
 import {
@@ -12,7 +12,6 @@ import {
   DemoPageRoot,
   DemoPrimaryButton,
   DemoWhitePanel,
-  UI_PLACEHOLDERS,
 } from '../ui-reskin/demo-ui';
 
 const LeaderboardContent = dynamic(
@@ -48,6 +47,7 @@ export const LeaderboardPage: React.FC = () => {
     data: myRank,
     isLoading: myRankLoading,
     isError: myRankError,
+    refetch: refetchMyRank,
   } = useQuery({
     queryKey: ['my-rank'],
     queryFn: leaderboardService.getMyRank,
@@ -58,35 +58,38 @@ export const LeaderboardPage: React.FC = () => {
 
   return (
     <DemoPageRoot>
-      {/* Layout mirrors DemoLeaderboardPage hero + white list */}
       <DemoHeroInk>
         <Trophy size={28} className="text-[#d9f99d]" />
-        <DemoDisplayTitle>Leaderboard and gamification</DemoDisplayTitle>
-        <p className="mt-3 max-w-2xl text-white/60">
-          Rankings from the leaderboard API, updated after quiz and lesson XP side-effects.
-        </p>
-        <p className="mt-4 text-xs uppercase tracking-[0.18em] text-white/40">
-          {UI_PLACEHOLDERS.leaderboardSeason}
+        <DemoDisplayTitle>Bảng xếp hạng</DemoDisplayTitle>
+        <p className="on-forest-copy mt-3 max-w-2xl">
+          Theo dõi thứ hạng dựa trên XP bạn nhận được khi hoàn thành bài học và bài kiểm tra.
         </p>
 
         {user && (
-          <div className="mt-6 inline-flex flex-wrap items-center gap-3 rounded-lg bg-white/10 px-4 py-3 text-sm">
+          <div className="leaderboard-rank-summary mt-7 inline-flex flex-wrap items-center gap-3 rounded-xl px-5 py-4 text-base">
             {myRankLoading ? (
-              <span className="text-white/60">Loading your rank…</span>
+              <span className="on-forest-copy">Đang tải thứ hạng của bạn...</span>
             ) : myRankError ? (
-              <span className="flex items-center gap-2 text-rose-200">
+              <button
+                type="button"
+                onClick={() => refetchMyRank()}
+                className="flex items-center gap-2 text-rose-200 transition hover:text-white"
+              >
                 <AlertCircle size={16} />
-                Could not load your rank
-              </span>
+                Không thể tải thứ hạng. Thử lại
+                <RefreshCw size={14} />
+              </button>
             ) : myRank ? (
               <>
-                <span className="text-white/55">Your position</span>
-                <span className="font-semibold text-[#d9f99d]">#{myRank.rank}</span>
-                <span className="text-white/40">·</span>
-                <span className="text-white/80">{myRank.xp.toLocaleString()} XP</span>
+                <span className="leaderboard-rank-label">Thứ hạng của bạn</span>
+                <span className="leaderboard-rank-value">#{myRank.rank}</span>
+                <span className="leaderboard-rank-divider">·</span>
+                <span className="leaderboard-rank-label">Cấp {myRank.level ?? 1}</span>
+                <span className="leaderboard-rank-divider">·</span>
+                <span className="leaderboard-rank-stat">{myRank.xp.toLocaleString()} XP</span>
               </>
             ) : (
-              <span className="text-white/60">Complete a quiz to appear on the board</span>
+              <span className="on-forest-copy">Hoàn thành bài học hoặc bài kiểm tra để xuất hiện tại đây.</span>
             )}
           </div>
         )}
@@ -105,20 +108,20 @@ export const LeaderboardPage: React.FC = () => {
         <DemoWhitePanel className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-semibold text-black">Could not load leaderboard</h2>
+              <h2 className="font-semibold text-black">Không thể tải bảng xếp hạng</h2>
               <p className="mt-1 text-sm text-black/55">
-                Check the leaderboard API and try again.
+                Kết nối có thể đang gián đoạn. Hãy thử lại sau ít phút.
               </p>
             </div>
-            <DemoPrimaryButton onClick={() => refetch()}>Retry</DemoPrimaryButton>
+            <DemoPrimaryButton onClick={() => refetch()}>Thử lại</DemoPrimaryButton>
           </div>
         </DemoWhitePanel>
       ) : entries.length === 0 ? (
         <DemoWhitePanel className="p-8 text-center">
           <Trophy className="mx-auto text-black/30" size={32} />
-          <h2 className="mt-4 text-xl font-semibold text-black">No leaderboard entries yet</h2>
+          <h2 className="mt-4 text-xl font-semibold text-black">Chưa có dữ liệu xếp hạng</h2>
           <p className="mt-2 text-sm text-black/55">
-            Students will appear here after earning XP from lessons or quizzes.
+            Học viên sẽ xuất hiện sau khi nhận XP từ bài học hoặc bài kiểm tra.
           </p>
         </DemoWhitePanel>
       ) : (

@@ -6,23 +6,31 @@ import type {
   Course,
   CourseDetail,
   CourseCreatePayload,
+  CourseUpdatePayload,
+  CourseStatusPayload,
   CourseFilters,
   Lesson,
+  LessonManagementPayload,
   LessonCompleteResult,
+  CourseSection,
+  CourseSectionPayload,
   Quiz,
   QuizAttempt,
+  PaginationMeta,
   QuizSubmitResult,
   QuizCreatePayload,
   QuizUpdatePayload,
   QuestionPayload,
   SubmitAttemptPayload,
   Comment,
+  CodeExecutionResult,
   Bookmark,
   BookmarkToggleResult,
   Note,
   Notification,
   LeaderboardEntry,
   SubscriptionPlan,
+  SubscriptionFeature,
   UserSubscription,
   SubscriptionPurchase,
   PlanCreatePayload,
@@ -32,6 +40,7 @@ import type {
   AIHistoryLog,
   PlatformStats,
   AdminDashboardStatistics,
+  AdminDashboardStatisticsParams,
   Enrollment,
   UserStats,
   User,
@@ -43,8 +52,9 @@ import type {
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
 export const coursesService = {
   list: async (filters: CourseFilters = {}) => {
+    const { tags, ...query } = filters;
     const { data } = await apiClient.get<ApiResponse<Course[]>>('/courses', {
-      params: filters,
+      params: { ...query, tag: filters.tag ?? tags?.[0] },
     });
     const meta = data.meta ?? {
       page: filters.page ?? 1,
@@ -69,18 +79,30 @@ export const coursesService = {
     const { data } = await apiClient.post<ApiResponse<Course>>('/courses', payload);
     return data.data;
   },
-  update: async (id: string, payload: Partial<CourseCreatePayload>) => {
+  update: async (id: string, payload: CourseUpdatePayload) => {
     const { data } = await apiClient.put<ApiResponse<Course>>(`/courses/${id}`, payload);
     return data.data;
   },
   uploadThumbnail: async (courseId: string, file: File) => {
     const form = new FormData();
     form.append('thumbnail', file);
-    const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string }>>(
+    const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string; course: Course }>>(
       `/courses/${courseId}/thumbnail`,
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
+    return data.data;
+  },
+  setStatus: async (id: string, payload: CourseStatusPayload) => {
+    const { data } = await apiClient.patch<ApiResponse<Course>>(`/courses/${id}/publish`, payload);
+    return data.data;
+  },
+  remove: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<Course>>(`/courses/${id}`);
+    return data.data;
+  },
+  restore: async (id: string) => {
+    const { data } = await apiClient.post<ApiResponse<Course>>(`/courses/${id}/restore`);
     return data.data;
   },
 };
@@ -97,11 +119,11 @@ export const lessonsService = {
     const { data } = await apiClient.get<ApiResponse<Lesson>>(`/lessons/${id}`);
     return data.data;
   },
-  create: async (payload: Partial<Lesson>) => {
+  create: async (payload: LessonManagementPayload) => {
     const { data } = await apiClient.post<ApiResponse<Lesson>>('/lessons', payload);
     return data.data;
   },
-  update: async (id: string, payload: Partial<Lesson>) => {
+  update: async (id: string, payload: Partial<LessonManagementPayload>) => {
     const { data } = await apiClient.put<ApiResponse<Lesson>>(`/lessons/${id}`, payload);
     return data.data;
   },
@@ -109,10 +131,43 @@ export const lessonsService = {
     const { data } = await apiClient.delete<ApiResponse<null>>(`/lessons/${id}`);
     return data;
   },
+  setLock: async (id: string, locked: boolean) => {
+    const { data } = await apiClient.patch<ApiResponse<Lesson>>(`/lessons/${id}/lock`, { locked });
+    return data.data;
+  },
   complete: async (id: string) => {
     const { data } = await apiClient.post<ApiResponse<LessonCompleteResult>>(
       `/lessons/${id}/complete`
     );
+    return data.data;
+  },
+};
+
+// ——— Course sections (UC54) ————————————————————————————————————————————
+export const sectionsService = {
+  listByCourse: async (courseId: string) => {
+    const { data } = await apiClient.get<ApiResponse<CourseSection[]>>('/sections', {
+      params: { courseId },
+    });
+    return data.data;
+  },
+  create: async (payload: CourseSectionPayload) => {
+    const { data } = await apiClient.post<ApiResponse<CourseSection>>('/sections', payload);
+    return data.data;
+  },
+  update: async (id: string, payload: Partial<CourseSectionPayload>) => {
+    const { data } = await apiClient.patch<ApiResponse<CourseSection>>(`/sections/${id}`, payload);
+    return data.data;
+  },
+  remove: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ id: string }>>(`/sections/${id}`);
+    return data.data;
+  },
+  reorder: async (courseId: string, items: Array<{ id: string; orderIndex: number }>) => {
+    const { data } = await apiClient.post<ApiResponse<CourseSection[]>>('/sections/reorder', {
+      courseId,
+      items,
+    });
     return data.data;
   },
 };
@@ -149,6 +204,16 @@ export const studentsService = {
 };
 
 // ─── Quiz (UC26–UC29, UC41–UC43, UC49) ───────────────────────────────────────
+export interface QuizAttemptHistoryQuery {
+  page?: number;
+  limit?: number;
+}
+
+export interface QuizAttemptHistoryResult {
+  items: QuizAttempt[];
+  meta?: PaginationMeta;
+}
+
 export const quizService = {
   listAll: async () => {
     const { data } = await apiClient.get<ApiResponse<Quiz[]>>('/quiz');
@@ -213,12 +278,20 @@ export const quizService = {
     );
     return data.data;
   },
-  getMyAttempts: async () => {
-    // UC49
-    const { data } = await apiClient.get<ApiResponse<QuizAttempt[]>>(
-      '/quiz/attempts/me'
-    );
+  getMyAttempts: async (query?: QuizAttemptHistoryQuery): Promise<QuizAttempt[]> => {
+    const { data } = await apiClient.get<ApiResponse<QuizAttempt[]>>('/quiz/attempts/me', {
+      params: query?.page || query?.limit ? query : undefined,
+    });
     return data.data;
+  },
+  getMyAttemptsPage: async (query: Required<QuizAttemptHistoryQuery>): Promise<QuizAttemptHistoryResult> => {
+    const { data } = await apiClient.get<ApiResponse<QuizAttempt[]>>('/quiz/attempts/me', {
+      params: query,
+    });
+    return {
+      items: data.data,
+      meta: data.meta,
+    };
   },
 };
 
@@ -230,12 +303,23 @@ export const commentsService = {
     });
     return data.data;
   },
-  create: async (payload: { lessonId: string; content: string; parentId?: string }) => {
+  create: async (payload: { lessonId: string; content: string; isAnonymous?: boolean }) => {
     const { data } = await apiClient.post<ApiResponse<Comment>>('/comments', {
       targetType: 'LESSON',
       targetId: payload.lessonId,
       content: payload.content,
-      parentId: payload.parentId,
+      isAnonymous: payload.isAnonymous ?? false,
+    });
+    return data.data;
+  },
+  getReplies: async (commentId: string) => {
+    const { data } = await apiClient.get<ApiResponse<Comment[]>>(`/comments/${commentId}/replies`);
+    return data.data;
+  },
+  reply: async (commentId: string, payload: { content: string; isAnonymous?: boolean }) => {
+    const { data } = await apiClient.post<ApiResponse<Comment>>(`/comments/${commentId}/replies`, {
+      content: payload.content,
+      isAnonymous: payload.isAnonymous ?? false,
     });
     return data.data;
   },
@@ -253,19 +337,25 @@ export const commentsService = {
 
 // ─── Bookmarks (UC38–UC39) ────────────────────────────────────────────────────
 export const bookmarksService = {
-  getAll: async () => {
+  getAll: async (page = 1, limit = 20) => {
     const { data } = await apiClient.get<ApiResponse<Bookmark[]>>('/bookmarks', {
-      params: { targetType: 'LESSON' },
+      params: { targetType: 'LESSON', page, limit },
     });
     return {
       data: data.data,
       meta: data.meta,
     };
   },
-  toggle: async (lessonId: string, title = 'Lesson bookmark') => {
+  check: async (lessonId: string) => {
+    const { data } = await apiClient.get<ApiResponse<{ bookmarked: boolean }>>('/bookmarks/check', {
+      params: { targetType: 'LESSON', targetId: lessonId },
+    });
+    return data.data.bookmarked;
+  },
+  toggle: async (lessonId: string) => {
     const { data } = await apiClient.post<ApiResponse<BookmarkToggleResult>>(
       '/bookmarks/toggle',
-      { targetType: 'LESSON', targetId: lessonId, title }
+      { targetType: 'LESSON', targetId: lessonId }
     );
     return data.data;
   },
@@ -273,14 +363,49 @@ export const bookmarksService = {
 
 // ─── Notes (UC40) ─────────────────────────────────────────────────────────────
 export const notesService = {
+  list: async (page = 1, limit = 12) => {
+    const { data } = await apiClient.get<ApiResponse<Note[]>>('/notes', {
+      params: { page, limit },
+    });
+    return {
+      data: data.data,
+      meta: data.meta,
+    };
+  },
   getByLesson: async (lessonId: string) => {
     const { data } = await apiClient.get<ApiResponse<Note[]>>(
       `/notes?lessonId=${lessonId}`
     );
-    return data.data[0] ?? null;
+    return data.data;
   },
-  upsert: async (payload: { lessonId: string; noteText: string; codeSnippet?: string }) => {
+  create: async (payload: { lessonId: string; noteText: string; codeSnippet?: string; anchorText?: string; anchorStart?: number; anchorEnd?: number }) => {
     const { data } = await apiClient.post<ApiResponse<Note>>('/notes', payload);
+    return data.data;
+  },
+  update: async (noteId: string, payload: { noteText?: string; codeSnippet?: string; anchorText?: string; anchorStart?: number; anchorEnd?: number }) => {
+    const { data } = await apiClient.patch<ApiResponse<Note>>(`/notes/${noteId}`, payload);
+    return data.data;
+  },
+  remove: async (noteId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(`/notes/${noteId}`);
+    return data.data;
+  },
+};
+
+// ─── Code execution (UC44–UC45) ─────────────────────────────────────────────
+export const codeExecutionService = {
+  run: async (payload: {
+    sourceCode: string;
+    language: string;
+    stdin?: string;
+    courseId?: string;
+    lessonId?: string;
+  }) => {
+    const { data } = await apiClient.post<ApiResponse<CodeExecutionResult>>('/code-execution/run', payload);
+    return data.data;
+  },
+  history: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<CodeExecutionResult>>>('/code-execution/history', { params: { page, limit } });
     return data.data;
   },
 };
@@ -290,6 +415,16 @@ export const notificationsService = {
   getAll: async () => {
     const { data } = await apiClient.get<ApiResponse<Notification[]>>('/notifications');
     return data.data;
+  },
+  getPage: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<Notification[]>>('/notifications', {
+      params: { page, limit },
+    });
+    return { data: data.data, meta: data.meta };
+  },
+  getUnreadCount: async () => {
+    const { data } = await apiClient.get<ApiResponse<{ count: number }>>('/notifications/unread-count');
+    return data.data.count;
   },
   markRead: async (id: string) => {
     const { data } = await apiClient.patch<ApiResponse<Notification>>(
@@ -301,6 +436,25 @@ export const notificationsService = {
     const { data } = await apiClient.patch<ApiResponse<{ updated: boolean }>>(
       '/notifications/read-all'
     );
+    return data.data;
+  },
+};
+
+export const adminNotificationsService = {
+  getAdminNotifications: async (filters: import('../types').AdminNotificationFilters = {}) => {
+    const { data } = await apiClient.get<ApiResponse<Notification[]>>('/admin/notifications', { params: filters });
+    return { items: data.data ?? [], meta: data.meta };
+  },
+  getAdminUnreadNotificationCount: async () => {
+    const { data } = await apiClient.get<ApiResponse<{ count: number }>>('/admin/notifications/unread-count');
+    return data.data.count;
+  },
+  markAdminNotificationRead: async (id: string) => {
+    const { data } = await apiClient.patch<ApiResponse<Notification>>(`/admin/notifications/${id}/read`);
+    return data.data;
+  },
+  markAllAdminNotificationsRead: async () => {
+    const { data } = await apiClient.patch<ApiResponse<{ updated: boolean }>>('/admin/notifications/read-all');
     return data.data;
   },
 };
@@ -331,6 +485,12 @@ export const gamificationService = {
 
 // ─── Subscription (UC51–UC52) ─────────────────────────────────────────────────
 export const subscriptionService = {
+  getAvailableFeatures: async () => {
+    const { data } = await apiClient.get<ApiResponse<SubscriptionFeature[]>>(
+      '/subscription/plans/features'
+    );
+    return data.data;
+  },
   getPlans: async () => {
     const { data } = await apiClient.get<ApiResponse<SubscriptionPlan[]>>('/subscription/plans');
     return data.data;
@@ -380,6 +540,18 @@ export const subscriptionService = {
     );
     return data.data;
   },
+  getPurchase: async (purchaseId: string) => {
+    const { data } = await apiClient.get<ApiResponse<SubscriptionPurchase>>(
+      `/subscription/purchases/${purchaseId}`
+    );
+    return data.data;
+  },
+  reconcilePurchase: async (purchaseId: string) => {
+    const { data } = await apiClient.post<ApiResponse<SubscriptionPurchase>>(
+      `/subscription/purchases/${purchaseId}/reconcile`
+    );
+    return data.data;
+  },
   confirmPayment: async (payload: PaymentConfirmationPayload) => {
     const { data } = await apiClient.post<ApiResponse<SubscriptionPurchase>>(
       '/subscription/webhook/payment',
@@ -399,8 +571,8 @@ export const aiService = {
     );
     return data.data;
   },
-  getHistory: async () => {
-    const { data } = await apiClient.get<ApiResponse<AIHistoryLog[]>>('/ai/history');
+  getHistory: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<AIHistoryLog>>>('/ai/history', { params: { page, limit } });
     return data.data;
   },
   getHistoryById: async (id: string) => {
@@ -410,6 +582,21 @@ export const aiService = {
 };
 
 // ─── Admin (UC10–UC14) ────────────────────────────────────────────────────────
+type GetDashboardStatistics = {
+  (): Promise<AdminDashboardStatistics>;
+  (params: AdminDashboardStatisticsParams): Promise<AdminDashboardStatistics>;
+};
+
+const getDashboardStatistics: GetDashboardStatistics = async (
+  { months }: AdminDashboardStatisticsParams = {}
+) => {
+  const { data } = await apiClient.get<ApiResponse<AdminDashboardStatistics>>(
+    '/admin/dashboard/statistics',
+    { params: { months } }
+  );
+  return data.data;
+};
+
 export const adminService = {
   getStats: async () => {
     const { data } = await apiClient.get<ApiResponse<PlatformStats>>(
@@ -417,12 +604,7 @@ export const adminService = {
     );
     return data.data;
   },
-  getDashboardStatistics: async () => {
-    const { data } = await apiClient.get<ApiResponse<AdminDashboardStatistics>>(
-      '/admin/dashboard/statistics'
-    );
-    return data.data;
-  },
+  getDashboardStatistics,
   listUsers: async (pageOrFilters: number | AdminStudentFilters = 1, limit = 20) => {
     const filters: AdminStudentFilters =
       typeof pageOrFilters === 'number'

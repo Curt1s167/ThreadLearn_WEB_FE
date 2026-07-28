@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Bookmark as BookmarkIcon, Trash2 } from 'lucide-react';
@@ -15,11 +15,10 @@ import {
   DemoPageRoot,
   DemoPill,
 } from '../ui-reskin/demo-ui';
-import { FALLBACK_BOOKMARKS } from '../ui-reskin/demo-fallbacks';
 
 type BookmarksQueryData = {
   data: Bookmark[];
-  meta?: PaginationMeta;
+  meta?: PaginationMeta & { hasMore?: boolean };
 };
 
 /**
@@ -29,14 +28,15 @@ type BookmarksQueryData = {
 export const BookmarksPage: React.FC = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
 
   const {
     data: bookmarksPage,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['bookmarks'],
-    queryFn: bookmarksService.getAll,
+    queryKey: ['bookmarks', page],
+    queryFn: () => bookmarksService.getAll(page),
   });
   const bookmarks = bookmarksPage?.data ?? [];
 
@@ -47,13 +47,13 @@ export const BookmarksPage: React.FC = () => {
   const { mutate: toggleBookmark } = useMutation({
     mutationFn: (lessonId: string) => {
       const bookmark = bookmarks?.find((bm) => bm.targetId === lessonId);
-      return bookmarksService.toggle(lessonId, bookmark?.title);
+      return bookmarksService.toggle(lessonId);
     },
     onMutate: async (lessonId) => {
-      await queryClient.cancelQueries({ queryKey: ['bookmarks'] });
-      const previous = queryClient.getQueryData<BookmarksQueryData>(['bookmarks']);
+      await queryClient.cancelQueries({ queryKey: ['bookmarks', page] });
+      const previous = queryClient.getQueryData<BookmarksQueryData>(['bookmarks', page]);
 
-      queryClient.setQueryData<BookmarksQueryData>(['bookmarks'], (current) => {
+      queryClient.setQueryData<BookmarksQueryData>(['bookmarks', page], (current) => {
         if (!current) return current;
         const nextData = current.data.filter((bookmark) => bookmark.targetId !== lessonId);
         return {
@@ -73,7 +73,7 @@ export const BookmarksPage: React.FC = () => {
     },
     onError: (_error, _lessonId, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['bookmarks'], context.previous);
+        queryClient.setQueryData(['bookmarks', page], context.previous);
       }
       toast.error('Failed to remove bookmark');
     },
@@ -102,6 +102,7 @@ export const BookmarksPage: React.FC = () => {
           description="Please try again in a moment"
         />
       ) : bookmarks.length > 0 ? (
+        <>
         <div className="grid gap-4 md:grid-cols-2">
           {bookmarks.map((bm) => (
             <div
@@ -136,28 +137,17 @@ export const BookmarksPage: React.FC = () => {
             </div>
           ))}
         </div>
-      ) : (
-        <>
-          <div className="rounded-lg border border-black/10 bg-[#d9f99d] p-4 text-sm text-black/65">
-            Mock bookmark preview from the demo flow. Real bookmarks will replace these cards.
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {FALLBACK_BOOKMARKS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => router.push(item.href)}
-                className="rounded-lg border border-black/10 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <p className="text-xs uppercase tracking-[0.18em] text-black/40">{item.course}</p>
-                <h2 className="mt-3 text-xl font-semibold text-ink">{item.title}</h2>
-                <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-ink">
-                  Open course catalog <ArrowRight size={15} />
-                </p>
-              </button>
-            ))}
-          </div>
+        <div className="mt-5 flex justify-center gap-2">
+          {page > 1 ? <button type="button" onClick={() => setPage((current) => current - 1)} className="rounded-lg border border-black/15 px-4 py-2 text-sm">Previous</button> : null}
+          {bookmarksPage?.meta?.hasMore ? <button type="button" onClick={() => setPage((current) => current + 1)} className="rounded-lg border border-black/15 px-4 py-2 text-sm">Next</button> : null}
+        </div>
         </>
+      ) : (
+        <EmptyState
+          icon={<BookmarkIcon size={36} />}
+          title="No saved lessons"
+          description="Bookmark a lesson to keep it here for quick review."
+        />
       )}
     </DemoPageRoot>
   );

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store';
 import type { Notification, NotificationType } from '../types';
+import { formatNotificationMessage, normalizeMojibakeText } from '../utils';
 
 type RealtimeNotification = {
   id: string;
@@ -36,8 +37,9 @@ export function useSocket() {
     if (!isAuthenticated || !accessToken || !userId) return;
 
     const socket = io(SOCKET_URL, {
-      auth: { token: accessToken, userId },
-      query: { userId },
+      // The server derives the room exclusively from this verified JWT. Never
+      // send a caller-controlled userId as a room selector.
+      auth: { token: accessToken },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 3000,
@@ -74,19 +76,8 @@ export function useSocket() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
       // Show toast
-      const icons: Record<string, string> = {
-        LEVEL_UP: '⚡',
-        QUIZ_PASSED: '✅',
-        COURSE_COMPLETED: '📚',
-        ACHIEVEMENT: '🏆',
-        LEADERBOARD: '🏆',
-        COURSE_ENROLLED: '📚',
-        LESSON_COMPLETED: '📚',
-        QUIZ_FAILED: '🔁',
-      };
-      toast(notif.title, {
-        description: notif.message,
-        icon: icons[notif.type] || '🔔',
+      toast(normalizeMojibakeText(nextNotification.title), {
+        description: formatNotificationMessage(nextNotification),
       });
     });
 

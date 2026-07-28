@@ -12,7 +12,6 @@ import {
   DemoPill,
   DemoWhitePanel,
 } from '../ui-reskin/demo-ui';
-import { DEMO_AI_RESPONSE, DEMO_CODE_SAMPLE } from '../ui-reskin/demo-fallbacks';
 import { SAMPLE_CASES } from './sampleCases';
 import { PipelineProgress } from './PipelineProgress';
 import { useAnalyzeStream } from './useAnalyzeStream';
@@ -26,8 +25,9 @@ import { CodeEditor } from './CodeEditor';
 import { useCodeHistory } from './useCodeHistory';
 
 export const AIPage: React.FC = () => {
-  const { code, setCode, undo, redo, resetCode, canUndo, canRedo } = useCodeHistory(DEMO_CODE_SAMPLE);
+  const { code, setCode, undo, redo, resetCode, canUndo, canRedo } = useCodeHistory('');
   const [sampleIdx, setSampleIdx] = useState(-1);
+  const [historyPage, setHistoryPage] = useState(1);
   const queryClient = useQueryClient();
 
   const {
@@ -35,8 +35,8 @@ export const AIPage: React.FC = () => {
     isLoading: historyLoading,
     isError: historyError,
   } = useQuery({
-    queryKey: ['ai-history'],
-    queryFn: aiService.getHistory,
+    queryKey: ['ai-history', historyPage],
+    queryFn: () => aiService.getHistory(historyPage),
   });
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export const AIPage: React.FC = () => {
   }, [historyError]);
 
   const { steps, isStreaming, streamError, result, llmProgress, partialIssues, run, reset } = useAnalyzeStream();
-  const { logs: runLogs, isRunning, runError, hasRun, run: runCode, reset: resetRun } = useRunCode();
+  const { logs: runLogs, isRunning, runError, hasRun, executionId, run: runCode, reset: resetRun } = useRunCode();
   const wasStreaming = useRef(false);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export const AIPage: React.FC = () => {
   }, [isStreaming, streamError, queryClient]);
 
   function handleAnalyze() {
-    run(code, 'javascript');
+    run(code, 'javascript', executionId);
   }
 
   function handleRun() {
@@ -84,9 +84,7 @@ export const AIPage: React.FC = () => {
     resetRun();
   }
 
-  const latestLog = history?.[0];
-  const showMockHistory = !historyLoading && (!history || history.length === 0);
-
+  const latestLog = history?.items[0];
   const [sidebarWidth, setSidebarWidth] = useState(380);
   const dragging = useRef(false);
   const startX = useRef(0);
@@ -237,10 +235,10 @@ export const AIPage: React.FC = () => {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded-lg bg-[#d9f99d] p-6">
+          <div className="accent-surface rounded-lg p-6">
             <Brain size={24} />
-            <h2 className="mt-5 text-2xl font-semibold">About this AI</h2>
-            <div className="mt-5 space-y-4 text-sm text-black/70">
+            <h2 className="accent-surface-title mt-5 text-2xl font-semibold">About this AI</h2>
+            <div className="accent-surface-copy mt-5 space-y-4 text-sm">
               <div className="flex items-start gap-2">
                 <Cpu size={15} className="mt-0.5 shrink-0" />
                 <p><strong>Model:</strong> Qwen2.5-Coder-1.5B, fine-tuned with QLoRA (r=16, alpha=32) on race-condition patterns.</p>
@@ -275,18 +273,13 @@ export const AIPage: React.FC = () => {
             ) : latestLog ? (
               <AnalysisResult view={logToView(latestLog)} />
             ) : (
-              <div className="mt-4 rounded-lg bg-[#f7f4ee] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-black/45">
-                  Mock AI review
-                </p>
-                <p className="mt-3 text-sm leading-6 text-black/65">{DEMO_AI_RESPONSE}</p>
-              </div>
+              <p className="mt-4 text-sm leading-6 text-black/60">Run an analysis to see feedback here.</p>
             )}
           </div>
         </aside>
       </section>
 
-      {history && history.length > 1 && <HistoryTrendChart history={history} />}
+      {history && history.items.length > 1 && <HistoryTrendChart history={history.items} />}
 
       <DemoWhitePanel>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 p-5">
@@ -294,29 +287,44 @@ export const AIPage: React.FC = () => {
             <p className="text-xs uppercase tracking-[0.18em] text-black/45">History</p>
             <h2 className="mt-1 text-xl font-semibold">Analysis history</h2>
           </div>
-          <DemoPill tone="blue">{history?.length ?? 0} records</DemoPill>
-          {showMockHistory ? <DemoPill>Mock preview</DemoPill> : null}
+          <DemoPill tone="blue">{history?.meta.total ?? 0} records</DemoPill>
         </div>
 
         {historyLoading ? (
           <div className="space-y-3 p-5">
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-lg" />)}
           </div>
-        ) : history && history.length > 0 ? (
-          <HistoryList history={history} />
+        ) : history && history.items.length > 0 ? (
+          <>
+            <HistoryList history={history.items} />
+            {history.meta.totalPages > 1 ? (
+              <div className="flex items-center justify-center gap-3 border-t border-black/10 p-4">
+                <Button
+                  variant="outline"
+                  disabled={historyPage <= 1}
+                  onClick={() => setHistoryPage((current) => Math.max(1, current - 1))}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-black/55">
+                  Page {historyPage} of {history.meta.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  disabled={historyPage >= history.meta.totalPages}
+                  onClick={() => setHistoryPage((current) => Math.min(
+                    history.meta.totalPages,
+                    current + 1,
+                  ))}
+                >
+                  Next
+                </Button>
+              </div>
+            ) : null}
+          </>
         ) : (
-          <div className="divide-y divide-black/10">
-            <article className="grid gap-4 p-5 lg:grid-cols-[220px_1fr]">
-              <div>
-                <p className="font-medium">Mock concurrency analysis</p>
-                <p className="mt-2 flex items-center gap-1 text-xs text-black/45">
-                  Demo preview until /ai/history has records
-                </p>
-              </div>
-              <div className="rounded-lg bg-[#f7f4ee] p-4">
-                <p className="whitespace-pre-wrap text-sm leading-6 text-black/65">{DEMO_AI_RESPONSE}</p>
-              </div>
-            </article>
+          <div className="p-8 text-center text-sm text-black/60">
+            No analysis history yet.
           </div>
         )}
       </DemoWhitePanel>

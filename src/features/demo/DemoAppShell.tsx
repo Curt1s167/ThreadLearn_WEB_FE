@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Bell, BookOpen, Bot, Bookmark, Code2, LayoutDashboard, LogOut, Search, Trophy, User, Zap } from 'lucide-react';
+import { Bell, BookOpen, Bot, Bookmark, Code2, LayoutDashboard, LogOut, Search, Trophy, User } from 'lucide-react';
 import { useAuthStore } from '@/store';
+import { BrandLogo } from '@/components/shared/BrandLogo';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -43,11 +44,12 @@ export function DemoAppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#f7f4ee] text-[#111111]">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-black/10 bg-white/85 backdrop-blur-xl lg:flex lg:flex-col">
-        <Link href="/" className="flex h-16 items-center gap-3 border-b border-black/10 px-5">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-black text-white">
-            <Zap size={18} />
-          </span>
-          <span className="text-lg font-semibold tracking-tight">ThreadLearn</span>
+        <Link
+          href="/"
+          className="flex h-16 items-center border-b border-black/10 px-5"
+          aria-label="ThreadLearn home"
+        >
+          <BrandLogo variant="full" size="md" priority />
         </Link>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
@@ -80,11 +82,13 @@ export function DemoAppShell({ children }: { children: React.ReactNode }) {
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 border-b border-black/10 bg-[#f7f4ee]/90 backdrop-blur-xl">
           <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
-            <Link href="/" className="flex items-center gap-2 lg:hidden">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-black text-white">
-                <Zap size={16} />
-              </span>
-              <span className="font-semibold">ThreadLearn</span>
+            <Link
+              href="/"
+              className="flex items-center gap-2 lg:hidden"
+              aria-label="ThreadLearn home"
+            >
+              <BrandLogo variant="mark" size="sm" priority />
+              <span className="font-semibold tracking-tight">ThreadLearn</span>
             </Link>
             <div className="hidden min-w-0 flex-1 items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm text-black/45 md:flex">
               <Search size={16} />
