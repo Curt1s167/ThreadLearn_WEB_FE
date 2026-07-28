@@ -216,7 +216,7 @@ export const AIPage: React.FC = () => {
               value={code}
               onChange={handleCodeChange}
               placeholder="Paste your code here..."
-              className={hasRunOutput ? 'h-[420px]' : 'min-h-[420px] flex-1'}
+              className={hasRunOutput ? 'h-[420px]' : 'h-[420px] max-h-[60vh] flex-1'}
             />
           </div>
 
