@@ -21,7 +21,7 @@ function extractFixCode(fix = ''): { code: string; isCodeBlock: boolean } {
     /```(?:javascript|js|typescript|ts|python|java|go)?\n?([\s\S]*?)```/
   );
   if (match) return { code: match[1].trim(), isCodeBlock: true };
-  return { code: fix, isCodeBlock: false };
+  return { code: fix, isCodeBlock: fix.length > 0 };
 }
 
 // Sample/demo snippets inline their own fake db/fs/app/process mocks so "Run"
