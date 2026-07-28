@@ -43,13 +43,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
           sidebarCollapsed ? MAIN_COLLAPSED_PL : MAIN_EXPANDED_PL
         }`}
       >
-        <div
-          className={
-            isFullWidthPage
-              ? 'w-full p-4 sm:p-6 lg:py-9'
-              : 'p-6'
-          }
-        >
+        <div className={isFullWidthPage ? 'w-full p-4 sm:p-6 lg:py-9' : 'p-6'}>
           <ErrorBoundary>{children}</ErrorBoundary>
         </div>
       </main>
