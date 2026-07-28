@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Pencil, Plus, Save, StickyNote, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,14 +10,21 @@ import type { Note } from '../../types';
 
 interface Props {
   lessonId: string;
+  selection?: {
+    text: string;
+    anchorStart: number;
+    anchorEnd: number;
+  };
 }
 const getHttpStatus = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status;
 
-export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
+export const NotesPanel: React.FC<Props> = ({ lessonId, selection }) => {
   const queryClient = useQueryClient();
   const [noteText, setNoteText] = useState('');
   const [anchorText, setAnchorText] = useState('');
+  const [anchorStart, setAnchorStart] = useState<number | undefined>();
+  const [anchorEnd, setAnchorEnd] = useState<number | undefined>();
   const [codeSnippet, setCodeSnippet] = useState('');
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -33,9 +40,19 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
   });
   const isEnrollmentRequired = isError && getHttpStatus(error) === 403;
 
+  useEffect(() => {
+    if (!selection || editingNote) return;
+    setAnchorText(selection.text);
+    setAnchorStart(selection.anchorStart);
+    setAnchorEnd(selection.anchorEnd);
+    setIsComposerOpen(true);
+  }, [editingNote, selection]);
+
   const resetComposer = () => {
     setNoteText('');
     setAnchorText('');
+    setAnchorStart(undefined);
+    setAnchorEnd(undefined);
     setCodeSnippet('');
     setEditingNote(null);
     setIsComposerOpen(false);
@@ -49,6 +66,8 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
       const payload = {
         noteText: noteText.trim(),
         anchorText: anchorText.trim() || undefined,
+        anchorStart,
+        anchorEnd,
         codeSnippet: codeSnippet.trim() || undefined,
       };
       return editingNote
@@ -74,6 +93,8 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
     setEditingNote(note);
     setNoteText(note.noteText);
     setAnchorText(note.anchorText ?? '');
+    setAnchorStart(note.anchorStart);
+    setAnchorEnd(note.anchorEnd);
     setCodeSnippet(note.codeSnippet ?? '');
     setIsComposerOpen(true);
   };
@@ -135,7 +156,11 @@ export const NotesPanel: React.FC<Props> = ({ lessonId }) => {
               </label>
               <textarea
                 value={anchorText}
-                onChange={(event) => setAnchorText(event.target.value)}
+                onChange={(event) => {
+                  setAnchorText(event.target.value);
+                  setAnchorStart(undefined);
+                  setAnchorEnd(undefined);
+                }}
                 placeholder="Paste the idea, paragraph, or line this note explains..."
                 rows={2}
                 className="mb-3 w-full resize-y rounded-lg border border-black/10 bg-white p-2.5 text-sm text-ink outline-none focus:border-black/25"

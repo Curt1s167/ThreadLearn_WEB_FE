@@ -378,11 +378,11 @@ export const notesService = {
     );
     return data.data;
   },
-  create: async (payload: { lessonId: string; noteText: string; codeSnippet?: string; anchorText?: string }) => {
+  create: async (payload: { lessonId: string; noteText: string; codeSnippet?: string; anchorText?: string; anchorStart?: number; anchorEnd?: number }) => {
     const { data } = await apiClient.post<ApiResponse<Note>>('/notes', payload);
     return data.data;
   },
-  update: async (noteId: string, payload: { noteText?: string; codeSnippet?: string; anchorText?: string }) => {
+  update: async (noteId: string, payload: { noteText?: string; codeSnippet?: string; anchorText?: string; anchorStart?: number; anchorEnd?: number }) => {
     const { data } = await apiClient.patch<ApiResponse<Note>>(`/notes/${noteId}`, payload);
     return data.data;
   },
@@ -421,6 +421,10 @@ export const notificationsService = {
       params: { page, limit },
     });
     return { data: data.data, meta: data.meta };
+  },
+  getUnreadCount: async () => {
+    const { data } = await apiClient.get<ApiResponse<{ count: number }>>('/notifications/unread-count');
+    return data.data.count;
   },
   markRead: async (id: string) => {
     const { data } = await apiClient.patch<ApiResponse<Notification>>(

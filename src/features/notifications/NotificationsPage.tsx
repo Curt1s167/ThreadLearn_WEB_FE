@@ -49,11 +49,16 @@ export const NotificationsPage: React.FC = () => {
     queryKey: ['notifications', page],
     queryFn: () => notificationsService.getPage(page),
   });
+  const { data: unread = 0 } = useQuery({
+    queryKey: ['notification-unread-count'],
+    queryFn: notificationsService.getUnreadCount,
+  });
 
   const { mutate: markAll } = useMutation({
     mutationFn: notificationsService.markAllRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
       toast.success('All notifications marked as read');
     },
     onError: () => toast.error('Failed to mark notifications as read'),
@@ -61,12 +66,15 @@ export const NotificationsPage: React.FC = () => {
 
   const { mutate: markRead } = useMutation({
     mutationFn: notificationsService.markRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
+    },
     onError: () => toast.error('Failed to mark notification as read'),
   });
 
   const visibleNotifications = notifications?.data ?? [];
-  const unread = visibleNotifications.filter((n) => !n.isRead).length;
+  const totalPages = notifications?.meta?.totalPages ?? 1;
 
   const openNotification = (notification: (typeof visibleNotifications)[number]) => {
     const navigate = () => {
@@ -103,7 +111,7 @@ export const NotificationsPage: React.FC = () => {
         </div>
         <div className="mt-6 flex flex-wrap gap-2">
           <DemoPill tone={unread > 0 ? 'lime' : 'default'}>{unread} unread</DemoPill>
-          <DemoPill tone="pink">{visibleNotifications.length} total</DemoPill>
+          <DemoPill tone="pink">{notifications?.meta?.total ?? 0} total</DemoPill>
         </div>
       </DemoHeroWhite>
 
@@ -155,10 +163,24 @@ export const NotificationsPage: React.FC = () => {
             </div>
           ))}
         </DemoWhitePanel>
-        {notifications?.meta?.hasMore ? (
-          <div className="mt-4 flex justify-center">
-            <Button variant="outline" onClick={() => setPage((current) => current + 1)}>
-              Load more notifications
+        {totalPages > 1 ? (
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Button
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-black/55">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              disabled={page >= totalPages}
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            >
+              Next
             </Button>
           </div>
         ) : null}

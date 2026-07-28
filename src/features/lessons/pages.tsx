@@ -185,6 +185,11 @@ export const LessonPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [activePanel, setActivePanel] = useState<'notes' | 'comments'>('notes');
+  const [selectedNoteAnchor, setSelectedNoteAnchor] = useState<{
+    text: string;
+    anchorStart: number;
+    anchorEnd: number;
+  }>();
   const reviewStorageKey = `threadlearn:lesson-review:${user?._id ?? 'anonymous'}:${id}`;
   const [reviewProgress, setReviewProgress] = useState<LessonReviewProgress>({
     key: reviewStorageKey,
@@ -451,6 +456,10 @@ export const LessonPage: React.FC = () => {
                   lessonTitle={lesson.title}
                   checklistStorageKey={`${user?._id ?? 'anonymous'}:${id}`}
                   onReadComplete={() => setReviewStep('explanationReviewed', true)}
+                  onTextSelected={(selection) => {
+                    setSelectedNoteAnchor(selection);
+                    setActivePanel('notes');
+                  }}
                 />
               ) : (
                 <EmptyState
@@ -519,7 +528,9 @@ export const LessonPage: React.FC = () => {
                   </button>
                 ))}
               </div>
-              {activePanel === 'notes' ? <NotesPanel lessonId={id!} /> : <CommentsSection lessonId={id!} />}
+              {activePanel === 'notes'
+                ? <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
+                : <CommentsSection lessonId={id!} />}
             </div>
           </article>
 
@@ -565,7 +576,7 @@ export const LessonPage: React.FC = () => {
             </div>
 
             <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
-              <NotesPanel lessonId={id!} />
+              <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
             </div>
 
             <div className="lesson-checklist-card rounded-lg border p-5">
