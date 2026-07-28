@@ -124,10 +124,10 @@ export const AIPage: React.FC = () => {
   return (
     <DemoPageRoot>
       <section
-        className="grid grid-cols-1 gap-6 lg:items-stretch lg:gap-0 lg:[grid-template-columns:var(--ai-cols)]"
-        style={{ '--ai-cols': `1fr 10px ${sidebarWidth}px` } as React.CSSProperties}
+        className="grid w-full min-w-0 grid-cols-1 gap-6 lg:items-stretch lg:gap-0 lg:[grid-template-columns:var(--ai-cols)]"
+        style={{ '--ai-cols': `minmax(0,1fr) 10px ${sidebarWidth}px` } as React.CSSProperties}
       >
-        <div className="flex h-full flex-col rounded-lg bg-white p-6 sm:p-8">
+        <div className="flex h-full min-w-0 flex-col rounded-lg bg-white p-6 sm:p-8">
           <DemoPill tone="pink">AI Coach</DemoPill>
           <DemoDisplayTitle>Analyze concurrency bugs before they ship.</DemoDisplayTitle>
           <p className="mt-4 max-w-2xl text-black/60">
