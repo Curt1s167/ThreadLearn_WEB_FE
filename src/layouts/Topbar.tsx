@@ -9,6 +9,7 @@ import { Avatar, Badge } from '../components/shared';
 import { notificationsService } from '../services';
 import { formatNotificationMessage, getDisplayName, normalizeMojibakeText } from '../utils';
 import type { Notification, NotificationType } from '../types';
+import { isSafeInternalPath } from '../utils/safeNavigation';
 import {
   TOPBAR_COLLAPSED_LEFT,
   TOPBAR_EXPANDED_LEFT,
@@ -49,17 +50,26 @@ export const Topbar: React.FC = () => {
     queryFn: notificationsService.getAll,
     enabled: Boolean(user),
   });
-  const unreadNotifications =
-    notifications?.filter((notification) => !notification.isRead).length ?? 0;
+  const { data: unreadNotifications = 0 } = useQuery({
+    queryKey: ['notification-unread-count'],
+    queryFn: notificationsService.getUnreadCount,
+    enabled: Boolean(user),
+  });
   const visibleNotifications = notifications?.slice(0, 5) ?? [];
 
   const { mutate: markRead } = useMutation({
     mutationFn: notificationsService.markRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
+    },
   });
   const { mutate: markAllRead, isPending: isMarkingAllRead } = useMutation({
     mutationFn: notificationsService.markAllRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
+    },
   });
 
   const level = stats?.level ?? 1;
@@ -74,7 +84,7 @@ export const Topbar: React.FC = () => {
   const openNotification = (notification: Notification) => {
     if (!notification.isRead) markRead(notification._id);
     setShowNotificationMenu(false);
-    if (notification.link) router.push(notification.link);
+    if (isSafeInternalPath(notification.link)) router.push(notification.link);
   };
 
   useEffect(() => {

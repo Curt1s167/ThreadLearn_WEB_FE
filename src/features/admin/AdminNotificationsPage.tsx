@@ -1,17 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, Check, CheckCheck } from 'lucide-react';
 import { adminNotificationsService } from '@/services';
 
-const queryKey = ['admin-notifications'];
-
 export function AdminNotificationsPage() {
   const queryClient = useQueryClient();
-  const notifications = useQuery({ queryKey, queryFn: () => adminNotificationsService.getAdminNotifications({ limit: 50 }) });
+  const [page, setPage] = useState(1);
+  const queryKey = ['admin-notifications', page];
+  const notifications = useQuery({
+    queryKey,
+    queryFn: () => adminNotificationsService.getAdminNotifications({ page, limit: 20 }),
+  });
   const unread = useQuery({ queryKey: ['admin-notifications-unread'], queryFn: adminNotificationsService.getAdminUnreadNotificationCount });
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey });
+    queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
     queryClient.invalidateQueries({ queryKey: ['admin-notifications-unread'] });
   };
   const markOne = useMutation({ mutationFn: adminNotificationsService.markAdminNotificationRead, onSuccess: refresh });
@@ -45,6 +49,29 @@ export function AdminNotificationsPage() {
           </article>
         ))}
       </div>
+      {(notifications.data?.meta?.totalPages ?? 1) > 1 ? (
+        <div className="mt-5 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            className="rounded-lg border border-black/10 px-3 py-2 text-sm disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-ink-faint">
+            Page {page} of {notifications.data?.meta?.totalPages ?? 1}
+          </span>
+          <button
+            type="button"
+            disabled={page >= (notifications.data?.meta?.totalPages ?? 1)}
+            onClick={() => setPage((current) => current + 1)}
+            className="rounded-lg border border-black/10 px-3 py-2 text-sm disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
     </main>
   );
 }

@@ -47,7 +47,13 @@ const NotesPanel = dynamic(
 const getHttpStatus = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status;
 
-const runnableLanguages = new Set(['javascript', 'js', 'java', 'python', 'py', 'cpp', 'c']);
+const runnableLanguages = new Set(['javascript', 'js', 'python', 'py']);
+const normalizeRunnableLanguage = (language: string) =>
+  language.toLowerCase() === 'js'
+    ? 'javascript'
+    : language.toLowerCase() === 'py'
+      ? 'python'
+      : language.toLowerCase();
 
 type LessonReviewProgress = {
   key: string;
@@ -76,7 +82,7 @@ function LessonCodeRunner({
     mutationFn: () =>
       codeExecutionService.run({
         sourceCode: code,
-        language,
+        language: normalizeRunnableLanguage(language),
         lessonId,
         courseId,
       }),

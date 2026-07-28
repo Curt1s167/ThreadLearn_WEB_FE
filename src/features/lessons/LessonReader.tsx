@@ -21,6 +21,24 @@ export interface LessonTextSelection {
   anchorEnd: number;
 }
 
+export function calculateSelectionAnchor(
+  container: Node,
+  range: Range,
+  rawSelectedText: string,
+  contentOffset: number,
+): LessonTextSelection {
+  const text = rawSelectedText.trim();
+  const leadingWhitespace = rawSelectedText.length - rawSelectedText.trimStart().length;
+  const beforeSelection = document.createRange();
+  beforeSelection.selectNodeContents(container);
+  beforeSelection.setEnd(range.startContainer, range.startOffset);
+  const anchorStart = Math.max(
+    0,
+    contentOffset + beforeSelection.toString().length + leadingWhitespace,
+  );
+  return { text, anchorStart, anchorEnd: anchorStart + text.length };
+}
+
 function OutlineNav({
   items,
   activeId,
@@ -118,7 +136,6 @@ export function LessonReader({
 
   const captureTextSelection = (
     event: React.MouseEvent<HTMLDivElement>,
-    renderedContent: string,
     contentOffset: number,
   ) => {
     if (!onTextSelected) return;
@@ -132,15 +149,15 @@ export function LessonReader({
       : commonAncestor.parentElement;
     if (!commonElement || !event.currentTarget.contains(commonElement)) return;
 
-    const selectedText = selection.toString().trim();
+    const rawSelectedText = selection.toString();
+    const selectedText = rawSelectedText.trim();
     if (!selectedText) return;
-    const relativeStart = renderedContent.indexOf(selectedText);
-    const anchorStart = Math.max(0, contentOffset + Math.max(relativeStart, 0));
-    onTextSelected({
-      text: selectedText,
-      anchorStart,
-      anchorEnd: anchorStart + selectedText.length,
-    });
+    onTextSelected(calculateSelectionAnchor(
+      event.currentTarget,
+      range,
+      rawSelectedText,
+      contentOffset,
+    ));
   };
 
   return (
@@ -269,7 +286,6 @@ export function LessonReader({
               className={proseClass}
               onMouseUp={(event) => captureTextSelection(
                 event,
-                current.markdown,
                 Math.max(0, displayContent.indexOf(current.markdown)),
               )}
             >
@@ -284,7 +300,7 @@ export function LessonReader({
         ) : (
           <div
             className={proseClass}
-            onMouseUp={(event) => captureTextSelection(event, displayContent, 0)}
+            onMouseUp={(event) => captureTextSelection(event, 0)}
           >
             <LessonMarkdown content={displayContent} checklistStorageKey={checklistStorageKey} />
           </div>

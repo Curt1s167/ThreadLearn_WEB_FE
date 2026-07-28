@@ -337,9 +337,9 @@ export const commentsService = {
 
 // ─── Bookmarks (UC38–UC39) ────────────────────────────────────────────────────
 export const bookmarksService = {
-  getAll: async (page = 1, limit = 20) => {
+  getAll: async (page = 1, limit = 20, targetType?: 'COURSE' | 'LESSON') => {
     const { data } = await apiClient.get<ApiResponse<Bookmark[]>>('/bookmarks', {
-      params: { targetType: 'LESSON', page, limit },
+      params: { targetType, page, limit },
     });
     return {
       data: data.data,
@@ -356,6 +356,12 @@ export const bookmarksService = {
     const { data } = await apiClient.post<ApiResponse<BookmarkToggleResult>>(
       '/bookmarks/toggle',
       { targetType: 'LESSON', targetId: lessonId }
+    );
+    return data.data;
+  },
+  remove: async (bookmarkId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(
+      `/bookmarks/${bookmarkId}`
     );
     return data.data;
   },
@@ -378,11 +384,11 @@ export const notesService = {
     );
     return data.data;
   },
-  create: async (payload: { lessonId: string; noteText: string; codeSnippet?: string; anchorText?: string; anchorStart?: number; anchorEnd?: number }) => {
+  create: async (payload: { lessonId: string; noteText: string; codeSnippet?: string; anchorText?: string; anchorStart?: number | null; anchorEnd?: number | null }) => {
     const { data } = await apiClient.post<ApiResponse<Note>>('/notes', payload);
     return data.data;
   },
-  update: async (noteId: string, payload: { noteText?: string; codeSnippet?: string; anchorText?: string; anchorStart?: number; anchorEnd?: number }) => {
+  update: async (noteId: string, payload: { noteText?: string; codeSnippet?: string; anchorText?: string; anchorStart?: number | null; anchorEnd?: number | null }) => {
     const { data } = await apiClient.patch<ApiResponse<Note>>(`/notes/${noteId}`, payload);
     return data.data;
   },
@@ -406,6 +412,14 @@ export const codeExecutionService = {
   },
   history: async (page = 1, limit = 20) => {
     const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<CodeExecutionResult>>>('/code-execution/history', { params: { page, limit } });
+    return data.data;
+  },
+  detail: async (id: string) => {
+    const { data } = await apiClient.get<ApiResponse<CodeExecutionResult>>(`/code-execution/${id}`);
+    return data.data;
+  },
+  remove: async (bookmarkId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(`/bookmarks/${bookmarkId}`);
     return data.data;
   },
 };

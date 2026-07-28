@@ -11,7 +11,7 @@ const SEVERITY_CLASSES: Record<AIIssue['severity'], string> = {
   low: 'bg-black/[0.06] text-black/60',
 };
 
-function extractFixCode(fix: string): { code: string; isCodeBlock: boolean } {
+function extractFixCode(fix = ''): { code: string; isCodeBlock: boolean } {
   const match = fix.match(/```(?:javascript|js|typescript|ts|python|java|go)?\n?([\s\S]*?)```/);
   if (match) return { code: match[1].trim(), isCodeBlock: true };
   return { code: fix, isCodeBlock: false };
@@ -70,6 +70,13 @@ export const IssueCard: React.FC<{
         <p className="leading-relaxed">{issue.description}</p>
       </div>
 
+      {!issue.fix ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          Detailed fixes and one-click resolution are available with Premium.
+        </div>
+      ) : (
+        <>
+
       {issue.codeSnippet && (
         <div className="mb-3">
           <p className="text-xs uppercase tracking-[0.14em] text-black/45 mb-1">
@@ -123,6 +130,8 @@ export const IssueCard: React.FC<{
         <pre className="max-h-96 overflow-auto rounded-lg bg-[#111827] p-3">
           <code className="text-xs font-mono text-[#d9f99d] whitespace-pre-wrap break-words">{code}</code>
         </pre>
+      )}
+        </>
       )}
     </div>
   );
