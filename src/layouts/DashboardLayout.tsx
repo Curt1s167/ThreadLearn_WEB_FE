@@ -1,13 +1,10 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
-import {
-  MAIN_COLLAPSED_PL,
-  MAIN_EXPANDED_PL,
-} from './shell-metrics';
+import { MAIN_COLLAPSED_PL, MAIN_EXPANDED_PL } from './shell-metrics';
 import { useAuthStore, useUIStore } from '../store';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { useSocket } from '../hooks/useSocket';
@@ -17,6 +14,8 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
   const { sidebarCollapsed } = useUIStore();
   const { hasHydrated, isAuthenticated } = useAuthStore();
   const router = useRouter();
+  const pathname = usePathname();
+  const isFullWidthPage = pathname?.startsWith('/ai');
 
   useAuthBootstrap();
   useSocket();
@@ -53,10 +52,14 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
           sidebarCollapsed ? MAIN_COLLAPSED_PL : MAIN_EXPANDED_PL
         }`}
       >
-        <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6 lg:px-8 lg:py-9">
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
+        <div
+          className={
+            isFullWidthPage
+              ? 'w-full p-4 sm:p-6 lg:py-9'
+              : 'mx-auto w-full max-w-[1440px] p-4 sm:p-6 lg:px-8 lg:py-9'
+          }
+        >
+          <ErrorBoundary>{children}</ErrorBoundary>
         </div>
       </main>
     </div>
