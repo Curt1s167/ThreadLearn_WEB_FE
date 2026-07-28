@@ -130,61 +130,82 @@ export const NotificationsPage: React.FC = () => {
         />
       ) : visibleNotifications.length > 0 ? (
         <>
-        <DemoWhitePanel className="divide-y divide-black/10">
-          {visibleNotifications.map((notif) => (
-            <div
-              key={notif._id}
-              role={!notif.isRead ? 'button' : undefined}
-              tabIndex={!notif.isRead ? 0 : undefined}
-              onClick={() => openNotification(notif)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  openNotification(notif);
-                }
-              }}
-              className={`grid gap-4 p-5 transition hover:bg-black/[0.025] sm:grid-cols-[44px_1fr_auto] ${
-                !notif.isRead ? 'cursor-pointer bg-[#d9f99d]/20' : ''
-              }`}
-            >
-              <span className={`grid h-11 w-11 place-items-center rounded-full ${notifTone(notif.type)}`}>
-                {notifIcons[notif.type] ?? <Bell size={18} />}
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-semibold">{normalizeMojibakeText(notif.title)}</h2>
-                  <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">{notif.type}</span>
-                  {!notif.isRead && <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">new</span>}
+          <DemoWhitePanel className="divide-y divide-black/10">
+            {visibleNotifications.map((notif) => {
+              const isActionable = !notif.isRead || isSafeInternalPath(notif.link);
+
+              return (
+                <div
+                  key={notif._id}
+                  role={isActionable ? 'button' : undefined}
+                  tabIndex={isActionable ? 0 : undefined}
+                  onClick={() => {
+                    if (isActionable) openNotification(notif);
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      isActionable &&
+                      (event.key === 'Enter' || event.key === ' ')
+                    ) {
+                      event.preventDefault();
+                      openNotification(notif);
+                    }
+                  }}
+                  className={`grid gap-4 p-5 transition hover:bg-black/[0.025] sm:grid-cols-[44px_1fr_auto] ${
+                    isActionable ? 'cursor-pointer' : ''
+                  } ${!notif.isRead ? 'bg-[#d9f99d]/20' : ''}`}
+                >
+                  <span
+                    className={`grid h-11 w-11 place-items-center rounded-full ${notifTone(notif.type)}`}
+                  >
+                    {notifIcons[notif.type] ?? <Bell size={18} />}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="font-semibold">
+                        {normalizeMojibakeText(notif.title)}
+                      </h2>
+                      <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">
+                        {notif.type}
+                      </span>
+                      {!notif.isRead && (
+                        <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">
+                          new
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-black/60">
+                      {formatNotificationMessage(notif)}
+                    </p>
+                  </div>
+                  <p className="text-xs text-black/40 sm:text-right">
+                    {new Date(notif.createdAt).toLocaleString()}
+                  </p>
                 </div>
-                <p className="mt-1 text-sm text-black/60">{formatNotificationMessage(notif)}</p>
-              </div>
-              <p className="text-xs text-black/40 sm:text-right">
-                {new Date(notif.createdAt).toLocaleString()}
-              </p>
+              );
+            })}
+          </DemoWhitePanel>
+          {totalPages > 1 ? (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-black/55">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              >
+                Next
+              </Button>
             </div>
-          ))}
-        </DemoWhitePanel>
-        {totalPages > 1 ? (
-          <div className="mt-4 flex items-center justify-center gap-3">
-            <Button
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              Previous
-            </Button>
-            <span className="text-sm text-black/55">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              disabled={page >= totalPages}
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-            >
-              Next
-            </Button>
-          </div>
-        ) : null}
+          ) : null}
         </>
       ) : (
         <EmptyState

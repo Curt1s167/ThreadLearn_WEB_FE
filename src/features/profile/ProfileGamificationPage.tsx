@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Award, BarChart3, BookOpen, ShieldCheck, Upload, User, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '../../services/auth.service';
-import { adminService, gamificationService } from '../../services';
+import { adminService, certificatesService, gamificationService } from '../../services';
 import { useAuthStore } from '../../store';
 import { Avatar, Skeleton } from '../../components/shared';
 import { ProfileNameForm } from './ProfileNameForm';
@@ -15,7 +15,6 @@ import { getDisplayName } from '../../utils';
 import {
   DemoPageRoot,
   DemoPill,
-  UI_PLACEHOLDERS,
 } from '../ui-reskin/demo-ui';
 
 const XpLevelStreakWidget = dynamic(
@@ -47,6 +46,12 @@ export const ProfileGamificationPage: React.FC = () => {
     queryKey: ['gamification-stats'],
     queryFn: gamificationService.getStats,
     enabled: Boolean(user) && !isAdmin,
+  });
+  const { data: certificates = [] } = useQuery({
+    queryKey: ['certificates'],
+    queryFn: certificatesService.listMine,
+    enabled: Boolean(user) && !isAdmin,
+    retry: false,
   });
   const { data: adminStatistics } = useQuery({
     queryKey: ['admin-dashboard-statistics'],
@@ -221,26 +226,24 @@ export const ProfileGamificationPage: React.FC = () => {
           ) : null}
         </aside>
 
-        {/* Main — certificates placeholder + full stats widget */}
+        {/* Main */}
         <section className="space-y-5">
           <div className="accent-surface rounded-lg p-6">
             <Award size={24} />
             <h2 className="accent-surface-title mt-4 text-2xl font-semibold">Certificates</h2>
             <p className="accent-surface-copy mt-2 text-sm">
-              Certificate module is not wired on FE yet. Placeholder UI until certificates API is
-              connected.
+              {certificates.length > 0
+                ? `You have earned ${certificates.length} verifiable ${
+                    certificates.length === 1 ? 'credential' : 'credentials'
+                  }.`
+                : 'Complete every lesson in a course to earn your first verifiable credential.'}
             </p>
-            <button
-              type="button"
-              disabled
-              className="accent-surface-disabled mt-5 cursor-not-allowed rounded-full px-4 py-2 text-sm font-medium"
-              title="Coming soon"
+            <Link
+              href="/certificates"
+              className="mt-5 inline-flex items-center rounded-full bg-[#102b26] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#16433a]"
             >
-              Download certificate
-            </button>
-            <p className="mt-2 text-[10px] uppercase tracking-wider text-black/40">
-              UI placeholder · {UI_PLACEHOLDERS.leaderboardSeason}
-            </p>
+              {certificates.length > 0 ? 'View certificates' : 'See how certificates work'}
+            </Link>
           </div>
 
           <div className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">

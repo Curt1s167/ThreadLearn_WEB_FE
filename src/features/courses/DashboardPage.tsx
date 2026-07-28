@@ -14,11 +14,13 @@ import {
   Play,
   Trophy,
   Zap,
+  Award,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../store';
 import {
   enrollmentsService,
+  certificatesService,
   gamificationService,
   leaderboardService,
   studentsService,
@@ -136,6 +138,13 @@ export const DashboardPage: React.FC = () => {
     queryKey: ['my-rank'],
     queryFn: leaderboardService.getMyRank,
     enabled: Boolean(user) && !isAdmin,
+  });
+
+  const { data: certificates = [] } = useQuery({
+    queryKey: ['certificates'],
+    queryFn: certificatesService.listMine,
+    enabled: Boolean(user) && !isAdmin,
+    retry: false,
   });
 
   const streak = stats?.currentStreak ?? stats?.streak ?? 0;
@@ -320,6 +329,25 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         <aside className="space-y-4">
+          <div className="border border-[#102b26]/15 bg-[#d9f99d] p-5">
+            <div className="flex items-center gap-2">
+              <Award size={19} />
+              <h3 className="font-semibold text-[#102b26]">Certificates</h3>
+            </div>
+            <p className="mt-3 text-sm text-[#102b26]/70">
+              {certificates.length > 0
+                ? `${certificates.length} ${
+                    certificates.length === 1 ? 'credential' : 'credentials'
+                  } ready to download.`
+                : 'Completed course credentials will appear here automatically.'}
+            </p>
+            <Link
+              href="/certificates"
+              className="mt-4 inline-flex rounded-full bg-[#102b26] px-4 py-2 text-sm font-medium text-white"
+            >
+              View certificates
+            </Link>
+          </div>
           <div className="rounded-lg border border-black/10 bg-white p-5">
             <div className="flex items-center gap-2">
               <Brain size={19} />

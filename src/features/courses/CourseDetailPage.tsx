@@ -13,6 +13,7 @@ import {
   Clock,
   Lock,
   Users,
+  Award,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { coursesService, enrollmentsService } from '../../services';
@@ -117,6 +118,7 @@ export const CourseDetailPage: React.FC = () => {
   const canAccessPremiumCourses = hasPremiumCourseAccess(user);
   const requiresPremium = isPremiumCourse && !canAccessPremiumCourses;
   const progress = Math.round(enrollment?.progressPercent ?? enrollment?.progress ?? 0);
+  const courseCompleted = Boolean(enrollment?.completed || progress >= 100);
   const completedSet = useMemo(
     () => new Set(enrollment?.completedLessons ?? []),
     [enrollment?.completedLessons],
@@ -366,7 +368,9 @@ export const CourseDetailPage: React.FC = () => {
                   : blockedByPrerequisites
                     ? 'Prerequisite required'
                     : isEnrolled
-                      ? 'Course progress'
+                      ? courseCompleted
+                        ? 'Course completed'
+                        : 'Course progress'
                       : 'Ready to start'}
               </p>
               <p className="mt-2 text-4xl font-semibold">{isEnrolled ? `${progress}%` : '—'}</p>
@@ -387,13 +391,17 @@ export const CourseDetailPage: React.FC = () => {
                     return;
                   }
                   if (isEnrolled) {
-                    handleContinue();
+                    if (courseCompleted) {
+                      router.push('/certificates');
+                    } else {
+                      handleContinue();
+                    }
                     return;
                   }
                   enroll();
                 }}
                 loading={enrolling}
-                disabled={!courseObjectId || (isEnrolled && !continueLessonId)}
+                disabled={!courseObjectId || (isEnrolled && !courseCompleted && !continueLessonId)}
                 className={`course-hero-status-action mt-5 w-full ${
                   requiresPremium
                     ? 'bg-white text-[#102b26] hover:bg-[#f2fff3]'
@@ -403,6 +411,10 @@ export const CourseDetailPage: React.FC = () => {
                 {requiresPremium ? (
                   <>
                     Unlock Premium <Lock size={16} />
+                  </>
+                ) : courseCompleted ? (
+                  <>
+                    View certificate <Award size={16} />
                   </>
                 ) : isEnrolled ? (
                   <>

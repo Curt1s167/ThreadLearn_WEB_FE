@@ -339,7 +339,19 @@ export const LessonPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['lesson', id] });
       queryClient.invalidateQueries({ queryKey: ['my-enrollments'] });
       queryClient.invalidateQueries({ queryKey: ['gamification-stats'] });
-      toast.success(data.xpAwarded ? `Lesson complete. +${data.xpAwarded} XP` : 'Lesson complete');
+      if (data.courseCompleted) {
+        queryClient.invalidateQueries({ queryKey: ['certificates'] });
+        toast.success('Course complete. Your certificate is ready.', {
+          action: {
+            label: 'View certificate',
+            onClick: () => router.push('/certificates'),
+          },
+        });
+        return;
+      }
+      toast.success(
+        data.xpRewarded ? `Lesson complete. +${data.xpRewarded} XP` : 'Lesson complete',
+      );
     },
     onError: () => toast.error('Failed to complete lesson'),
   });

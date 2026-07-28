@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+export { certificatesService } from './certificates.service';
 import type {
   ApiResponse,
   PaginatedApiResponse,

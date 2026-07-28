@@ -22,12 +22,18 @@ import {
   CheckCircle,
   History,
   Code2,
+  Award,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { getDisplayName } from '../utils';
 import { Avatar } from '../components/shared';
 import { BrandLogo } from '../components/shared/BrandLogo';
-import { coursesService, enrollmentsService, notificationsService } from '../services';
+import {
+  certificatesService,
+  coursesService,
+  enrollmentsService,
+  notificationsService,
+} from '../services';
 import {
   SIDEBAR_COLLAPSED_CLASS,
   SIDEBAR_EXPANDED_CLASS,
@@ -59,6 +65,7 @@ const studentNavItems: NavItem[] = [
       pathname === '/quiz/history' || pathname.startsWith('/quiz/attempts/'),
   },
   { to: '/leaderboard', icon: <Trophy size={16} />, label: 'Leaderboard' },
+  { to: '/certificates', icon: <Award size={16} />, label: 'Certificates' },
   { to: '/pricing', icon: <CreditCard size={16} />, label: 'Pricing' },
   { to: '/ai', icon: <Bot size={16} />, label: 'AI Advisor' },
   { to: '/bookmarks', icon: <Bookmark size={16} />, label: 'Bookmarks' },
@@ -126,6 +133,12 @@ export const Sidebar: React.FC = () => {
       void queryClient.prefetchQuery({
         queryKey: ['notifications'],
         queryFn: notificationsService.getAll,
+      });
+    }
+    if (route === '/certificates') {
+      void queryClient.prefetchQuery({
+        queryKey: ['certificates'],
+        queryFn: certificatesService.listMine,
       });
     }
   };
