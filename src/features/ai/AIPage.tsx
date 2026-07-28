@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Send, Code2, Sparkles, Brain, Play, Cpu, BookOpen, Target, Terminal, Undo2, Redo2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -87,46 +87,10 @@ export const AIPage: React.FC = () => {
   }
 
   const latestLog = history?.items[0];
-  const [sidebarWidth, setSidebarWidth] = useState(380);
-  const dragging = useRef(false);
-  const startX = useRef(0);
-  const startW = useRef(380);
-
-  const onDragStart = useCallback((e: React.MouseEvent) => {
-    dragging.current = true;
-    startX.current = e.clientX;
-    startW.current = sidebarWidth;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, [sidebarWidth]);
-
-  useEffect(() => {
-    function onMove(e: MouseEvent) {
-      if (!dragging.current) return;
-      const delta = startX.current - e.clientX; // drag left = wider sidebar
-      const next = Math.min(Math.max(startW.current + delta, 280), 720);
-      setSidebarWidth(next);
-    }
-    function onUp() {
-      if (!dragging.current) return;
-      dragging.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    }
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, []);
 
   return (
     <DemoPageRoot>
-      <section
-        className="grid w-full min-w-0 grid-cols-1 gap-6 lg:items-stretch lg:gap-0 lg:[grid-template-columns:var(--ai-cols)]"
-        style={{ '--ai-cols': `minmax(0,1fr) 10px ${sidebarWidth}px` } as React.CSSProperties}
-      >
+      <section className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-stretch">
         <div className="flex h-full min-w-0 flex-col rounded-lg bg-white p-6 sm:p-8">
           <DemoPill tone="pink">AI Coach</DemoPill>
           <DemoDisplayTitle>Analyze concurrency bugs before they ship.</DemoDisplayTitle>
@@ -221,19 +185,6 @@ export const AIPage: React.FC = () => {
           </div>
 
           <RunOutput logs={runLogs} isRunning={isRunning} runError={runError} hasRun={hasRun} />
-        </div>
-
-        <div
-          onMouseDown={onDragStart}
-          className="hidden lg:flex relative w-full cursor-col-resize items-center justify-center group"
-        >
-          <div className="h-full w-px bg-black/10 group-hover:bg-black/25 transition-colors" />
-          <div className="absolute flex h-10 w-4 items-center justify-center rounded-full border border-black/10 bg-white shadow-sm group-hover:border-black/25 group-active:bg-black/5 transition-colors">
-            <div className="flex gap-0.5">
-              <span className="h-4 w-px bg-black/30" />
-              <span className="h-4 w-px bg-black/30" />
-            </div>
-          </div>
         </div>
 
         <aside className="space-y-4">
