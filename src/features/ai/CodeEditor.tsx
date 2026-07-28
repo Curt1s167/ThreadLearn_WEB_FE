@@ -12,7 +12,7 @@ export const CodeEditor: React.FC<{
   placeholder?: string;
 }> = ({ value, onChange, className = '' }) => {
   return (
-    <div className={`w-full bg-[#1e1e1e] ${className}`}>
+    <div className={`relative w-full min-h-0 bg-[#1e1e1e] ${className}`}>
       <MonacoEditor
         height="100%"
         theme="vs-dark"
