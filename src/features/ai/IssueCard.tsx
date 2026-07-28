@@ -89,11 +89,7 @@ export const IssueCard: React.FC<{
         <p className="leading-relaxed">{issue.description}</p>
       </div>
 
-      {!issue.fix ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Detailed fixes and one-click resolution are available with Premium.
-        </div>
-      ) : (
+      {issue.fix && (
         <>
 
       {issue.codeSnippet && (
