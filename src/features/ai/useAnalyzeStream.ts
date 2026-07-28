@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import type { PipelineStep } from './PipelineProgress';
+import { refreshAccessToken } from '../../services/apiClient';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 
@@ -32,7 +33,7 @@ function toCamelIssue(raw: Record<string, unknown>): import('../../types').AIIss
     lineRange: (raw.line_range ?? raw.lineRange ?? 'all') as string,
     severity: (raw.severity ?? 'medium') as 'high' | 'medium' | 'low',
     description: (raw.description ?? '') as string,
-    fix: (raw.fix ?? '') as string,
+    fix: raw.fix as string | undefined,
     codeSnippet: (raw.code_snippet ?? raw.codeSnippet) as string | undefined,
   };
 }
@@ -74,7 +75,7 @@ export function useAnalyzeStream() {
     setPartialIssues([]);
   }, []);
 
-  const run = useCallback(async (inputCode: string, language: string): Promise<void> => {
+  const run = useCallback(async (inputCode: string, language: string, codeExecutionId?: string): Promise<void> => {
     reset();
     setIsStreaming(true);
     startTimeRef.current = Date.now();
@@ -83,16 +84,22 @@ export function useAnalyzeStream() {
     abortRef.current = controller;
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`${BASE_URL}/ai/analyze/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ inputCode, language }),
-        signal: controller.signal,
-      });
+      let token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const requestBody = JSON.stringify({ inputCode, language, codeExecutionId });
+      const send = () => fetch(`${BASE_URL}/ai/analyze/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: requestBody,
+          signal: controller.signal,
+        });
+      let res = await send();
+      if (res.status === 401) {
+        token = await refreshAccessToken();
+        res = await send();
+      }
 
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}));

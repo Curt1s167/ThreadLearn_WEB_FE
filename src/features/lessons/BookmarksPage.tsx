@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Bookmark as BookmarkIcon, Trash2 } from 'lucide-react';
@@ -18,7 +18,7 @@ import {
 
 type BookmarksQueryData = {
   data: Bookmark[];
-  meta?: PaginationMeta;
+  meta?: PaginationMeta & { hasMore?: boolean };
 };
 
 /**
@@ -28,14 +28,20 @@ type BookmarksQueryData = {
 export const BookmarksPage: React.FC = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [targetType, setTargetType] = useState<'ALL' | 'COURSE' | 'LESSON'>('ALL');
 
   const {
     data: bookmarksPage,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['bookmarks'],
-    queryFn: bookmarksService.getAll,
+    queryKey: ['bookmarks', targetType, page],
+    queryFn: () => bookmarksService.getAll(
+      page,
+      20,
+      targetType === 'ALL' ? undefined : targetType,
+    ),
   });
   const bookmarks = bookmarksPage?.data ?? [];
 
@@ -44,17 +50,15 @@ export const BookmarksPage: React.FC = () => {
   }, [isError]);
 
   const { mutate: toggleBookmark } = useMutation({
-    mutationFn: (lessonId: string) => {
-      const bookmark = bookmarks?.find((bm) => bm.targetId === lessonId);
-      return bookmarksService.toggle(lessonId, bookmark?.title);
-    },
-    onMutate: async (lessonId) => {
-      await queryClient.cancelQueries({ queryKey: ['bookmarks'] });
-      const previous = queryClient.getQueryData<BookmarksQueryData>(['bookmarks']);
+    mutationFn: (bookmarkId: string) => bookmarksService.remove(bookmarkId),
+    onMutate: async (bookmarkId) => {
+      const pageKey = ['bookmarks', targetType, page] as const;
+      await queryClient.cancelQueries({ queryKey: pageKey });
+      const previous = queryClient.getQueryData<BookmarksQueryData>(pageKey);
 
-      queryClient.setQueryData<BookmarksQueryData>(['bookmarks'], (current) => {
+      queryClient.setQueryData<BookmarksQueryData>(pageKey, (current) => {
         if (!current) return current;
-        const nextData = current.data.filter((bookmark) => bookmark.targetId !== lessonId);
+        const nextData = current.data.filter((bookmark) => bookmark._id !== bookmarkId);
         return {
           ...current,
           data: nextData,
@@ -70,13 +74,19 @@ export const BookmarksPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
       toast.success('Bookmark removed');
     },
-    onError: (_error, _lessonId, context) => {
+    onError: (_error, _bookmarkId, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['bookmarks'], context.previous);
+        queryClient.setQueryData(['bookmarks', targetType, page], context.previous);
       }
       toast.error('Failed to remove bookmark');
     },
   });
+
+  useEffect(() => {
+    if (!isLoading && !isError && page > 1 && bookmarks.length === 0) {
+      setPage((current) => Math.max(1, current - 1));
+    }
+  }, [bookmarks.length, isError, isLoading, page]);
 
   return (
     <DemoPageRoot>
@@ -87,6 +97,26 @@ export const BookmarksPage: React.FC = () => {
           Jump back into bookmarked lessons. Data from the bookmark service — not demo fixtures.
         </DemoMuted>
       </DemoHeroWhite>
+
+      <div className="flex flex-wrap gap-2">
+        {(['ALL', 'LESSON', 'COURSE'] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => {
+              setTargetType(value);
+              setPage(1);
+            }}
+            className={`rounded-full border px-4 py-2 text-sm ${
+              targetType === value
+                ? 'border-black bg-black text-white'
+                : 'border-black/15 bg-white text-black/65'
+            }`}
+          >
+            {value === 'ALL' ? 'All bookmarks' : `${value.toLowerCase()}s`}
+          </button>
+        ))}
+      </div>
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2">
@@ -101,6 +131,7 @@ export const BookmarksPage: React.FC = () => {
           description="Please try again in a moment"
         />
       ) : bookmarks.length > 0 ? (
+        <>
         <div className="grid gap-4 md:grid-cols-2">
           {bookmarks.map((bm) => (
             <div
@@ -111,7 +142,11 @@ export const BookmarksPage: React.FC = () => {
                 <button
                   type="button"
                   className="min-w-0 flex-1 text-left"
-                  onClick={() => router.push(`/lessons/${bm.targetId}`)}
+                  onClick={() => router.push(
+                    bm.targetType === 'COURSE'
+                      ? `/courses/${bm.targetId}`
+                      : `/lessons/${bm.targetId}`,
+                  )}
                 >
                   <p className="text-xs uppercase tracking-[0.18em] text-black/40">
                     Saved {new Date(bm.createdAt).toLocaleDateString()}
@@ -125,7 +160,7 @@ export const BookmarksPage: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => toggleBookmark(bm.targetId)}
+                  onClick={() => toggleBookmark(bm._id)}
                   className="rounded-lg p-2 text-black/35 transition hover:bg-rose-50 hover:text-rose-600"
                   title="Remove bookmark"
                 >
@@ -135,6 +170,11 @@ export const BookmarksPage: React.FC = () => {
             </div>
           ))}
         </div>
+        <div className="mt-5 flex justify-center gap-2">
+          {page > 1 ? <button type="button" onClick={() => setPage((current) => current - 1)} className="rounded-lg border border-black/15 px-4 py-2 text-sm">Previous</button> : null}
+          {bookmarksPage?.meta?.hasMore ? <button type="button" onClick={() => setPage((current) => current + 1)} className="rounded-lg border border-black/15 px-4 py-2 text-sm">Next</button> : null}
+        </div>
+        </>
       ) : (
         <EmptyState
           icon={<BookmarkIcon size={36} />}

@@ -11,6 +11,7 @@ import { adminService, certificatesService, gamificationService } from '../../se
 import { useAuthStore } from '../../store';
 import { Avatar, Skeleton } from '../../components/shared';
 import { ProfileNameForm } from './ProfileNameForm';
+import { getDisplayName } from '../../utils';
 import {
   DemoPageRoot,
   DemoPill,
@@ -39,6 +40,7 @@ export const ProfileGamificationPage: React.FC = () => {
   const { user, setUser } = useAuthStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const isAdmin = String(user?.role ?? '').toUpperCase() === 'ADMIN';
+  const displayName = getDisplayName(user);
 
   const { data: stats } = useQuery({
     queryKey: ['gamification-stats'],
@@ -96,7 +98,7 @@ export const ProfileGamificationPage: React.FC = () => {
           <aside className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
             <div className="relative w-fit">
               {user.avatarUrl ? (
-                <Avatar src={user.avatarUrl} name={user.name} size="xl" className="!h-24 !w-24" />
+                <Avatar src={user.avatarUrl} name={displayName} size="xl" className="!h-24 !w-24" />
               ) : (
                 <div className="grid h-24 w-24 place-items-center rounded-full bg-[#d9f99d]">
                   <User size={38} className="text-ink" />
@@ -113,14 +115,13 @@ export const ProfileGamificationPage: React.FC = () => {
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
             </div>
 
-            <h1 className="mt-5 text-2xl font-semibold text-ink">{user.name}</h1>
+            <h1 className="mt-5 text-2xl font-semibold text-ink">{displayName}</h1>
             <p className="mt-1 text-sm text-black/50">{user.email}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <DemoPill tone="pink">ADMIN</DemoPill>
               <DemoPill tone="default">System account</DemoPill>
             </div>
             <p className="mt-4 text-xs text-black/40">Member since {memberSince}</p>
-            <ProfileNameForm />
           </aside>
 
           <section className="space-y-5">
@@ -165,7 +166,7 @@ export const ProfileGamificationPage: React.FC = () => {
         <aside className="rounded-lg border border-black/10 bg-white p-6 shadow-sm">
           <div className="relative w-fit">
             {user.avatarUrl ? (
-              <Avatar src={user.avatarUrl} name={user.name} size="xl" className="!h-24 !w-24" />
+              <Avatar src={user.avatarUrl} name={displayName} size="xl" className="!h-24 !w-24" />
             ) : (
               <div className="grid h-24 w-24 place-items-center rounded-full bg-[#d9f99d]">
                 <User size={38} className="text-ink" />
@@ -188,7 +189,7 @@ export const ProfileGamificationPage: React.FC = () => {
             />
           </div>
 
-          <h1 className="mt-5 text-2xl font-semibold text-ink">{user.name}</h1>
+          <h1 className="mt-5 text-2xl font-semibold text-ink">{displayName}</h1>
           <p className="mt-1 text-sm text-black/50">{user.email}</p>
 
           <div className="mt-3 flex flex-wrap gap-2">

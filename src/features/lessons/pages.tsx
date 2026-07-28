@@ -47,7 +47,13 @@ const NotesPanel = dynamic(
 const getHttpStatus = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status;
 
-const runnableLanguages = new Set(['javascript', 'js', 'java', 'python', 'py', 'cpp', 'c']);
+const runnableLanguages = new Set(['javascript', 'js', 'python', 'py']);
+const normalizeRunnableLanguage = (language: string) =>
+  language.toLowerCase() === 'js'
+    ? 'javascript'
+    : language.toLowerCase() === 'py'
+      ? 'python'
+      : language.toLowerCase();
 
 type LessonReviewProgress = {
   key: string;
@@ -76,7 +82,7 @@ function LessonCodeRunner({
     mutationFn: () =>
       codeExecutionService.run({
         sourceCode: code,
-        language,
+        language: normalizeRunnableLanguage(language),
         lessonId,
         courseId,
       }),
@@ -185,6 +191,11 @@ export const LessonPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [activePanel, setActivePanel] = useState<'notes' | 'comments'>('notes');
+  const [selectedNoteAnchor, setSelectedNoteAnchor] = useState<{
+    text: string;
+    anchorStart: number;
+    anchorEnd: number;
+  }>();
   const reviewStorageKey = `threadlearn:lesson-review:${user?._id ?? 'anonymous'}:${id}`;
   const [reviewProgress, setReviewProgress] = useState<LessonReviewProgress>({
     key: reviewStorageKey,
@@ -298,18 +309,17 @@ export const LessonPage: React.FC = () => {
     if (isError && !isEnrollmentRequired) toast.error('Failed to load lesson');
   }, [isEnrollmentRequired, isError]);
 
-  const { data: bookmarksPage } = useQuery({
-    queryKey: ['bookmarks'],
-    queryFn: bookmarksService.getAll,
+  const { data: isBookmarked = false } = useQuery({
+    queryKey: ['bookmark-check', id],
+    queryFn: () => bookmarksService.check(id!),
     enabled: !!id,
     retry: false,
   });
-  const isBookmarked = !!bookmarksPage?.data?.some((bm) => bm.targetId === id);
-
   const { mutate: toggleBookmark, isPending: bookmarking } = useMutation({
-    mutationFn: () => bookmarksService.toggle(id!, lesson?.title),
+    mutationFn: () => bookmarksService.toggle(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+      queryClient.invalidateQueries({ queryKey: ['bookmark-check', id] });
       toast.success(isBookmarked ? 'Bookmark removed' : 'Bookmarked');
     },
     onError: () => toast.error('Failed to toggle bookmark'),
@@ -464,6 +474,10 @@ export const LessonPage: React.FC = () => {
                   lessonTitle={lesson.title}
                   checklistStorageKey={`${user?._id ?? 'anonymous'}:${id}`}
                   onReadComplete={() => setReviewStep('explanationReviewed', true)}
+                  onTextSelected={(selection) => {
+                    setSelectedNoteAnchor(selection);
+                    setActivePanel('notes');
+                  }}
                 />
               ) : (
                 <EmptyState
@@ -532,7 +546,9 @@ export const LessonPage: React.FC = () => {
                   </button>
                 ))}
               </div>
-              {activePanel === 'notes' ? <NotesPanel lessonId={id!} /> : <CommentsSection lessonId={id!} />}
+              {activePanel === 'notes'
+                ? <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
+                : <CommentsSection lessonId={id!} />}
             </div>
           </article>
 
@@ -578,7 +594,7 @@ export const LessonPage: React.FC = () => {
             </div>
 
             <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
-              <NotesPanel lessonId={id!} />
+              <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
             </div>
 
             <div className="lesson-checklist-card rounded-lg border p-5">

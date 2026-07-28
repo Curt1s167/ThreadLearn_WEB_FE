@@ -2,6 +2,22 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { Notification } from '../types';
 
+type DisplayNameUser = {
+  firstName?: string | null;
+  lastName?: string | null;
+  name?: string | null;
+  email?: string | null;
+};
+
+/** Prefer the editable profile fields over legacy display-name fields. */
+export function getDisplayName(user?: DisplayNameUser | null): string {
+  const name = [user?.firstName?.trim(), user?.lastName?.trim()]
+    .filter(Boolean)
+    .join(' ');
+
+  return name || user?.name?.trim() || user?.email?.trim() || 'ThreadLearn user';
+}
+
 /** Merge Tailwind classes safely */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

@@ -3,6 +3,7 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios';
+import { useAuthStore } from '../store/auth.store';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 const UNAUTHORIZED_EVENT = 'threadlearn:unauthorized';
@@ -83,6 +84,37 @@ const notifyUnauthorized = () => {
   }
 };
 
+let tokenRefreshPromise: Promise<string> | null = null;
+
+export const refreshAccessToken = async (): Promise<string> => {
+  if (tokenRefreshPromise) return tokenRefreshPromise;
+  const refreshToken = getLocalStorageItem('refreshToken');
+  if (!refreshToken) {
+    notifyUnauthorized();
+    throw new Error('Refresh token is unavailable.');
+  }
+  tokenRefreshPromise = (async () => {
+    const response = await axios.post(
+      `${BASE_URL}/auth/refresh`,
+      { refreshToken },
+      { timeout: API_TIMEOUT_MS },
+    );
+    const {
+      accessToken,
+      refreshToken: rotatedRefreshToken,
+    } = response.data.data as { accessToken: string; refreshToken: string };
+    setLocalStorageItem('accessToken', accessToken);
+    setLocalStorageItem('refreshToken', rotatedRefreshToken);
+    useAuthStore.getState().updateTokens(accessToken, rotatedRefreshToken);
+    return accessToken;
+  })();
+  try {
+    return await tokenRefreshPromise;
+  } finally {
+    tokenRefreshPromise = null;
+  }
+};
+
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
@@ -103,21 +135,8 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = getLocalStorageItem('refreshToken');
-      if (!refreshToken) {
-        isRefreshing = false;
-        notifyUnauthorized();
-        return Promise.reject(error);
-      }
-
       try {
-        const response = await axios.post(
-          `${BASE_URL}/auth/refresh`,
-          { refreshToken },
-          { timeout: API_TIMEOUT_MS }
-        );
-        const { accessToken } = response.data.data;
-        setLocalStorageItem('accessToken', accessToken);
+        const accessToken = await refreshAccessToken();
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);

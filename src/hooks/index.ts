@@ -33,7 +33,7 @@ export function useMediaQuery(query: string): boolean {
 
 // ─── Auth bootstrap hook — restores session on mount ──────────────────────────
 export function useAuthBootstrap() {
-  const { isAuthenticated, setUser, setStats, logout } = useAuthStore();
+  const { isAuthenticated, updateUser, setStats, logout } = useAuthStore();
 
   // Revalidate current user on mount if we have a token
   useQuery({
@@ -41,7 +41,7 @@ export function useAuthBootstrap() {
     queryFn: async () => {
       try {
         const user = await authService.getMe();
-        setUser(user);
+        updateUser(user);
         return user;
       } catch {
         logout();

@@ -25,6 +25,7 @@ import {
   Award,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
+import { getDisplayName } from '../utils';
 import { Avatar } from '../components/shared';
 import { BrandLogo } from '../components/shared/BrandLogo';
 import {
@@ -101,6 +102,7 @@ function itemActive(item: NavItem, pathname: string): boolean {
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuthStore();
+  const displayName = getDisplayName(user);
   const { sidebarCollapsed, sidebarOpen, setSidebarOpen, toggleSidebarCollapse } = useUIStore();
   const pathname = usePathname();
   const router = useRouter();
@@ -245,10 +247,10 @@ export const Sidebar: React.FC = () => {
             sidebarCollapsed ? 'justify-center' : ''
           }`}
         >
-          <Avatar src={user?.avatarUrl} name={user?.name} size="sm" />
+          <Avatar src={user?.avatarUrl} name={displayName} size="sm" />
           {!sidebarCollapsed && (
             <div className="min-w-0">
-              <p className="text-xs text-ink font-medium truncate">{user?.name}</p>
+              <p className="text-xs text-ink font-medium truncate">{displayName}</p>
               <p className="text-[10px] text-ink-faint truncate">{user?.role}</p>
             </div>
           )}

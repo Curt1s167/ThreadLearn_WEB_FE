@@ -1,7 +1,7 @@
 // ─── Notifications Page ───────────────────────────────────────────────────────
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Bell, CheckCheck, Zap, Trophy, BookOpen } from 'lucide-react';
@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { notificationsService } from '../../services';
 import { formatNotificationMessage, normalizeMojibakeText } from '../../utils';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
-import type { Notification, NotificationType } from '../../types';
+import type { NotificationType } from '../../types';
+import { isSafeInternalPath } from '../../utils/safeNavigation';
 import {
   DemoDisplayTitle,
   DemoHeroWhite,
@@ -39,20 +40,26 @@ const notifTone = (type: NotificationType) => {
 export const NotificationsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const [page, setPage] = useState(1);
 
   const {
     data: notifications,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: notificationsService.getAll,
+    queryKey: ['notifications', page],
+    queryFn: () => notificationsService.getPage(page),
+  });
+  const { data: unread = 0 } = useQuery({
+    queryKey: ['notification-unread-count'],
+    queryFn: notificationsService.getUnreadCount,
   });
 
   const { mutate: markAll } = useMutation({
     mutationFn: notificationsService.markAllRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
       toast.success('All notifications marked as read');
     },
     onError: () => toast.error('Failed to mark notifications as read'),
@@ -60,21 +67,30 @@ export const NotificationsPage: React.FC = () => {
 
   const { mutate: markRead } = useMutation({
     mutationFn: notificationsService.markRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
+    },
     onError: () => toast.error('Failed to mark notification as read'),
   });
 
-  const visibleNotifications = notifications ?? [];
-  const unread = visibleNotifications.filter((n) => !n.isRead).length;
+  const visibleNotifications = notifications?.data ?? [];
+  const totalPages = notifications?.meta?.totalPages ?? 1;
+
+  const openNotification = (notification: (typeof visibleNotifications)[number]) => {
+    const navigate = () => {
+      if (isSafeInternalPath(notification.link)) router.push(notification.link);
+    };
+    if (notification.isRead) {
+      navigate();
+      return;
+    }
+    markRead(notification._id, { onSuccess: navigate });
+  };
 
   useEffect(() => {
     if (isError) toast.error('Failed to load notifications');
   }, [isError]);
-
-  const openNotification = (notification: Notification) => {
-    if (!notification.isRead) markRead(notification._id);
-    if (notification.link?.startsWith('/')) router.push(notification.link);
-  };
 
   return (
     <DemoPageRoot className="mx-auto max-w-4xl">
@@ -96,7 +112,7 @@ export const NotificationsPage: React.FC = () => {
         </div>
         <div className="mt-6 flex flex-wrap gap-2">
           <DemoPill tone={unread > 0 ? 'lime' : 'default'}>{unread} unread</DemoPill>
-          <DemoPill tone="pink">{visibleNotifications.length} total</DemoPill>
+          <DemoPill tone="pink">{notifications?.meta?.total ?? 0} total</DemoPill>
         </div>
       </DemoHeroWhite>
 
@@ -113,47 +129,84 @@ export const NotificationsPage: React.FC = () => {
           description="Please try again in a moment."
         />
       ) : visibleNotifications.length > 0 ? (
-        <DemoWhitePanel className="divide-y divide-black/10">
-          {visibleNotifications.map((notif) => (
-            <div
-              key={notif._id}
-              role={!notif.isRead || notif.link?.startsWith('/') ? 'button' : undefined}
-              tabIndex={!notif.isRead || notif.link?.startsWith('/') ? 0 : undefined}
-              onClick={() => openNotification(notif)}
-              onKeyDown={(event) => {
-                if (
-                  (!notif.isRead || notif.link?.startsWith('/')) &&
-                  (event.key === 'Enter' || event.key === ' ')
-                ) {
-                  event.preventDefault();
-                  openNotification(notif);
-                }
-              }}
-              className={`grid gap-4 p-5 transition hover:bg-black/[0.025] sm:grid-cols-[44px_1fr_auto] ${
-                !notif.isRead || notif.link?.startsWith('/')
-                  ? 'cursor-pointer'
-                  : ''
-              } ${
-                !notif.isRead ? 'bg-[#d9f99d]/20' : ''
-              }`}
-            >
-              <span className={`grid h-11 w-11 place-items-center rounded-full ${notifTone(notif.type)}`}>
-                {notifIcons[notif.type] ?? <Bell size={18} />}
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="font-semibold">{normalizeMojibakeText(notif.title)}</h2>
-                  <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">{notif.type}</span>
-                  {!notif.isRead && <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">new</span>}
+        <>
+          <DemoWhitePanel className="divide-y divide-black/10">
+            {visibleNotifications.map((notif) => {
+              const isActionable = !notif.isRead || isSafeInternalPath(notif.link);
+
+              return (
+                <div
+                  key={notif._id}
+                  role={isActionable ? 'button' : undefined}
+                  tabIndex={isActionable ? 0 : undefined}
+                  onClick={() => {
+                    if (isActionable) openNotification(notif);
+                  }}
+                  onKeyDown={(event) => {
+                    if (
+                      isActionable &&
+                      (event.key === 'Enter' || event.key === ' ')
+                    ) {
+                      event.preventDefault();
+                      openNotification(notif);
+                    }
+                  }}
+                  className={`grid gap-4 p-5 transition hover:bg-black/[0.025] sm:grid-cols-[44px_1fr_auto] ${
+                    isActionable ? 'cursor-pointer' : ''
+                  } ${!notif.isRead ? 'bg-[#d9f99d]/20' : ''}`}
+                >
+                  <span
+                    className={`grid h-11 w-11 place-items-center rounded-full ${notifTone(notif.type)}`}
+                  >
+                    {notifIcons[notif.type] ?? <Bell size={18} />}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="font-semibold">
+                        {normalizeMojibakeText(notif.title)}
+                      </h2>
+                      <span className="rounded bg-black/[0.05] px-2 py-1 text-xs text-black/45">
+                        {notif.type}
+                      </span>
+                      {!notif.isRead && (
+                        <span className="rounded-full bg-black px-2 py-0.5 text-[10px] font-medium text-white">
+                          new
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-black/60">
+                      {formatNotificationMessage(notif)}
+                    </p>
+                  </div>
+                  <p className="text-xs text-black/40 sm:text-right">
+                    {new Date(notif.createdAt).toLocaleString()}
+                  </p>
                 </div>
-                <p className="mt-1 text-sm text-black/60">{formatNotificationMessage(notif)}</p>
-              </div>
-              <p className="text-xs text-black/40 sm:text-right">
-                {new Date(notif.createdAt).toLocaleString()}
-              </p>
+              );
+            })}
+          </DemoWhitePanel>
+          {totalPages > 1 ? (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-black/55">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              >
+                Next
+              </Button>
             </div>
-          ))}
-        </DemoWhitePanel>
+          ) : null}
+        </>
       ) : (
         <EmptyState
           icon={<Bell size={36} />}

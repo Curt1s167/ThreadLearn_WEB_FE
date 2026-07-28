@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore, useUIStore } from '../store';
 import { Avatar, Badge } from '../components/shared';
 import { notificationsService } from '../services';
-import { formatNotificationMessage, normalizeMojibakeText } from '../utils';
+import { formatNotificationMessage, getDisplayName, normalizeMojibakeText } from '../utils';
 import type { Notification, NotificationType } from '../types';
+import { isSafeInternalPath } from '../utils/safeNavigation';
 import {
   TOPBAR_COLLAPSED_LEFT,
   TOPBAR_EXPANDED_LEFT,
@@ -37,6 +38,7 @@ const formatNotificationTime = (createdAt: string) => {
 
 export const Topbar: React.FC = () => {
   const { user, logout, stats } = useAuthStore();
+  const displayName = getDisplayName(user);
   const { sidebarCollapsed, toggleSidebar, theme, setTheme } = useUIStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotificationMenu, setShowNotificationMenu] = useState(false);
@@ -48,17 +50,26 @@ export const Topbar: React.FC = () => {
     queryFn: notificationsService.getAll,
     enabled: Boolean(user),
   });
-  const unreadNotifications =
-    notifications?.filter((notification) => !notification.isRead).length ?? 0;
+  const { data: unreadNotifications = 0 } = useQuery({
+    queryKey: ['notification-unread-count'],
+    queryFn: notificationsService.getUnreadCount,
+    enabled: Boolean(user),
+  });
   const visibleNotifications = notifications?.slice(0, 5) ?? [];
 
   const { mutate: markRead } = useMutation({
     mutationFn: notificationsService.markRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
+    },
   });
   const { mutate: markAllRead, isPending: isMarkingAllRead } = useMutation({
     mutationFn: notificationsService.markAllRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
+    },
   });
 
   const level = stats?.level ?? 1;
@@ -73,7 +84,7 @@ export const Topbar: React.FC = () => {
   const openNotification = (notification: Notification) => {
     if (!notification.isRead) markRead(notification._id);
     setShowNotificationMenu(false);
-    if (notification.link) router.push(notification.link);
+    if (isSafeInternalPath(notification.link)) router.push(notification.link);
   };
 
   useEffect(() => {
@@ -234,7 +245,7 @@ export const Topbar: React.FC = () => {
             onClick={() => setShowUserMenu((v) => !v)}
             className="flex h-10 w-10 items-center justify-center rounded-full p-0 transition-colors hover:bg-black/[0.05]"
           >
-            <Avatar src={user?.avatarUrl} name={user?.name} size="sm" />
+            <Avatar src={user?.avatarUrl} name={displayName} size="sm" />
           </button>
 
           {showUserMenu && (
@@ -246,7 +257,7 @@ export const Topbar: React.FC = () => {
               <div className="absolute right-0 top-10 z-20 w-52 bg-white border border-black/10 rounded-xl panel-shadow py-1 animate-fade-in">
                 <div className="px-3 py-2.5 border-b border-black/10">
                   <p className="text-xs text-ink font-medium truncate">
-                    {user?.name}
+                    {displayName}
                   </p>
                   <p className="text-[11px] text-ink-faint truncate">
                     {user?.email}

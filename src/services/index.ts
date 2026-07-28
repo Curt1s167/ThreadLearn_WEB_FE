@@ -7,9 +7,14 @@ import type {
   Course,
   CourseDetail,
   CourseCreatePayload,
+  CourseUpdatePayload,
+  CourseStatusPayload,
   CourseFilters,
   Lesson,
+  LessonManagementPayload,
   LessonCompleteResult,
+  CourseSection,
+  CourseSectionPayload,
   Quiz,
   QuizAttempt,
   PaginationMeta,
@@ -48,8 +53,9 @@ import type {
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
 export const coursesService = {
   list: async (filters: CourseFilters = {}) => {
+    const { tags, ...query } = filters;
     const { data } = await apiClient.get<ApiResponse<Course[]>>('/courses', {
-      params: filters,
+      params: { ...query, tag: filters.tag ?? tags?.[0] },
     });
     const meta = data.meta ?? {
       page: filters.page ?? 1,
@@ -74,18 +80,30 @@ export const coursesService = {
     const { data } = await apiClient.post<ApiResponse<Course>>('/courses', payload);
     return data.data;
   },
-  update: async (id: string, payload: Partial<CourseCreatePayload>) => {
+  update: async (id: string, payload: CourseUpdatePayload) => {
     const { data } = await apiClient.put<ApiResponse<Course>>(`/courses/${id}`, payload);
     return data.data;
   },
   uploadThumbnail: async (courseId: string, file: File) => {
     const form = new FormData();
     form.append('thumbnail', file);
-    const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string }>>(
+    const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string; course: Course }>>(
       `/courses/${courseId}/thumbnail`,
       form,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
+    return data.data;
+  },
+  setStatus: async (id: string, payload: CourseStatusPayload) => {
+    const { data } = await apiClient.patch<ApiResponse<Course>>(`/courses/${id}/publish`, payload);
+    return data.data;
+  },
+  remove: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<Course>>(`/courses/${id}`);
+    return data.data;
+  },
+  restore: async (id: string) => {
+    const { data } = await apiClient.post<ApiResponse<Course>>(`/courses/${id}/restore`);
     return data.data;
   },
 };
@@ -102,11 +120,11 @@ export const lessonsService = {
     const { data } = await apiClient.get<ApiResponse<Lesson>>(`/lessons/${id}`);
     return data.data;
   },
-  create: async (payload: Partial<Lesson>) => {
+  create: async (payload: LessonManagementPayload) => {
     const { data } = await apiClient.post<ApiResponse<Lesson>>('/lessons', payload);
     return data.data;
   },
-  update: async (id: string, payload: Partial<Lesson>) => {
+  update: async (id: string, payload: Partial<LessonManagementPayload>) => {
     const { data } = await apiClient.put<ApiResponse<Lesson>>(`/lessons/${id}`, payload);
     return data.data;
   },
@@ -114,10 +132,43 @@ export const lessonsService = {
     const { data } = await apiClient.delete<ApiResponse<null>>(`/lessons/${id}`);
     return data;
   },
+  setLock: async (id: string, locked: boolean) => {
+    const { data } = await apiClient.patch<ApiResponse<Lesson>>(`/lessons/${id}/lock`, { locked });
+    return data.data;
+  },
   complete: async (id: string) => {
     const { data } = await apiClient.post<ApiResponse<LessonCompleteResult>>(
       `/lessons/${id}/complete`
     );
+    return data.data;
+  },
+};
+
+// ——— Course sections (UC54) ————————————————————————————————————————————
+export const sectionsService = {
+  listByCourse: async (courseId: string) => {
+    const { data } = await apiClient.get<ApiResponse<CourseSection[]>>('/sections', {
+      params: { courseId },
+    });
+    return data.data;
+  },
+  create: async (payload: CourseSectionPayload) => {
+    const { data } = await apiClient.post<ApiResponse<CourseSection>>('/sections', payload);
+    return data.data;
+  },
+  update: async (id: string, payload: Partial<CourseSectionPayload>) => {
+    const { data } = await apiClient.patch<ApiResponse<CourseSection>>(`/sections/${id}`, payload);
+    return data.data;
+  },
+  remove: async (id: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ id: string }>>(`/sections/${id}`);
+    return data.data;
+  },
+  reorder: async (courseId: string, items: Array<{ id: string; orderIndex: number }>) => {
+    const { data } = await apiClient.post<ApiResponse<CourseSection[]>>('/sections/reorder', {
+      courseId,
+      items,
+    });
     return data.data;
   },
 };
@@ -287,19 +338,31 @@ export const commentsService = {
 
 // ─── Bookmarks (UC38–UC39) ────────────────────────────────────────────────────
 export const bookmarksService = {
-  getAll: async () => {
+  getAll: async (page = 1, limit = 20, targetType?: 'COURSE' | 'LESSON') => {
     const { data } = await apiClient.get<ApiResponse<Bookmark[]>>('/bookmarks', {
-      params: { targetType: 'LESSON' },
+      params: { targetType, page, limit },
     });
     return {
       data: data.data,
       meta: data.meta,
     };
   },
-  toggle: async (lessonId: string, title = 'Lesson bookmark') => {
+  check: async (lessonId: string) => {
+    const { data } = await apiClient.get<ApiResponse<{ bookmarked: boolean }>>('/bookmarks/check', {
+      params: { targetType: 'LESSON', targetId: lessonId },
+    });
+    return data.data.bookmarked;
+  },
+  toggle: async (lessonId: string) => {
     const { data } = await apiClient.post<ApiResponse<BookmarkToggleResult>>(
       '/bookmarks/toggle',
-      { targetType: 'LESSON', targetId: lessonId, title }
+      { targetType: 'LESSON', targetId: lessonId }
+    );
+    return data.data;
+  },
+  remove: async (bookmarkId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(
+      `/bookmarks/${bookmarkId}`
     );
     return data.data;
   },
@@ -322,11 +385,11 @@ export const notesService = {
     );
     return data.data;
   },
-  create: async (payload: { lessonId: string; noteText: string; codeSnippet?: string; anchorText?: string }) => {
+  create: async (payload: { lessonId: string; noteText: string; codeSnippet?: string; anchorText?: string; anchorStart?: number | null; anchorEnd?: number | null }) => {
     const { data } = await apiClient.post<ApiResponse<Note>>('/notes', payload);
     return data.data;
   },
-  update: async (noteId: string, payload: { noteText?: string; codeSnippet?: string; anchorText?: string }) => {
+  update: async (noteId: string, payload: { noteText?: string; codeSnippet?: string; anchorText?: string; anchorStart?: number | null; anchorEnd?: number | null }) => {
     const { data } = await apiClient.patch<ApiResponse<Note>>(`/notes/${noteId}`, payload);
     return data.data;
   },
@@ -348,6 +411,18 @@ export const codeExecutionService = {
     const { data } = await apiClient.post<ApiResponse<CodeExecutionResult>>('/code-execution/run', payload);
     return data.data;
   },
+  history: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<CodeExecutionResult>>>('/code-execution/history', { params: { page, limit } });
+    return data.data;
+  },
+  detail: async (id: string) => {
+    const { data } = await apiClient.get<ApiResponse<CodeExecutionResult>>(`/code-execution/${id}`);
+    return data.data;
+  },
+  remove: async (bookmarkId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(`/bookmarks/${bookmarkId}`);
+    return data.data;
+  },
 };
 
 // ─── Notifications (UC32) ─────────────────────────────────────────────────────
@@ -355,6 +430,16 @@ export const notificationsService = {
   getAll: async () => {
     const { data } = await apiClient.get<ApiResponse<Notification[]>>('/notifications');
     return data.data;
+  },
+  getPage: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<Notification[]>>('/notifications', {
+      params: { page, limit },
+    });
+    return { data: data.data, meta: data.meta };
+  },
+  getUnreadCount: async () => {
+    const { data } = await apiClient.get<ApiResponse<{ count: number }>>('/notifications/unread-count');
+    return data.data.count;
   },
   markRead: async (id: string) => {
     const { data } = await apiClient.patch<ApiResponse<Notification>>(
@@ -501,8 +586,8 @@ export const aiService = {
     );
     return data.data;
   },
-  getHistory: async () => {
-    const { data } = await apiClient.get<ApiResponse<AIHistoryLog[]>>('/ai/history');
+  getHistory: async (page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<AIHistoryLog>>>('/ai/history', { params: { page, limit } });
     return data.data;
   },
   getHistoryById: async (id: string) => {

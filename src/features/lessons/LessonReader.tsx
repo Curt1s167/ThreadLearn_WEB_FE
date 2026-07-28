@@ -15,6 +15,30 @@ type ReadMode = 'sections' | 'full';
 
 const proseClass = 'guided-lesson-prose prose max-w-none';
 
+export interface LessonTextSelection {
+  text: string;
+  anchorStart: number;
+  anchorEnd: number;
+}
+
+export function calculateSelectionAnchor(
+  container: Node,
+  range: Range,
+  rawSelectedText: string,
+  contentOffset: number,
+): LessonTextSelection {
+  const text = rawSelectedText.trim();
+  const leadingWhitespace = rawSelectedText.length - rawSelectedText.trimStart().length;
+  const beforeSelection = document.createRange();
+  beforeSelection.selectNodeContents(container);
+  beforeSelection.setEnd(range.startContainer, range.startOffset);
+  const anchorStart = Math.max(
+    0,
+    contentOffset + beforeSelection.toString().length + leadingWhitespace,
+  );
+  return { text, anchorStart, anchorEnd: anchorStart + text.length };
+}
+
 function OutlineNav({
   items,
   activeId,
@@ -60,11 +84,13 @@ export function LessonReader({
   lessonTitle,
   checklistStorageKey,
   onReadComplete,
+  onTextSelected,
 }: {
   content: string;
   lessonTitle: string;
   checklistStorageKey?: string;
   onReadComplete?: () => void;
+  onTextSelected?: (selection: LessonTextSelection) => void;
 }) {
   const displayContent = useMemo(
     () => stripRepeatedLessonTitle(content, lessonTitle),
@@ -106,6 +132,32 @@ export function LessonReader({
     }
     const el = document.getElementById(item.id);
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const captureTextSelection = (
+    event: React.MouseEvent<HTMLDivElement>,
+    contentOffset: number,
+  ) => {
+    if (!onTextSelected) return;
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const commonAncestor = range.commonAncestorContainer;
+    const commonElement = commonAncestor.nodeType === Node.ELEMENT_NODE
+      ? commonAncestor as Element
+      : commonAncestor.parentElement;
+    if (!commonElement || !event.currentTarget.contains(commonElement)) return;
+
+    const rawSelectedText = selection.toString();
+    const selectedText = rawSelectedText.trim();
+    if (!selectedText) return;
+    onTextSelected(calculateSelectionAnchor(
+      event.currentTarget,
+      range,
+      rawSelectedText,
+      contentOffset,
+    ));
   };
 
   return (
@@ -230,7 +282,13 @@ export function LessonReader({
               </div>
             </div>
 
-            <div className={proseClass}>
+            <div
+              className={proseClass}
+              onMouseUp={(event) => captureTextSelection(
+                event,
+                Math.max(0, displayContent.indexOf(current.markdown)),
+              )}
+            >
               <LessonMarkdown
                 key={current.id}
                 content={current.markdown}
@@ -240,7 +298,10 @@ export function LessonReader({
 
           </>
         ) : (
-          <div className={proseClass}>
+          <div
+            className={proseClass}
+            onMouseUp={(event) => captureTextSelection(event, 0)}
+          >
             <LessonMarkdown content={displayContent} checklistStorageKey={checklistStorageKey} />
           </div>
         )}

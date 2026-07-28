@@ -1,5 +1,5 @@
-import { DemoIDEPage } from '@/features/demo/pages';
+import { IDEPage } from '@/features/ide/IDEPage';
 
 export default function IDE() {
-  return <DemoIDEPage />;
+  return <IDEPage />;
 }

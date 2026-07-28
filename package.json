@@ -7,17 +7,21 @@
     "dev:turbopack": "next dev --turbopack -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
+    "@monaco-editor/react": "^4.7.0",
     "@tanstack/react-query": "^5.100.14",
-    "axios": "^1.16.1",
+    "axios": "^1.18.0",
     "clsx": "^2.1.1",
     "diff": "^9.0.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.16.0",
-    "next": "^15.3.3",
+    "monaco-editor": "^0.56.0",
+    "next": "^15.5.21",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hook-form": "^7.76.1",
@@ -32,15 +36,23 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
     "@types/diff": "^7.0.2",
     "@types/node": "^24.12.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
     "autoprefixer": "^10.5.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.3.3",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
-    "typescript": "~5.7.3"
+    "typescript": "~5.7.3",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "ws": "8.21.0"
   }
 }

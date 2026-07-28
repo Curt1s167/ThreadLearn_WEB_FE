@@ -25,8 +25,9 @@ const CommentItem: React.FC<{
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
-  const canManage = user?._id === comment.userId || user?.role === 'ADMIN';
-  const authorName = comment.isAnonymous ? 'Anonymous learner' : comment.user?.name || 'ThreadLearn member';
+  const isDeleted = comment.status === 'deleted';
+  const canManage = !isDeleted && (user?._id === comment.userId || user?.role === 'ADMIN');
+  const authorName = isDeleted ? 'Deleted comment' : comment.isAnonymous ? 'Anonymous learner' : comment.user?.name || 'ThreadLearn member';
 
   const { mutate: updateComment, isPending: isUpdating } = useMutation({
     mutationFn: () => commentsService.update(comment._id, editContent),
@@ -36,7 +37,15 @@ const CommentItem: React.FC<{
       setIsEditing(false);
       toast.success('Comment updated');
     },
-    onError: () => toast.error('Failed to update comment'),
+    onError: (error) => {
+      if (getHttpStatus(error) === 409) {
+        queryClient.invalidateQueries({ queryKey: ['comments'] });
+        queryClient.invalidateQueries({ queryKey: ['comment-replies'] });
+        toast.error('This comment changed. The latest version has been reloaded.');
+        return;
+      }
+      toast.error('Failed to update comment');
+    },
   });
 
   const { mutate: deleteComment, isPending: isDeleting } = useMutation({
@@ -46,14 +55,22 @@ const CommentItem: React.FC<{
       queryClient.invalidateQueries({ queryKey: ['comment-replies', comment.parentId] });
       toast.success('Comment deleted');
     },
-    onError: () => toast.error('Failed to delete comment'),
+    onError: (error) => {
+      if (getHttpStatus(error) === 409) {
+        queryClient.invalidateQueries({ queryKey: ['comments'] });
+        queryClient.invalidateQueries({ queryKey: ['comment-replies'] });
+        toast.error('This comment changed. The latest version has been reloaded.');
+        return;
+      }
+      toast.error('Failed to delete comment');
+    },
   });
 
   return (
     <div className={depth > 0 ? 'ml-6 border-l border-black/10 pl-4 sm:ml-8' : ''}>
       <div className="flex gap-3 py-3">
         <Avatar
-          src={comment.isAnonymous ? undefined : comment.user?.avatarUrl}
+          src={comment.isAnonymous || isDeleted ? undefined : comment.user?.avatarUrl}
           name={authorName}
           size="sm"
         />
@@ -68,6 +85,7 @@ const CommentItem: React.FC<{
             <span className="text-xs text-ink-faint">
               {new Date(comment.createdAt).toLocaleDateString()}
             </span>
+            {comment.isEdited && !isDeleted ? <span className="text-xs text-ink-faint">edited</span> : null}
           </div>
 
           {isEditing ? (
@@ -113,7 +131,7 @@ const CommentItem: React.FC<{
           )}
 
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            {onReply ? (
+            {onReply && !isDeleted ? (
               <button
                 type="button"
                 onClick={() => onReply(comment)}
@@ -155,7 +173,7 @@ const CommentThread: React.FC<{ comment: Comment; onReply: (comment: Comment) =>
   comment,
   onReply,
 }) => {
-  const { data: replies = [] } = useQuery({
+  const { data: replies = [], isError: repliesError } = useQuery({
     queryKey: ['comment-replies', comment._id],
     queryFn: () => commentsService.getReplies(comment._id),
   });
@@ -166,6 +184,9 @@ const CommentThread: React.FC<{ comment: Comment; onReply: (comment: Comment) =>
       {replies.map((reply) => (
         <CommentItem key={reply._id} comment={reply} depth={1} />
       ))}
+      {repliesError ? (
+        <p className="ml-8 py-2 text-xs text-rose-600">Replies could not be loaded.</p>
+      ) : null}
     </div>
   );
 };
@@ -176,7 +197,7 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: comments = [], isLoading } = useQuery({
+  const { data: comments = [], isLoading, isError } = useQuery({
     queryKey: ['comments', lessonId],
     queryFn: () => commentsService.getByLesson(lessonId),
     enabled: !!lessonId,
@@ -233,6 +254,7 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
           disabled={isPending}
           placeholder={replyTo ? 'Write a reply...' : 'Add a comment...'}
           rows={3}
+          maxLength={2000}
           className="comments-input w-full resize-y rounded-md border-0 bg-transparent px-1 py-2 text-sm leading-6 outline-none disabled:opacity-50"
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -265,6 +287,10 @@ export const CommentsSection: React.FC<Props> = ({ lessonId }) => {
             <div key={index} className="h-14 rounded-lg skeleton" />
           ))}
         </div>
+      ) : isError ? (
+        <p className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-center text-sm text-rose-700">
+          Discussion could not be loaded. Check your lesson access and try again.
+        </p>
       ) : comments.length > 0 ? (
         <div className="divide-y divide-black/10">
           {comments.map((comment) => (
