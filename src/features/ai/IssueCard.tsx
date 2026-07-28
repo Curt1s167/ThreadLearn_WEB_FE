@@ -89,9 +89,6 @@ export const IssueCard: React.FC<{
         <p className="leading-relaxed">{issue.description}</p>
       </div>
 
-      {issue.fix && (
-        <>
-
       {issue.codeSnippet && (
         <div className="mb-3">
           <p className="text-xs uppercase tracking-[0.14em] text-black/45 mb-1">
@@ -196,8 +193,6 @@ export const IssueCard: React.FC<{
           danger
           onConfirm={applyFix}
         />
-      )}
-        </>
       )}
     </div>
   );
