@@ -15,6 +15,12 @@ type ReadMode = 'sections' | 'full';
 
 const proseClass = 'guided-lesson-prose prose max-w-none';
 
+export interface LessonTextSelection {
+  text: string;
+  anchorStart: number;
+  anchorEnd: number;
+}
+
 function OutlineNav({
   items,
   activeId,
@@ -60,11 +66,13 @@ export function LessonReader({
   lessonTitle,
   checklistStorageKey,
   onReadComplete,
+  onTextSelected,
 }: {
   content: string;
   lessonTitle: string;
   checklistStorageKey?: string;
   onReadComplete?: () => void;
+  onTextSelected?: (selection: LessonTextSelection) => void;
 }) {
   const displayContent = useMemo(
     () => stripRepeatedLessonTitle(content, lessonTitle),
@@ -106,6 +114,33 @@ export function LessonReader({
     }
     const el = document.getElementById(item.id);
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const captureTextSelection = (
+    event: React.MouseEvent<HTMLDivElement>,
+    renderedContent: string,
+    contentOffset: number,
+  ) => {
+    if (!onTextSelected) return;
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const commonAncestor = range.commonAncestorContainer;
+    const commonElement = commonAncestor.nodeType === Node.ELEMENT_NODE
+      ? commonAncestor as Element
+      : commonAncestor.parentElement;
+    if (!commonElement || !event.currentTarget.contains(commonElement)) return;
+
+    const selectedText = selection.toString().trim();
+    if (!selectedText) return;
+    const relativeStart = renderedContent.indexOf(selectedText);
+    const anchorStart = Math.max(0, contentOffset + Math.max(relativeStart, 0));
+    onTextSelected({
+      text: selectedText,
+      anchorStart,
+      anchorEnd: anchorStart + selectedText.length,
+    });
   };
 
   return (
@@ -230,7 +265,14 @@ export function LessonReader({
               </div>
             </div>
 
-            <div className={proseClass}>
+            <div
+              className={proseClass}
+              onMouseUp={(event) => captureTextSelection(
+                event,
+                current.markdown,
+                Math.max(0, displayContent.indexOf(current.markdown)),
+              )}
+            >
               <LessonMarkdown
                 key={current.id}
                 content={current.markdown}
@@ -240,7 +282,10 @@ export function LessonReader({
 
           </>
         ) : (
-          <div className={proseClass}>
+          <div
+            className={proseClass}
+            onMouseUp={(event) => captureTextSelection(event, displayContent, 0)}
+          >
             <LessonMarkdown content={displayContent} checklistStorageKey={checklistStorageKey} />
           </div>
         )}

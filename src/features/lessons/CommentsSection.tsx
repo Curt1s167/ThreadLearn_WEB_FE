@@ -25,8 +25,9 @@ const CommentItem: React.FC<{
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
-  const canManage = user?._id === comment.userId || user?.role === 'ADMIN';
-  const authorName = comment.isAnonymous ? 'Anonymous learner' : comment.user?.name || 'ThreadLearn member';
+  const isDeleted = comment.status === 'deleted';
+  const canManage = !isDeleted && (user?._id === comment.userId || user?.role === 'ADMIN');
+  const authorName = isDeleted ? 'Deleted comment' : comment.isAnonymous ? 'Anonymous learner' : comment.user?.name || 'ThreadLearn member';
 
   const { mutate: updateComment, isPending: isUpdating } = useMutation({
     mutationFn: () => commentsService.update(comment._id, editContent),
@@ -53,7 +54,7 @@ const CommentItem: React.FC<{
     <div className={depth > 0 ? 'ml-6 border-l border-black/10 pl-4 sm:ml-8' : ''}>
       <div className="flex gap-3 py-3">
         <Avatar
-          src={comment.isAnonymous ? undefined : comment.user?.avatarUrl}
+          src={comment.isAnonymous || isDeleted ? undefined : comment.user?.avatarUrl}
           name={authorName}
           size="sm"
         />
@@ -68,6 +69,7 @@ const CommentItem: React.FC<{
             <span className="text-xs text-ink-faint">
               {new Date(comment.createdAt).toLocaleDateString()}
             </span>
+            {comment.isEdited && !isDeleted ? <span className="text-xs text-ink-faint">edited</span> : null}
           </div>
 
           {isEditing ? (
@@ -113,7 +115,7 @@ const CommentItem: React.FC<{
           )}
 
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            {onReply ? (
+            {onReply && !isDeleted ? (
               <button
                 type="button"
                 onClick={() => onReply(comment)}

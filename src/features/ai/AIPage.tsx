@@ -27,6 +27,7 @@ import { useCodeHistory } from './useCodeHistory';
 export const AIPage: React.FC = () => {
   const { code, setCode, undo, redo, resetCode, canUndo, canRedo } = useCodeHistory('');
   const [sampleIdx, setSampleIdx] = useState(-1);
+  const [historyPage, setHistoryPage] = useState(1);
   const queryClient = useQueryClient();
 
   const {
@@ -34,8 +35,8 @@ export const AIPage: React.FC = () => {
     isLoading: historyLoading,
     isError: historyError,
   } = useQuery({
-    queryKey: ['ai-history'],
-    queryFn: () => aiService.getHistory(),
+    queryKey: ['ai-history', historyPage],
+    queryFn: () => aiService.getHistory(historyPage),
   });
 
   useEffect(() => {
@@ -294,7 +295,33 @@ export const AIPage: React.FC = () => {
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-28 rounded-lg" />)}
           </div>
         ) : history && history.items.length > 0 ? (
-          <HistoryList history={history.items} />
+          <>
+            <HistoryList history={history.items} />
+            {history.meta.totalPages > 1 ? (
+              <div className="flex items-center justify-center gap-3 border-t border-black/10 p-4">
+                <Button
+                  variant="outline"
+                  disabled={historyPage <= 1}
+                  onClick={() => setHistoryPage((current) => Math.max(1, current - 1))}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-black/55">
+                  Page {historyPage} of {history.meta.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  disabled={historyPage >= history.meta.totalPages}
+                  onClick={() => setHistoryPage((current) => Math.min(
+                    history.meta.totalPages,
+                    current + 1,
+                  ))}
+                >
+                  Next
+                </Button>
+              </div>
+            ) : null}
+          </>
         ) : (
           <div className="p-8 text-center text-sm text-black/60">
             No analysis history yet.

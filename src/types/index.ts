@@ -353,6 +353,9 @@ export interface Comment {
   content: string;
   parentId?: string;
   isAnonymous: boolean;
+  status?: 'active' | 'hidden' | 'deleted';
+  isEdited?: boolean;
+  editedAt?: string;
   likes: string[];
   createdAt: string;
   updatedAt: string;
