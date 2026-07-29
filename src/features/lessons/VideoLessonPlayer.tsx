@@ -1,3 +1,21 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  BookmarkPlus,
+  Clock3,
+  Maximize,
+  Pause,
+  Play,
+  RotateCcw,
+  RotateCw,
+  Trash2,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { videoBookmarksService } from '../../services/videoBookmarks';
+import { useAuthStore } from '../../store';
+
 type VideoSource =
   | { kind: 'direct'; src: string }
   | { kind: 'youtube'; src: string }
@@ -5,6 +23,51 @@ type VideoSource =
 
 const DIRECT_VIDEO_EXTENSIONS = ['.mp4', '.webm', '.ogv', '.ogg'];
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2];
+
+interface YouTubePlayerInstance {
+  getCurrentTime: () => number;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  destroy: () => void;
+}
+
+interface YouTubePlayerEvent {
+  target: YouTubePlayerInstance;
+}
+
+interface YouTubeApi {
+  Player: new (
+    element: HTMLIFrameElement,
+    options: { events: { onReady: (event: YouTubePlayerEvent) => void } }
+  ) => YouTubePlayerInstance;
+}
+
+declare global {
+  interface Window {
+    YT?: YouTubeApi;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+let youTubeApiPromise: Promise<YouTubeApi> | null = null;
+
+const loadYouTubeApi = () => {
+  if (typeof window === 'undefined') return Promise.reject(new Error('YouTube is unavailable.'));
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  if (youTubeApiPromise) return youTubeApiPromise;
+
+  youTubeApiPromise = new Promise((resolve) => {
+    const previousCallback = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousCallback?.();
+      if (window.YT?.Player) resolve(window.YT);
+    };
+    const script = document.createElement('script');
+    script.src = 'https://www.youtube.com/iframe_api';
+    script.async = true;
+    document.head.appendChild(script);
+  });
+  return youTubeApiPromise;
+};
 
 const formatTime = (seconds: number) => {
   if (!Number.isFinite(seconds)) return '0:00';
@@ -50,12 +113,189 @@ export const resolveVideoSource = (videoUrl: string): VideoSource => {
   return { kind: 'embed', src: videoUrl };
 };
 
+function VideoTimestampPanel({
+  lessonId,
+  currentTime,
+  onSeek,
+}: {
+  lessonId: string;
+  currentTime: number;
+  onSeek: (timestampSeconds: number) => void;
+}) {
+  const user = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
+  const [note, setNote] = useState('');
+  const { data: bookmarks = [], isLoading } = useQuery({
+    queryKey: ['video-bookmarks', lessonId],
+    queryFn: () => videoBookmarksService.list(lessonId),
+    enabled: Boolean(user),
+  });
+  const { mutate: save, isPending: saving } = useMutation({
+    mutationFn: () =>
+      videoBookmarksService.create({
+        lessonId,
+        timestampSeconds: Math.round(currentTime * 10) / 10,
+        note: note.trim() || undefined,
+      }),
+    onSuccess: () => {
+      setNote('');
+      queryClient.invalidateQueries({ queryKey: ['video-bookmarks', lessonId] });
+      toast.success('Video timestamp saved.');
+    },
+    onError: () => toast.error('Could not save this video timestamp.'),
+  });
+  const { mutate: remove } = useMutation({
+    mutationFn: videoBookmarksService.remove,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['video-bookmarks', lessonId] }),
+    onError: () => toast.error('Could not remove this video timestamp.'),
+  });
+
+  if (!user) return null;
+
+  return (
+    <section
+      className="rounded-lg border border-black/10 bg-white p-4"
+      aria-label="Video timestamps"
+    >
+      <div className="flex items-center gap-2">
+        <Clock3 size={16} />
+        <h3 className="text-sm font-semibold text-ink">Video timestamps</h3>
+      </div>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input
+          aria-label="Timestamp note"
+          maxLength={280}
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="Optional note for this moment"
+          className="min-h-10 flex-1 rounded-lg border border-black/15 px-3 text-sm"
+        />
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => save()}
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-black px-3 text-sm font-medium text-white disabled:opacity-50"
+        >
+          <BookmarkPlus size={16} />
+          Save {formatTime(currentTime)}
+        </button>
+      </div>
+      {isLoading ? (
+        <p className="mt-3 text-xs text-black/50">Loading saved timestamps…</p>
+      ) : bookmarks.length > 0 ? (
+        <ul className="mt-3 divide-y divide-black/10">
+          {bookmarks.map((bookmark) => (
+            <li key={bookmark._id} className="flex items-center gap-2 py-2">
+              <button
+                type="button"
+                onClick={() => onSeek(bookmark.timestampSeconds)}
+                className="rounded-md bg-[#d9f99d] px-2 py-1 text-xs font-semibold text-black"
+              >
+                {formatTime(bookmark.timestampSeconds)}
+              </button>
+              <span className="min-w-0 flex-1 truncate text-sm text-black/65">
+                {bookmark.note || 'Saved timestamp'}
+              </span>
+              <button
+                type="button"
+                onClick={() => remove(bookmark._id)}
+                className="rounded p-1 text-black/45 hover:bg-black/[0.05] hover:text-black"
+                aria-label={`Remove timestamp ${formatTime(bookmark.timestampSeconds)}`}
+              >
+                <Trash2 size={15} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-xs text-black/50">
+          Save a timestamp to revisit an important moment.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function YouTubeLessonPlayer({
+  src,
+  title,
+  lessonId,
+}: {
+  src: string;
+  title: string;
+  lessonId: string;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerRef = useRef<YouTubePlayerInstance | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+    let player: YouTubePlayerInstance | null = null;
+    let timer: number | undefined;
+
+    void loadYouTubeApi()
+      .then((api) => {
+        if (!iframeRef.current || !isActive) return;
+        player = new api.Player(iframeRef.current, {
+          events: {
+            onReady: (event) => {
+              if (!isActive) return;
+              playerRef.current = event.target;
+              setIsReady(true);
+              timer = window.setInterval(() => {
+                setCurrentTime(event.target.getCurrentTime());
+              }, 500);
+            },
+          },
+        });
+      })
+      .catch(() => toast.error('Could not connect to the YouTube player.'));
+
+    return () => {
+      isActive = false;
+      if (timer) window.clearInterval(timer);
+      player?.destroy();
+    };
+  }, []);
+
+  const playerUrl = new URL(src);
+  playerUrl.searchParams.set('enablejsapi', '1');
+  if (typeof window !== 'undefined') playerUrl.searchParams.set('origin', window.location.origin);
+
+  return (
+    <div className="space-y-3">
+      <div className="aspect-video overflow-hidden rounded-lg border border-black/10 bg-black">
+        <iframe
+          ref={iframeRef}
+          src={playerUrl.toString()}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          loading="lazy"
+          title={title}
+        />
+      </div>
+      <VideoTimestampPanel
+        lessonId={lessonId}
+        currentTime={currentTime}
+        onSeek={(timestampSeconds) => playerRef.current?.seekTo(timestampSeconds, true)}
+      />
+      {!isReady ? <p className="text-xs text-black/50">Connecting to YouTube player…</p> : null}
+    </div>
+  );
+}
+
 export function VideoLessonPlayer({
   videoUrl,
   title,
+  lessonId,
 }: {
   videoUrl: string;
   title: string;
+  lessonId: string;
 }) {
   const source = resolveVideoSource(videoUrl);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -135,115 +375,128 @@ export function VideoLessonPlayer({
 
   if (source.kind === 'direct') {
     return (
-      <div
-        ref={playerRef}
-        tabIndex={0}
-        onKeyDown={handleKeyboardShortcut}
-        onMouseDown={(event) => event.currentTarget.focus()}
-        className="group relative aspect-video overflow-hidden rounded-lg border border-black/10 bg-black outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
-        aria-label={`Video player for ${title}. Press Space or K to play or pause.`}
-      >
-        <video
-          controlsList="nodownload"
-          playsInline
-          preload="metadata"
-          className="h-full w-full"
-          aria-label={`Video lesson: ${title}`}
-          ref={videoRef}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onEnded={() => setIsPlaying(false)}
-          onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
-          onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+      <div className="space-y-3">
+        <div
+          ref={playerRef}
+          tabIndex={0}
+          onKeyDown={handleKeyboardShortcut}
+          onMouseDown={(event) => event.currentTarget.focus()}
+          className="group relative aspect-video overflow-hidden rounded-lg border border-black/10 bg-black outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
+          aria-label={`Video player for ${title}. Press Space or K to play or pause.`}
         >
-          <source src={source.src} />
-          Your browser does not support HTML video.
-        </video>
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-3 pt-10 text-white sm:px-4">
-          <input
-            aria-label="Seek within video"
-            type="range"
-            min="0"
-            max={duration || 0}
-            step="0.1"
-            value={Math.min(currentTime, duration || 0)}
-            onChange={(event) => {
-              const video = videoRef.current;
-              if (!video) return;
-              video.currentTime = Number(event.target.value);
-            }}
-            className="mb-3 w-full accent-[#d9f99d]"
-          />
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <button
-              type="button"
-              onClick={() => void togglePlayback()}
-              className="inline-flex size-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
-              aria-label={isPlaying ? 'Pause video' : 'Play video'}
-            >
-              {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-            </button>
-            <button
-              type="button"
-              onClick={() => seekBy(-10)}
-              className="inline-flex size-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
-              aria-label="Rewind 10 seconds"
-            >
-              <RotateCcw size={18} />
-              <span className="sr-only">10 seconds</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => seekBy(10)}
-              className="inline-flex size-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
-              aria-label="Forward 10 seconds"
-            >
-              <RotateCw size={18} />
-              <span className="sr-only">10 seconds</span>
-            </button>
-            <span className="min-w-24 text-xs tabular-nums text-white/80">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
-            <div className="ml-auto flex items-center gap-2">
+          <video
+            controlsList="nodownload"
+            playsInline
+            preload="metadata"
+            className="h-full w-full"
+            aria-label={`Video lesson: ${title}`}
+            ref={videoRef}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
+            onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+            onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+          >
+            <source src={source.src} />
+            Your browser does not support HTML video.
+          </video>
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-3 pt-10 text-white sm:px-4">
+            <input
+              aria-label="Seek within video"
+              type="range"
+              min="0"
+              max={duration || 0}
+              step="0.1"
+              value={Math.min(currentTime, duration || 0)}
+              onChange={(event) => {
+                const video = videoRef.current;
+                if (!video) return;
+                video.currentTime = Number(event.target.value);
+              }}
+              className="mb-3 w-full accent-[#d9f99d]"
+            />
+            <div className="flex flex-wrap items-center gap-2 text-sm">
               <button
                 type="button"
-                onClick={toggleMuted}
+                onClick={() => void togglePlayback()}
                 className="inline-flex size-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
-                aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+                aria-label={isPlaying ? 'Pause video' : 'Play video'}
               >
-                {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                {isPlaying ? <Pause size={18} /> : <Play size={18} />}
               </button>
-              <label className="sr-only" htmlFor="video-playback-rate">
-                Playback speed
-              </label>
-              <select
-                id="video-playback-rate"
-                value={playbackRate}
-                onChange={(event) => changePlaybackRate(Number(event.target.value))}
-                className="rounded-md border border-white/25 bg-black/40 px-2 py-1 text-xs text-white"
-              >
-                {PLAYBACK_RATES.map((rate) => (
-                  <option key={rate} value={rate}>
-                    {rate}x
-                  </option>
-                ))}
-              </select>
               <button
                 type="button"
-                onClick={() => void toggleFullscreen()}
+                onClick={() => seekBy(-10)}
                 className="inline-flex size-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
-                aria-label="Toggle fullscreen"
+                aria-label="Rewind 10 seconds"
               >
-                <Maximize size={18} />
+                <RotateCcw size={18} />
+                <span className="sr-only">10 seconds</span>
               </button>
+              <button
+                type="button"
+                onClick={() => seekBy(10)}
+                className="inline-flex size-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
+                aria-label="Forward 10 seconds"
+              >
+                <RotateCw size={18} />
+                <span className="sr-only">10 seconds</span>
+              </button>
+              <span className="min-w-24 text-xs tabular-nums text-white/80">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleMuted}
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
+                  aria-label={isMuted ? 'Unmute video' : 'Mute video'}
+                >
+                  {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                </button>
+                <label className="sr-only" htmlFor="video-playback-rate">
+                  Playback speed
+                </label>
+                <select
+                  id="video-playback-rate"
+                  value={playbackRate}
+                  onChange={(event) => changePlaybackRate(Number(event.target.value))}
+                  className="rounded-md border border-white/25 bg-black/40 px-2 py-1 text-xs text-white"
+                >
+                  {PLAYBACK_RATES.map((rate) => (
+                    <option key={rate} value={rate}>
+                      {rate}x
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => void toggleFullscreen()}
+                  className="inline-flex size-9 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d9f99d]"
+                  aria-label="Toggle fullscreen"
+                >
+                  <Maximize size={18} />
+                </button>
+              </div>
             </div>
+            <p className="mt-2 text-[11px] text-white/60">
+              Shortcuts: Space/K play, ←/→ seek, &lt;/&gt; speed, M mute, F fullscreen.
+            </p>
           </div>
-          <p className="mt-2 text-[11px] text-white/60">
-            Shortcuts: Space/K play, ←/→ seek, &lt;/&gt; speed, M mute, F fullscreen.
-          </p>
         </div>
+        <VideoTimestampPanel
+          lessonId={lessonId}
+          currentTime={currentTime}
+          onSeek={(timestampSeconds) => {
+            if (videoRef.current) videoRef.current.currentTime = timestampSeconds;
+          }}
+        />
       </div>
     );
+  }
+
+  if (source.kind === 'youtube') {
+    return <YouTubeLessonPlayer src={source.src} title={title} lessonId={lessonId} />;
   }
 
   return (
@@ -259,13 +512,3 @@ export function VideoLessonPlayer({
     </div>
   );
 }
-import React, { useRef, useState } from 'react';
-import {
-  Maximize,
-  Pause,
-  Play,
-  RotateCcw,
-  RotateCw,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';

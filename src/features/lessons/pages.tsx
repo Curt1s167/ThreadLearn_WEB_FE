@@ -34,15 +34,15 @@ import { VideoLessonPlayer } from './VideoLessonPlayer';
 
 const LessonReader = dynamic(
   () => import('./LessonReader').then((module) => module.LessonReader),
-  { loading: () => <div className="h-48 skeleton rounded-lg" /> },
+  { loading: () => <div className="h-48 skeleton rounded-lg" /> }
 );
 const CommentsSection = dynamic(
   () => import('./CommentsSection').then((module) => module.CommentsSection),
-  { loading: () => <div className="h-24 skeleton rounded-lg" /> },
+  { loading: () => <div className="h-24 skeleton rounded-lg" /> }
 );
 const NotesPanel = dynamic(
   () => import('./NotesPanel').then((module) => module.NotesPanel),
-  { loading: () => <div className="h-32 skeleton rounded-lg" /> },
+  { loading: () => <div className="h-32 skeleton rounded-lg" /> }
 );
 
 const getHttpStatus = (error: unknown) =>
@@ -94,8 +94,8 @@ function LessonCodeRunner({
     onError: (error) => {
       setResult(null);
       setRunError(
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-          'Could not run this code. Check your connection and try again.',
+        (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || 'Could not run this code. Check your connection and try again.'
       );
     },
   });
@@ -120,13 +120,18 @@ function LessonCodeRunner({
         : 'idle';
 
   return (
-    <div id="lesson-code-runner" className="mt-8 grid scroll-mt-28 gap-4 xl:grid-cols-[1fr_320px]">
+    <div
+      id="lesson-code-runner"
+      className="mt-8 grid scroll-mt-28 gap-4 xl:grid-cols-[1fr_320px]"
+    >
       <section className="overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-2">
             <Code2 size={16} className="text-[#d9f99d]" />
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-white/35">ThreadLearn IDE</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/35">
+                ThreadLearn IDE
+              </p>
               <p className="text-sm font-semibold">{language}</p>
             </div>
           </div>
@@ -164,13 +169,15 @@ function LessonCodeRunner({
       <aside className="rounded-lg border border-black/10 bg-white p-5">
         <div className="flex items-center justify-between gap-3">
           <h3 className="font-semibold text-ink">Console output</h3>
-          <span className={`rounded-full px-2 py-1 text-xs ${
-            result?.status.id === 3
-              ? 'bg-emerald-100 text-emerald-800'
-              : runError || (result && result.status.id !== 3)
-                ? 'bg-[#fecaca] text-[#7f1d1d]'
-                : 'bg-black/[0.05] text-black/45'
-          }`}>
+          <span
+            className={`rounded-full px-2 py-1 text-xs ${
+              result?.status.id === 3
+                ? 'bg-emerald-100 text-emerald-800'
+                : runError || (result && result.status.id !== 3)
+                  ? 'bg-[#fecaca] text-[#7f1d1d]'
+                  : 'bg-black/[0.05] text-black/45'
+            }`}
+          >
             {status}
           </span>
         </div>
@@ -208,7 +215,7 @@ export const LessonPage: React.FC = () => {
     try {
       const saved = window.localStorage.getItem(reviewStorageKey);
       const parsed = saved
-        ? JSON.parse(saved) as Partial<Omit<LessonReviewProgress, 'key'>>
+        ? (JSON.parse(saved) as Partial<Omit<LessonReviewProgress, 'key'>>)
         : {};
       setReviewProgress({
         key: reviewStorageKey,
@@ -226,18 +233,22 @@ export const LessonPage: React.FC = () => {
 
   const setReviewStep = (
     step: 'explanationReviewed' | 'mediaReviewed',
-    value: boolean,
+    value: boolean
   ) => {
     setReviewProgress((current) => {
-      const base = current.key === reviewStorageKey
-        ? current
-        : { key: reviewStorageKey, explanationReviewed: false, mediaReviewed: false };
+      const base =
+        current.key === reviewStorageKey
+          ? current
+          : { key: reviewStorageKey, explanationReviewed: false, mediaReviewed: false };
       const next = { ...base, [step]: value };
       try {
-        window.localStorage.setItem(reviewStorageKey, JSON.stringify({
-          explanationReviewed: next.explanationReviewed,
-          mediaReviewed: next.mediaReviewed,
-        }));
+        window.localStorage.setItem(
+          reviewStorageKey,
+          JSON.stringify({
+            explanationReviewed: next.explanationReviewed,
+            mediaReviewed: next.mediaReviewed,
+          })
+        );
       } catch {
         // Preserve in-memory progress if storage is blocked by the browser.
       }
@@ -279,7 +290,10 @@ export const LessonPage: React.FC = () => {
     retry: false,
   });
   const enrollment = enrollments.find((item) => {
-    const courseId = typeof item.courseId === 'string' ? item.courseId : item.courseId?._id ?? item.courseId?.id;
+    const courseId =
+      typeof item.courseId === 'string'
+        ? item.courseId
+        : (item.courseId?._id ?? item.courseId?.id);
     return courseId === lessonCourseId;
   });
   const isLessonCompleted = Boolean(enrollment?.completedLessons?.includes(id!));
@@ -294,10 +308,7 @@ export const LessonPage: React.FC = () => {
   const { prevLesson, nextLesson } = useMemo(() => {
     const lessons = (courseDetail?.lessons ?? [])
       .slice()
-      .sort(
-        (a, b) =>
-          (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0),
-      );
+      .sort((a, b) => (a.orderIndex ?? a.order ?? 0) - (b.orderIndex ?? b.order ?? 0));
     const idx = lessons.findIndex((item) => item._id === id);
     if (idx < 0) return { prevLesson: undefined, nextLesson: undefined };
     return {
@@ -333,7 +344,9 @@ export const LessonPage: React.FC = () => {
         queryClient.setQueryData<Enrollment[]>(['my-enrollments'], (current = []) => {
           const exists = current.some((item) => item._id === data.enrollment?._id);
           return exists
-            ? current.map((item) => (item._id === data.enrollment?._id ? data.enrollment! : item))
+            ? current.map((item) =>
+                item._id === data.enrollment?._id ? data.enrollment! : item
+              )
             : [...current, data.enrollment!];
         });
       }
@@ -351,7 +364,7 @@ export const LessonPage: React.FC = () => {
         return;
       }
       toast.success(
-        data.xpRewarded ? `Lesson complete. +${data.xpRewarded} XP` : 'Lesson complete',
+        data.xpRewarded ? `Lesson complete. +${data.xpRewarded} XP` : 'Lesson complete'
       );
     },
     onError: () => toast.error('Failed to complete lesson'),
@@ -361,25 +374,27 @@ export const LessonPage: React.FC = () => {
   const order = lesson?.orderIndex ?? lesson?.order;
   const content = lesson?.contentMarkdown ?? lesson?.content ?? '';
   const runnableSnippet = lesson?.codeSnippets?.find((snippet) =>
-    runnableLanguages.has(snippet.language.toLowerCase()),
+    runnableLanguages.has(snippet.language.toLowerCase())
   );
   const hasMarkdownCode = /```[^\n]*\n[\s\S]*?```/.test(content);
   const hasCodeMaterial = Boolean(lesson?.codeSnippets?.length || hasMarkdownCode);
   const requiresMediaReview = Boolean(lesson?.videoUrl || hasCodeMaterial);
-  const currentReview = reviewProgress.key === reviewStorageKey
-    ? reviewProgress
-    : { key: reviewStorageKey, explanationReviewed: false, mediaReviewed: false };
+  const currentReview =
+    reviewProgress.key === reviewStorageKey
+      ? reviewProgress
+      : { key: reviewStorageKey, explanationReviewed: false, mediaReviewed: false };
   const explanationStepDone = currentReview.explanationReviewed || isLessonCompleted;
   const mediaStepDone = currentReview.mediaReviewed || isLessonCompleted;
-  const mediaReviewLabel = lesson?.videoUrl && hasCodeMaterial
-    ? 'Review the code and video'
-    : lesson?.videoUrl
-      ? 'Watch the lesson video'
-      : runnableSnippet
-        ? 'Run the code example'
-        : 'Review the code example';
-  const canCompleteLesson = explanationStepDone
-    && (!requiresMediaReview || mediaStepDone);
+  const mediaReviewLabel =
+    lesson?.videoUrl && hasCodeMaterial
+      ? 'Review the code and video'
+      : lesson?.videoUrl
+        ? 'Watch the lesson video'
+        : runnableSnippet
+          ? 'Run the code example'
+          : 'Review the code example';
+  const canCompleteLesson =
+    explanationStepDone && (!requiresMediaReview || mediaStepDone);
   const courseHref =
     typeof lesson?.courseId === 'string' ? `/courses/${lesson.courseId}` : '/courses';
 
@@ -402,11 +417,11 @@ export const LessonPage: React.FC = () => {
               ? 'Please enroll in this course before opening this lesson.'
               : 'Please try again in a moment'
           }
-          action={(
+          action={
             <Button variant="outline" onClick={() => router.back()}>
               Back
             </Button>
-          )}
+          }
         />
       ) : lesson ? (
         <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
@@ -418,7 +433,9 @@ export const LessonPage: React.FC = () => {
               <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="mb-3 flex flex-wrap gap-2">
-                    {order != null ? <DemoPill tone="default">Lesson #{order}</DemoPill> : null}
+                    {order != null ? (
+                      <DemoPill tone="default">Lesson #{order}</DemoPill>
+                    ) : null}
                     {duration > 0 ? (
                       <DemoPill tone="blue">
                         <span className="inline-flex items-center gap-1">
@@ -429,7 +446,9 @@ export const LessonPage: React.FC = () => {
                     ) : null}
                     {lesson.videoUrl ? <DemoPill tone="pink">Video</DemoPill> : null}
                   </div>
-                  <h1 className="text-3xl font-semibold leading-tight tracking-[-0.035em] text-ink sm:text-4xl">{lesson.title}</h1>
+                  <h1 className="text-3xl font-semibold leading-tight tracking-[-0.035em] text-ink sm:text-4xl">
+                    {lesson.title}
+                  </h1>
                   {lesson.attachmentUrl ? (
                     <a
                       href={lesson.attachmentUrl}
@@ -446,7 +465,9 @@ export const LessonPage: React.FC = () => {
                   onClick={() => toggleBookmark()}
                   disabled={bookmarking}
                   className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                    isBookmarked ? 'bg-[#d9f99d] text-ink' : 'bg-black text-white hover:bg-black/90'
+                    isBookmarked
+                      ? 'bg-[#d9f99d] text-ink'
+                      : 'bg-black text-white hover:bg-black/90'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -460,7 +481,11 @@ export const LessonPage: React.FC = () => {
             <div className="lesson-surface p-4 sm:p-6 lg:p-7">
               {lesson.videoUrl ? (
                 <div id="lesson-video" className="mb-6 scroll-mt-28">
-                  <VideoLessonPlayer videoUrl={lesson.videoUrl} title={lesson.title} />
+                  <VideoLessonPlayer
+                    videoUrl={lesson.videoUrl}
+                    title={lesson.title}
+                    lessonId={id!}
+                  />
                 </div>
               ) : null}
               {content.trim() ? (
@@ -492,7 +517,7 @@ export const LessonPage: React.FC = () => {
                 />
               ) : null}
 
-              {(prevLesson || nextLesson) ? (
+              {prevLesson || nextLesson ? (
                 <div className="mt-8 grid gap-3 border-t border-black/10 pt-6 sm:grid-cols-2">
                   {prevLesson ? (
                     <Link
@@ -517,7 +542,9 @@ export const LessonPage: React.FC = () => {
                       <span className="inline-flex items-center justify-end gap-1 text-xs uppercase tracking-[0.14em] text-white/50">
                         Bài tiếp <ArrowRight size={12} />
                       </span>
-                      <span className="mt-1 block text-sm font-medium">{nextLesson.title}</span>
+                      <span className="mt-1 block text-sm font-medium">
+                        {nextLesson.title}
+                      </span>
                     </Link>
                   ) : (
                     <div className="hidden sm:block" />
@@ -534,24 +561,32 @@ export const LessonPage: React.FC = () => {
                     type="button"
                     onClick={() => setActivePanel(panel)}
                     className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize ${
-                      activePanel === panel ? 'bg-black text-white' : 'bg-black/[0.04] text-black/55'
+                      activePanel === panel
+                        ? 'bg-black text-white'
+                        : 'bg-black/[0.04] text-black/55'
                     }`}
                   >
                     {panel}
                   </button>
                 ))}
               </div>
-              {activePanel === 'notes'
-                ? <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
-                : <CommentsSection lessonId={id!} />}
+              {activePanel === 'notes' ? (
+                <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
+              ) : (
+                <CommentsSection lessonId={id!} />
+              )}
             </div>
           </article>
 
           <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
             <div className="lesson-assist-card p-5">
               <Brain size={22} className="lesson-assist-icon" />
-              <h2 className="lesson-assist-title mt-4 text-xl font-semibold">Need help with this lesson?</h2>
-              <p className="lesson-assist-copy mt-3 text-sm">Open AI Advisor to analyse your own code or ask a focused question.</p>
+              <h2 className="lesson-assist-title mt-4 text-xl font-semibold">
+                Need help with this lesson?
+              </h2>
+              <p className="lesson-assist-copy mt-3 text-sm">
+                Open AI Advisor to analyse your own code or ask a focused question.
+              </p>
               <button
                 type="button"
                 onClick={() => router.push('/ai')}
@@ -563,7 +598,9 @@ export const LessonPage: React.FC = () => {
 
             <div className="lesson-assist-card p-5">
               <Zap size={22} className="lesson-assist-icon" />
-              <h2 className="lesson-assist-title mt-4 text-xl font-semibold">Quiz check-in</h2>
+              <h2 className="lesson-assist-title mt-4 text-xl font-semibold">
+                Quiz check-in
+              </h2>
               <p className="lesson-assist-copy mt-3 text-sm">
                 {lessonQuiz
                   ? 'Lock in this lesson with a short quiz. Timer and auto-submit stay on the quiz flow.'
@@ -595,7 +632,8 @@ export const LessonPage: React.FC = () => {
             <div className="lesson-checklist-card rounded-lg border p-5">
               <h2 className="font-semibold text-ink">Lesson checklist</h2>
               <p className="mt-1 text-xs leading-5 text-ink-faint">
-                Your review steps are saved on this device. Final completion is saved to your account.
+                Your review steps are saved on this device. Final completion is saved to
+                your account.
               </p>
               <div className="mt-4 space-y-2">
                 <button
@@ -603,15 +641,26 @@ export const LessonPage: React.FC = () => {
                   role="checkbox"
                   aria-checked={explanationStepDone}
                   disabled={isLessonCompleted}
-                  onClick={() => setReviewStep('explanationReviewed', !currentReview.explanationReviewed)}
+                  onClick={() =>
+                    setReviewStep(
+                      'explanationReviewed',
+                      !currentReview.explanationReviewed
+                    )
+                  }
                   className="lesson-checklist-step"
                 >
-                  <span className={`lesson-checklist-status ${explanationStepDone ? 'lesson-checklist-status-done' : ''}`}>
+                  <span
+                    className={`lesson-checklist-status ${explanationStepDone ? 'lesson-checklist-status-done' : ''}`}
+                  >
                     {explanationStepDone ? <CheckCircle2 size={15} /> : null}
                   </span>
                   <span>
-                    <span className="block font-medium text-ink">Read the explanation</span>
-                    <span className="mt-0.5 block text-xs text-ink-faint">Mark this after reading the lesson sections.</span>
+                    <span className="block font-medium text-ink">
+                      Read the explanation
+                    </span>
+                    <span className="mt-0.5 block text-xs text-ink-faint">
+                      Mark this after reading the lesson sections.
+                    </span>
                   </span>
                 </button>
 
@@ -621,14 +670,20 @@ export const LessonPage: React.FC = () => {
                     role="checkbox"
                     aria-checked={mediaStepDone}
                     disabled={isLessonCompleted}
-                    onClick={() => setReviewStep('mediaReviewed', !currentReview.mediaReviewed)}
+                    onClick={() =>
+                      setReviewStep('mediaReviewed', !currentReview.mediaReviewed)
+                    }
                     className="lesson-checklist-step"
                   >
-                    <span className={`lesson-checklist-status ${mediaStepDone ? 'lesson-checklist-status-done' : ''}`}>
+                    <span
+                      className={`lesson-checklist-status ${mediaStepDone ? 'lesson-checklist-status-done' : ''}`}
+                    >
                       {mediaStepDone ? <CheckCircle2 size={15} /> : null}
                     </span>
                     <span>
-                      <span className="block font-medium text-ink">{mediaReviewLabel}</span>
+                      <span className="block font-medium text-ink">
+                        {mediaReviewLabel}
+                      </span>
                       <span className="mt-0.5 block text-xs text-ink-faint">
                         {runnableSnippet
                           ? 'Running the playground checks this automatically.'
@@ -639,12 +694,18 @@ export const LessonPage: React.FC = () => {
                 ) : null}
 
                 <div className="lesson-checklist-step lesson-checklist-step-static">
-                  <span className={`lesson-checklist-status ${isLessonCompleted ? 'lesson-checklist-status-done' : ''}`}>
+                  <span
+                    className={`lesson-checklist-status ${isLessonCompleted ? 'lesson-checklist-status-done' : ''}`}
+                  >
                     {isLessonCompleted ? <CheckCircle2 size={15} /> : null}
                   </span>
                   <span>
-                    <span className="block font-medium text-ink">Mark lesson complete</span>
-                    <span className="mt-0.5 block text-xs text-ink-faint">Saved by ThreadLearn and awards progress/XP.</span>
+                    <span className="block font-medium text-ink">
+                      Mark lesson complete
+                    </span>
+                    <span className="mt-0.5 block text-xs text-ink-faint">
+                      Saved by ThreadLearn and awards progress/XP.
+                    </span>
                   </span>
                 </div>
               </div>
@@ -654,13 +715,19 @@ export const LessonPage: React.FC = () => {
                 onClick={() => completeLesson()}
                 loading={completing}
                 disabled={isLessonCompleted || !canCompleteLesson}
-                title={!canCompleteLesson && !isLessonCompleted ? 'Complete the review steps above first' : undefined}
+                title={
+                  !canCompleteLesson && !isLessonCompleted
+                    ? 'Complete the review steps above first'
+                    : undefined
+                }
               >
                 <CheckCircle2 size={14} />
                 {isLessonCompleted ? 'Completed' : 'Mark complete'}
               </Button>
               {!isLessonCompleted && !canCompleteLesson ? (
-                <p className="mt-2 text-center text-xs text-ink-faint">Complete the review steps above to continue.</p>
+                <p className="mt-2 text-center text-xs text-ink-faint">
+                  Complete the review steps above to continue.
+                </p>
               ) : null}
             </div>
 
@@ -674,11 +741,11 @@ export const LessonPage: React.FC = () => {
           icon={<AlertCircle size={36} />}
           title="Lesson not found"
           description="This lesson may have been removed"
-          action={(
+          action={
             <Button variant="outline" onClick={() => router.push('/courses')}>
               Browse courses
             </Button>
-          )}
+          }
         />
       )}
     </DemoPageRoot>
@@ -692,7 +759,9 @@ export const NotFoundPage: React.FC = () => {
       <div className="text-center">
         <p className="text-[96px] font-light leading-none text-black/5">404</p>
         <h1 className="-mt-4 text-2xl font-semibold text-ink">Page not found</h1>
-        <p className="mt-2 text-sm text-black/50">The page you are looking for does not exist.</p>
+        <p className="mt-2 text-sm text-black/50">
+          The page you are looking for does not exist.
+        </p>
         <button
           type="button"
           onClick={() => router.push('/dashboard')}
