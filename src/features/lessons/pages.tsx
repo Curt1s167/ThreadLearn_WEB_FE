@@ -30,6 +30,7 @@ import { Button, EmptyState } from '../../components/shared';
 import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
 import { useAuthStore } from '../../store';
 import type { CodeExecutionResult, Enrollment } from '../../types';
+import { VideoLessonPlayer } from './VideoLessonPlayer';
 
 const LessonReader = dynamic(
   () => import('./LessonReader').then((module) => module.LessonReader),
@@ -458,14 +459,8 @@ export const LessonPage: React.FC = () => {
 
             <div className="lesson-surface p-4 sm:p-6 lg:p-7">
               {lesson.videoUrl ? (
-                <div id="lesson-video" className="mb-6 aspect-video scroll-mt-28 overflow-hidden rounded-lg border border-black/10 bg-black">
-                  <iframe
-                    src={lesson.videoUrl}
-                    className="h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title={lesson.title}
-                  />
+                <div id="lesson-video" className="mb-6 scroll-mt-28">
+                  <VideoLessonPlayer videoUrl={lesson.videoUrl} title={lesson.title} />
                 </div>
               ) : null}
               {content.trim() ? (
