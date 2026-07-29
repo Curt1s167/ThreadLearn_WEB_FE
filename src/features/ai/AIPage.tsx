@@ -119,7 +119,7 @@ export const AIPage: React.FC = () => {
 
   return (
     <DemoPageRoot>
-      <section className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-stretch">
+      <section className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,6fr)_minmax(0,4fr)] lg:items-stretch">
         <div className="flex h-full min-w-0 flex-col rounded-lg bg-white p-6 sm:p-8">
           <DemoPill tone="pink">AI Coach</DemoPill>
           <DemoDisplayTitle>Analyze concurrency bugs before they ship.</DemoDisplayTitle>
@@ -228,7 +228,7 @@ export const AIPage: React.FC = () => {
           />
         </div>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <div className="accent-surface rounded-lg p-6">
             <Brain size={24} />
             <h2 className="accent-surface-title mt-5 text-2xl font-semibold">
@@ -260,7 +260,7 @@ export const AIPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="rounded-lg bg-white p-5">
+          <div className="min-w-0 rounded-lg bg-white p-5">
             <div className="flex items-center gap-2">
               <Sparkles size={18} />
               <h2 className="font-semibold">
