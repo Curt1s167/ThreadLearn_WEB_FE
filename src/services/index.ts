@@ -44,6 +44,8 @@ import type {
   AdminDashboardStatisticsParams,
   Enrollment,
   LearningPlan,
+  CourseLearningGoal,
+  CourseGoalPriority,
   UpdateLearningPlanPayload,
   UserStats,
   User,
@@ -213,6 +215,25 @@ export const learningPlanService = {
   },
   update: async (payload: UpdateLearningPlanPayload) => {
     const { data } = await apiClient.put<ApiResponse<LearningPlan>>('/learning-plan/me', payload);
+    return data.data;
+  },
+  getCourseGoal: async (courseId: string) => {
+    const { data } = await apiClient.get<ApiResponse<CourseLearningGoal | null>>(
+      '/learning-plan/goals/' + courseId,
+    );
+    return data.data;
+  },
+  updateCourseGoal: async (courseId: string, payload: { targetDate: string; priority: CourseGoalPriority }) => {
+    const { data } = await apiClient.put<ApiResponse<CourseLearningGoal>>(
+      '/learning-plan/goals/' + courseId,
+      payload,
+    );
+    return data.data;
+  },
+  removeCourseGoal: async (courseId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(
+      '/learning-plan/goals/' + courseId,
+    );
     return data.data;
   },
 };

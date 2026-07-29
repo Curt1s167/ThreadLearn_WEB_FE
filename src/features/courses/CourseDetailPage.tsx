@@ -14,13 +14,14 @@ import {
   Lock,
   Users,
   Award,
+  CalendarDays,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { coursesService, enrollmentsService } from '../../services';
+import { coursesService, enrollmentsService, learningPlanService } from '../../services';
 import { extractApiError, extractApiErrorCode } from '../../services/apiClient';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { useAuthStore } from '../../store';
-import type { CourseLevel, CourseSection, Enrollment, Lesson, User } from '../../types';
+import type { CourseGoalPriority, CourseLevel, CourseSection, Enrollment, Lesson, User } from '../../types';
 import {
   COURSE_ACCENT_COLORS,
   DemoPageRoot,
@@ -114,6 +115,26 @@ export const CourseDetailPage: React.FC = () => {
   );
 
   const isEnrolled = !!enrollment;
+  const [targetDate, setTargetDate] = React.useState('');
+  const [priority, setPriority] = React.useState<CourseGoalPriority>('NORMAL');
+  const { data: courseGoal } = useQuery({
+    queryKey: ['course-goal', courseObjectId],
+    queryFn: () => learningPlanService.getCourseGoal(courseObjectId!),
+    enabled: isEnrolled && Boolean(courseObjectId),
+  });
+  useEffect(() => {
+    if (!courseGoal) return;
+    setTargetDate(courseGoal.targetDate.slice(0, 10));
+    setPriority(courseGoal.priority);
+  }, [courseGoal]);
+  const { mutate: saveCourseGoal, isPending: savingCourseGoal } = useMutation({
+    mutationFn: () => learningPlanService.updateCourseGoal(courseObjectId!, { targetDate, priority }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['course-goal', courseObjectId] });
+      toast.success('Completion target saved.');
+    },
+    onError: () => toast.error('Could not save completion target.'),
+  });
   const isPremiumCourse = Boolean(course?.isPremium);
   const canAccessPremiumCourses = hasPremiumCourseAccess(user);
   const requiresPremium = isPremiumCourse && !canAccessPremiumCourses;
@@ -432,6 +453,32 @@ export const CourseDetailPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {isEnrolled && !courseCompleted ? (
+        <section className="mt-6 rounded-lg border border-black/10 bg-white p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2"><CalendarDays size={18} /><h2 className="font-semibold">Completion target</h2></div>
+              <p className="mt-2 text-sm text-black/60">
+                {courseGoal
+                  ? courseGoal.status === 'ON_TRACK'
+                    ? 'You are on track for this deadline.'
+                    : courseGoal.status === 'AT_RISK'
+                      ? 'Your current pace may miss this deadline.'
+                      : 'This target needs attention.'
+                  : 'Set a deadline so ThreadLearn can evaluate this course separately.'}
+              </p>
+            </div>
+            {courseGoal ? <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white">{courseGoal.status.replace('_', ' ')}</span> : null}
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_150px_auto]">
+            <input type="date" aria-label="Course completion target date" min={new Date().toISOString().slice(0, 10)} value={targetDate} onChange={(event) => setTargetDate(event.target.value)} className="min-h-11 rounded-lg border border-black/15 px-3 text-sm" />
+            <select aria-label="Course goal priority" value={priority} onChange={(event) => setPriority(event.target.value as CourseGoalPriority)} className="min-h-11 rounded-lg border border-black/15 px-3 text-sm"><option value="HIGH">High priority</option><option value="NORMAL">Normal priority</option><option value="LOW">Low priority</option></select>
+            <Button disabled={!targetDate} loading={savingCourseGoal} onClick={() => saveCourseGoal()} className="min-h-11">Save target</Button>
+          </div>
+          {courseGoal ? <p className="mt-3 text-xs text-black/45">{courseGoal.remainingMinutes} minutes remain · {courseGoal.sessionsRemaining} planned sessions · about {courseGoal.suggestedSessionMinutes} minutes per session.</p> : null}
+        </section>
+      ) : null}
 
       {blockedByPrerequisites ? (
         <section className="rounded-lg border border-[#d9f99d]/40 bg-[#d9f99d]/10 p-5">

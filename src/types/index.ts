@@ -319,6 +319,21 @@ export interface UpdateLearningPlanPayload {
   timezone?: string;
 }
 
+export type CourseGoalPriority = 'HIGH' | 'NORMAL' | 'LOW';
+export type CourseGoalStatus = 'ON_TRACK' | 'AT_RISK' | 'BEHIND' | 'COMPLETED';
+
+export interface CourseLearningGoal {
+  courseId: string;
+  enrollmentId: string;
+  targetDate: string;
+  priority: CourseGoalPriority;
+  status: CourseGoalStatus;
+  progressPercent: number;
+  remainingMinutes: number;
+  sessionsRemaining: number;
+  suggestedSessionMinutes: number;
+}
+
 // ─── Quiz ─────────────────────────────────────────────────────────────────────
 
 export interface QuizQuestion {

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CalendarDays, Clock3, Target } from 'lucide-react';
+import { Bell, CalendarDays, Clock3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { learningPlanService } from '../../services';
@@ -25,8 +25,6 @@ const DAYS = [
   { value: 0, label: 'Sun' },
 ];
 
-const isoDate = (value: string | null) => (value ? value.slice(0, 10) : '');
-
 export const LearningPlanPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { data: plan, isLoading, isError } = useQuery({
@@ -35,7 +33,6 @@ export const LearningPlanPage: React.FC = () => {
   });
   const [weeklyHours, setWeeklyHours] = useState(3);
   const [preferredDays, setPreferredDays] = useState([1, 3, 5]);
-  const [targetDate, setTargetDate] = useState('');
   const [reminderEnabled, setReminderEnabled] = useState(true);
   const [reminderTime, setReminderTime] = useState('19:00');
 
@@ -43,7 +40,6 @@ export const LearningPlanPage: React.FC = () => {
     if (!plan) return;
     setWeeklyHours(plan.weeklyHours);
     setPreferredDays(plan.preferredDays);
-    setTargetDate(isoDate(plan.targetDate));
     setReminderEnabled(plan.reminderEnabled);
     setReminderTime(plan.reminderTime);
   }, [plan]);
@@ -77,7 +73,6 @@ export const LearningPlanPage: React.FC = () => {
     save({
       weeklyHours,
       preferredDays,
-      targetDate: targetDate || null,
       reminderEnabled,
       reminderTime,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -90,8 +85,8 @@ export const LearningPlanPage: React.FC = () => {
         <DemoPill tone="blue">Learning plan</DemoPill>
         <DemoDisplayTitle>Set a pace you can keep.</DemoDisplayTitle>
         <p className="mt-3 max-w-2xl text-black/60">
-          Choose your available time and target date. The next phase will turn this into timely
-          progress nudges.
+          Choose your available time and reminders. Set each completion target inside its enrolled
+          course so progress is evaluated against the right course.
         </p>
       </DemoHeroWhite>
 
@@ -154,21 +149,7 @@ export const LearningPlanPage: React.FC = () => {
             </div>
           </section>
 
-          <section className="grid gap-5 sm:grid-cols-2">
-            <label className="block">
-              <span className="flex items-center gap-2 font-semibold">
-                <Target size={18} />
-                Target date <span className="font-normal text-black/40">(optional)</span>
-              </span>
-              <input
-                aria-label="Target date"
-                type="date"
-                value={targetDate}
-                min={new Date().toISOString().slice(0, 10)}
-                onChange={(event) => setTargetDate(event.target.value)}
-                className="mt-3 min-h-11 w-full rounded-lg border border-black/15 bg-white px-3 text-sm"
-              />
-            </label>
+          <section>
             <div>
               <span className="flex items-center gap-2 font-semibold">
                 <Bell size={18} />
