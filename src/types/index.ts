@@ -299,6 +299,26 @@ export interface EnrollmentCourseView {
   totalLessons?: number;
 }
 
+export interface LearningPlan {
+  weeklyHours: number;
+  preferredDays: number[];
+  targetDate: string | null;
+  reminderEnabled: boolean;
+  reminderTime: string;
+  timezone: string;
+  isConfigured: boolean;
+  suggestedSessionMinutes: number;
+}
+
+export interface UpdateLearningPlanPayload {
+  weeklyHours: number;
+  preferredDays: number[];
+  targetDate?: string | null;
+  reminderEnabled: boolean;
+  reminderTime?: string;
+  timezone?: string;
+}
+
 // ─── Quiz ─────────────────────────────────────────────────────────────────────
 
 export interface QuizQuestion {

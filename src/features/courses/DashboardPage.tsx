@@ -15,6 +15,7 @@ import {
   Trophy,
   Zap,
   Award,
+  CalendarDays,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../store';
@@ -23,6 +24,7 @@ import {
   certificatesService,
   gamificationService,
   leaderboardService,
+  learningPlanService,
   studentsService,
 } from '../../services';
 import type { Course, Enrollment } from '../../types';
@@ -145,6 +147,11 @@ export const DashboardPage: React.FC = () => {
     queryFn: certificatesService.listMine,
     enabled: Boolean(user) && !isAdmin,
     retry: false,
+  });
+  const { data: learningPlan } = useQuery({
+    queryKey: ['learning-plan'],
+    queryFn: learningPlanService.getMine,
+    enabled: Boolean(user) && !isAdmin,
   });
 
   const streak = stats?.currentStreak ?? stats?.streak ?? 0;
@@ -329,6 +336,33 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         <aside className="space-y-4">
+          <div className="rounded-lg border border-black/10 bg-white p-5">
+            <div className="flex items-center gap-2">
+              <CalendarDays size={19} />
+              <h3 className="font-semibold text-black">Study plan</h3>
+            </div>
+            {learningPlan?.isConfigured ? (
+              <>
+                <p className="mt-3 text-sm text-black/60">
+                  {learningPlan.weeklyHours} hours across {learningPlan.preferredDays.length} day
+                  {learningPlan.preferredDays.length === 1 ? '' : 's'} each week.
+                </p>
+                <p className="mt-1 text-xs text-black/45">
+                  Aim for about {learningPlan.suggestedSessionMinutes} minutes per session.
+                </p>
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-black/60">
+                Set a realistic weekly pace and target date for your learning.
+              </p>
+            )}
+            <Link
+              href="/learning-plan"
+              className="mt-4 inline-flex rounded-full border border-black/15 px-4 py-2 text-sm font-medium text-black"
+            >
+              {learningPlan?.isConfigured ? 'Adjust plan' : 'Set study plan'}
+            </Link>
+          </div>
           <div className="border border-[#102b26]/15 bg-[#d9f99d] p-5">
             <div className="flex items-center gap-2">
               <Award size={19} />
