@@ -43,6 +43,8 @@ import type {
   AdminDashboardStatistics,
   AdminDashboardStatisticsParams,
   Enrollment,
+  LearningPlan,
+  UpdateLearningPlanPayload,
   UserStats,
   User,
   AdminStudentFilters,
@@ -200,6 +202,17 @@ export const studentsService = {
     const { data } = await apiClient.get<ApiResponse<Enrollment | null>>(
       '/students/me/resume'
     );
+    return data.data;
+  },
+};
+
+export const learningPlanService = {
+  getMine: async () => {
+    const { data } = await apiClient.get<ApiResponse<LearningPlan>>('/learning-plan/me');
+    return data.data;
+  },
+  update: async (payload: UpdateLearningPlanPayload) => {
+    const { data } = await apiClient.put<ApiResponse<LearningPlan>>('/learning-plan/me', payload);
     return data.data;
   },
 };

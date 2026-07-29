@@ -23,6 +23,7 @@ import {
   History,
   Code2,
   Award,
+  CalendarDays,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { getDisplayName } from '../utils';
@@ -56,6 +57,7 @@ interface NavGroup {
 const studentNavItems: NavItem[] = [
   { to: '/dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
   { to: '/courses', icon: <BookOpen size={16} />, label: 'Courses' },
+  { to: '/learning-plan', icon: <CalendarDays size={16} />, label: 'Study plan' },
   { to: '/ide', icon: <Code2 size={16} />, label: 'Code Lab' },
   {
     to: '/quiz/history',
