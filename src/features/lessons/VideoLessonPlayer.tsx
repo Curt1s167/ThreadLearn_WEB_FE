@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { videoBookmarksService } from '../../services/videoBookmarks';
 import { useAuthStore } from '../../store';
+import type { LessonSubtitleTrack } from '../../types';
 
 type VideoSource =
   | { kind: 'direct'; src: string }
@@ -292,10 +293,12 @@ export function VideoLessonPlayer({
   videoUrl,
   title,
   lessonId,
+  subtitleTracks = [],
 }: {
   videoUrl: string;
   title: string;
   lessonId: string;
+  subtitleTracks?: LessonSubtitleTrack[];
 }) {
   const source = resolveVideoSource(videoUrl);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -305,6 +308,7 @@ export function VideoLessonPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [activeSubtitle, setActiveSubtitle] = useState('off');
 
   const togglePlayback = async () => {
     const video = videoRef.current;
@@ -340,6 +344,15 @@ export function VideoLessonPlayer({
     if (!playerRef.current) return;
     if (document.fullscreenElement) await document.exitFullscreen();
     else await playerRef.current.requestFullscreen();
+  };
+
+  const selectSubtitle = (language: string) => {
+    const video = videoRef.current;
+    if (!video) return;
+    Array.from(video.textTracks).forEach((track) => {
+      track.mode = track.language === language ? 'showing' : 'disabled';
+    });
+    setActiveSubtitle(language);
   };
 
   const handleKeyboardShortcut = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -398,6 +411,15 @@ export function VideoLessonPlayer({
             onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
           >
             <source src={source.src} />
+            {subtitleTracks.map((track) => (
+              <track
+                key={`${track.language}-${track.url}`}
+                kind="subtitles"
+                srcLang={track.language}
+                label={track.label ?? track.language.toUpperCase()}
+                src={track.url}
+              />
+            ))}
             Your browser does not support HTML video.
           </video>
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-3 pt-10 text-white sm:px-4">
@@ -469,6 +491,21 @@ export function VideoLessonPlayer({
                     </option>
                   ))}
                 </select>
+                {subtitleTracks.length > 0 ? (
+                  <select
+                    aria-label="Subtitle language"
+                    value={activeSubtitle}
+                    onChange={(event) => selectSubtitle(event.target.value)}
+                    className="rounded-md border border-white/25 bg-black/40 px-2 py-1 text-xs text-white"
+                  >
+                    <option value="off">CC off</option>
+                    {subtitleTracks.map((track) => (
+                      <option key={`${track.language}-${track.url}`} value={track.language}>
+                        CC {track.label ?? track.language.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => void toggleFullscreen()}

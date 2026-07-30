@@ -31,6 +31,7 @@ import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
 import { useAuthStore } from '../../store';
 import type { CodeExecutionResult, Enrollment } from '../../types';
 import { VideoLessonPlayer } from './VideoLessonPlayer';
+import { TranscriptPanel } from './TranscriptPanel';
 
 const LessonReader = dynamic(
   () => import('./LessonReader').then((module) => module.LessonReader),
@@ -485,7 +486,14 @@ export const LessonPage: React.FC = () => {
                     videoUrl={lesson.videoUrl}
                     title={lesson.title}
                     lessonId={id!}
+                    subtitleTracks={lesson.subtitleTracks}
                   />
+                  <div className="mt-3">
+                    <TranscriptPanel
+                      transcript={lesson.transcript}
+                      language={lesson.transcriptLanguage}
+                    />
+                  </div>
                 </div>
               ) : null}
               {content.trim() ? (
