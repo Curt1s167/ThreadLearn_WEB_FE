@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BookmarkPlus,
@@ -14,6 +14,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { videoBookmarksService } from '../../services/videoBookmarks';
+import {
+  type VideoWatchProgress,
+  videoWatchProgressService,
+} from '../../services/videoWatchProgress';
 import { useAuthStore } from '../../store';
 import type { LessonSubtitleTrack } from '../../types';
 import { TranscriptPanel } from './TranscriptPanel';
@@ -28,6 +32,7 @@ const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2];
 
 interface YouTubePlayerInstance {
   getCurrentTime: () => number;
+  getDuration: () => number;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   destroy: () => void;
 }
@@ -79,6 +84,81 @@ const formatTime = (seconds: number) => {
     .padStart(2, '0');
   return `${minutes}:${remainder}`;
 };
+
+const validDuration = (seconds: number) =>
+  Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
+
+function useVideoWatchProgress(lessonId: string, enabled: boolean) {
+  const user = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
+  const progressQuery = useQuery({
+    queryKey: ['video-watch-progress', lessonId],
+    queryFn: () => videoWatchProgressService.get(lessonId),
+    enabled: Boolean(user && enabled),
+  });
+  const saveMutation = useMutation({
+    mutationFn: videoWatchProgressService.save,
+    onSuccess: (progress) =>
+      queryClient.setQueryData(['video-watch-progress', lessonId], progress),
+  });
+  const resetMutation = useMutation({
+    mutationFn: () => videoWatchProgressService.reset(lessonId),
+    onSuccess: () => queryClient.setQueryData(['video-watch-progress', lessonId], null),
+  });
+
+  return {
+    progress: progressQuery.data,
+    isLoading: progressQuery.isLoading,
+    save: useCallback(
+      (currentTimeSeconds: number, durationSeconds?: number) => {
+        if (!user) return;
+        saveMutation.mutate({ lessonId, currentTimeSeconds, durationSeconds });
+      },
+      [lessonId, saveMutation, user]
+    ),
+    reset: resetMutation.mutate,
+    isResetting: resetMutation.isPending,
+  };
+}
+
+function ResumeVideoPrompt({
+  progress,
+  onResume,
+  onRestart,
+  isResetting,
+}: {
+  progress?: VideoWatchProgress | null;
+  onResume: () => void;
+  onRestart: () => void;
+  isResetting?: boolean;
+}) {
+  if (!progress || progress.currentTimeSeconds < 5) return null;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#a3e635]/60 bg-[#ecfccb] px-4 py-3 text-sm text-ink">
+      <span>
+        Continue watching from <strong>{formatTime(progress.currentTimeSeconds)}</strong>
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onRestart}
+          disabled={isResetting}
+          className="rounded-full border border-black/15 px-3 py-1.5 text-xs font-medium hover:bg-white/70 disabled:opacity-50"
+        >
+          Start over
+        </button>
+        <button
+          type="button"
+          onClick={onResume}
+          className="rounded-full bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-black/85"
+        >
+          Resume
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const getYouTubeId = (url: URL) => {
   const hostname = url.hostname.replace(/^www\./, '').toLowerCase();
@@ -225,17 +305,42 @@ function YouTubeLessonPlayer({
   lessonId,
   transcript,
   transcriptLanguage,
+  progress,
+  onSaveProgress,
+  onResetProgress,
+  isResettingProgress,
 }: {
   src: string;
   title: string;
   lessonId: string;
   transcript?: string;
   transcriptLanguage?: string;
+  progress?: VideoWatchProgress | null;
+  onSaveProgress: (currentTimeSeconds: number, durationSeconds?: number) => void;
+  onResetProgress: () => void;
+  isResettingProgress?: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YouTubePlayerInstance | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [isReady, setIsReady] = useState(false);
+  const [isResumePromptDismissed, setIsResumePromptDismissed] = useState(false);
+  const lastSavedTimeRef = useRef(0);
+
+  const resume = () => {
+    if (!progress || !playerRef.current) return;
+    playerRef.current.seekTo(progress.currentTimeSeconds, true);
+    setCurrentTime(progress.currentTimeSeconds);
+    setIsResumePromptDismissed(true);
+  };
+
+  const restart = () => {
+    playerRef.current?.seekTo(0, true);
+    setCurrentTime(0);
+    lastSavedTimeRef.current = 0;
+    setIsResumePromptDismissed(true);
+    onResetProgress();
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -252,7 +357,12 @@ function YouTubeLessonPlayer({
               playerRef.current = event.target;
               setIsReady(true);
               timer = window.setInterval(() => {
-                setCurrentTime(event.target.getCurrentTime());
+                const nextTime = event.target.getCurrentTime();
+                setCurrentTime(nextTime);
+                if (nextTime - lastSavedTimeRef.current >= 15) {
+                  lastSavedTimeRef.current = nextTime;
+                  onSaveProgress(nextTime, validDuration(event.target.getDuration()));
+                }
               }, 500);
             },
           },
@@ -289,6 +399,14 @@ function YouTubeLessonPlayer({
         currentTime={currentTime}
         onSeek={(timestampSeconds) => playerRef.current?.seekTo(timestampSeconds, true)}
       />
+      {!isResumePromptDismissed ? (
+        <ResumeVideoPrompt
+          progress={progress}
+          onResume={resume}
+          onRestart={restart}
+          isResetting={isResettingProgress}
+        />
+      ) : null}
       <TranscriptPanel
         transcript={transcript}
         language={transcriptLanguage}
@@ -315,14 +433,39 @@ export function VideoLessonPlayer({
   transcriptLanguage?: string;
 }) {
   const source = resolveVideoSource(videoUrl);
+  const watchProgress = useVideoWatchProgress(lessonId, source.kind !== 'embed');
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
+  const lastSavedTimeRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [activeSubtitle, setActiveSubtitle] = useState('off');
+  const [resumeAt, setResumeAt] = useState<number | null>(null);
+  const [isResumePromptDismissed, setIsResumePromptDismissed] = useState(false);
+
+  const resumeDirect = () => {
+    const timestamp = watchProgress.progress?.currentTimeSeconds;
+    if (timestamp == null) return;
+    if (videoRef.current) {
+      videoRef.current.currentTime = timestamp;
+      setCurrentTime(timestamp);
+    } else {
+      setResumeAt(timestamp);
+    }
+    setIsResumePromptDismissed(true);
+  };
+
+  const restartDirect = () => {
+    if (videoRef.current) videoRef.current.currentTime = 0;
+    setCurrentTime(0);
+    setResumeAt(null);
+    lastSavedTimeRef.current = 0;
+    setIsResumePromptDismissed(true);
+    watchProgress.reset();
+  };
 
   const togglePlayback = async () => {
     const video = videoRef.current;
@@ -419,10 +562,35 @@ export function VideoLessonPlayer({
             aria-label={`Video lesson: ${title}`}
             ref={videoRef}
             onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
-            onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
-            onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+            onPause={(event) => {
+              setIsPlaying(false);
+              const nextTime = event.currentTarget.currentTime;
+              if (!event.currentTarget.ended && nextTime > 0) {
+                lastSavedTimeRef.current = nextTime;
+                watchProgress.save(nextTime, validDuration(event.currentTarget.duration));
+              }
+            }}
+            onEnded={() => {
+              setIsPlaying(false);
+              lastSavedTimeRef.current = 0;
+              watchProgress.reset();
+            }}
+            onLoadedMetadata={(event) => {
+              setDuration(event.currentTarget.duration);
+              if (resumeAt != null) {
+                event.currentTarget.currentTime = resumeAt;
+                setCurrentTime(resumeAt);
+                setResumeAt(null);
+              }
+            }}
+            onTimeUpdate={(event) => {
+              const nextTime = event.currentTarget.currentTime;
+              setCurrentTime(nextTime);
+              if (nextTime - lastSavedTimeRef.current >= 15) {
+                lastSavedTimeRef.current = nextTime;
+                watchProgress.save(nextTime, validDuration(event.currentTarget.duration));
+              }
+            }}
           >
             <source src={source.src} />
             {subtitleTracks.map((track) => (
@@ -542,6 +710,14 @@ export function VideoLessonPlayer({
             if (videoRef.current) videoRef.current.currentTime = timestampSeconds;
           }}
         />
+        {!isResumePromptDismissed ? (
+          <ResumeVideoPrompt
+            progress={watchProgress.progress}
+            onResume={resumeDirect}
+            onRestart={restartDirect}
+            isResetting={watchProgress.isResetting}
+          />
+        ) : null}
         <TranscriptPanel
           transcript={transcript}
           language={transcriptLanguage}
@@ -561,6 +737,10 @@ export function VideoLessonPlayer({
         lessonId={lessonId}
         transcript={transcript}
         transcriptLanguage={transcriptLanguage}
+        progress={watchProgress.progress}
+        onSaveProgress={watchProgress.save}
+        onResetProgress={watchProgress.reset}
+        isResettingProgress={watchProgress.isResetting}
       />
     );
   }
