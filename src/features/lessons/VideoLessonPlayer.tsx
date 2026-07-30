@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { videoBookmarksService } from '../../services/videoBookmarks';
 import { useAuthStore } from '../../store';
 import type { LessonSubtitleTrack } from '../../types';
+import { TranscriptPanel } from './TranscriptPanel';
 
 type VideoSource =
   | { kind: 'direct'; src: string }
@@ -222,10 +223,14 @@ function YouTubeLessonPlayer({
   src,
   title,
   lessonId,
+  transcript,
+  transcriptLanguage,
 }: {
   src: string;
   title: string;
   lessonId: string;
+  transcript?: string;
+  transcriptLanguage?: string;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YouTubePlayerInstance | null>(null);
@@ -284,6 +289,11 @@ function YouTubeLessonPlayer({
         currentTime={currentTime}
         onSeek={(timestampSeconds) => playerRef.current?.seekTo(timestampSeconds, true)}
       />
+      <TranscriptPanel
+        transcript={transcript}
+        language={transcriptLanguage}
+        onSeek={(timestampSeconds) => playerRef.current?.seekTo(timestampSeconds, true)}
+      />
       {!isReady ? <p className="text-xs text-black/50">Connecting to YouTube player…</p> : null}
     </div>
   );
@@ -294,11 +304,15 @@ export function VideoLessonPlayer({
   title,
   lessonId,
   subtitleTracks = [],
+  transcript,
+  transcriptLanguage,
 }: {
   videoUrl: string;
   title: string;
   lessonId: string;
   subtitleTracks?: LessonSubtitleTrack[];
+  transcript?: string;
+  transcriptLanguage?: string;
 }) {
   const source = resolveVideoSource(videoUrl);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -528,24 +542,42 @@ export function VideoLessonPlayer({
             if (videoRef.current) videoRef.current.currentTime = timestampSeconds;
           }}
         />
+        <TranscriptPanel
+          transcript={transcript}
+          language={transcriptLanguage}
+          onSeek={(timestampSeconds) => {
+            if (videoRef.current) videoRef.current.currentTime = timestampSeconds;
+          }}
+        />
       </div>
     );
   }
 
   if (source.kind === 'youtube') {
-    return <YouTubeLessonPlayer src={source.src} title={title} lessonId={lessonId} />;
+    return (
+      <YouTubeLessonPlayer
+        src={source.src}
+        title={title}
+        lessonId={lessonId}
+        transcript={transcript}
+        transcriptLanguage={transcriptLanguage}
+      />
+    );
   }
 
   return (
-    <div className="aspect-video overflow-hidden rounded-lg border border-black/10 bg-black">
-      <iframe
-        src={source.src}
-        className="h-full w-full"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        loading="lazy"
-        title={title}
-      />
+    <div className="space-y-3">
+      <div className="aspect-video overflow-hidden rounded-lg border border-black/10 bg-black">
+        <iframe
+          src={source.src}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          loading="lazy"
+          title={title}
+        />
+      </div>
+      <TranscriptPanel transcript={transcript} language={transcriptLanguage} />
     </div>
   );
 }

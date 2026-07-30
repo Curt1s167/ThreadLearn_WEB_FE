@@ -6,6 +6,7 @@ import { FileText, Search, X } from 'lucide-react';
 interface TranscriptPanelProps {
   transcript?: string;
   language?: string;
+  onSeek?: (seconds: number) => void;
 }
 
 interface TranscriptEntry {
@@ -52,7 +53,10 @@ const highlightMatch = (text: string, query: string) => {
   );
 };
 
-export function TranscriptPanel({ transcript, language }: TranscriptPanelProps) {
+const timestampToSeconds = (timestamp: string) =>
+  timestamp.split(':').reduce((total, value) => total * 60 + Number(value), 0);
+
+export function TranscriptPanel({ transcript, language, onSeek }: TranscriptPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const entries = useMemo(() => parseTranscript(transcript), [transcript]);
@@ -118,9 +122,20 @@ export function TranscriptPanel({ transcript, language }: TranscriptPanelProps) 
             {matchingEntries.map((entry, index) => (
               <div key={`${entry.timestamp ?? 'text'}-${index}`} className="flex gap-2">
                 {entry.timestamp ? (
-                  <span className="shrink-0 rounded bg-black/[0.05] px-1.5 py-0.5 text-xs font-medium tabular-nums text-black/60">
-                    {entry.timestamp}
-                  </span>
+                  onSeek ? (
+                    <button
+                      type="button"
+                      onClick={() => onSeek(timestampToSeconds(entry.timestamp!))}
+                      className="shrink-0 rounded bg-[#d9f99d] px-1.5 py-0.5 text-xs font-medium tabular-nums text-black transition hover:bg-[#bef264] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
+                      aria-label={`Jump video to ${entry.timestamp}`}
+                    >
+                      {entry.timestamp}
+                    </button>
+                  ) : (
+                    <span className="shrink-0 rounded bg-black/[0.05] px-1.5 py-0.5 text-xs font-medium tabular-nums text-black/60">
+                      {entry.timestamp}
+                    </span>
+                  )
                 ) : null}
                 <p>{highlightMatch(entry.text, query.trim())}</p>
               </div>
