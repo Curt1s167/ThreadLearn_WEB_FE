@@ -57,6 +57,14 @@ const getCourseId = (course: Course) => course.id ?? course._id;
 const getLessonId = (lesson: Lesson) => lesson.id ?? lesson._id;
 const getSectionId = (section: CourseSection) => section.id ?? section._id;
 const tagsFromInput = (value: string) => Array.from(new Set(value.split(',').map((tag) => tag.trim()).filter(Boolean)));
+const subtitleTracksToInput = (tracks?: Lesson['subtitleTracks']) =>
+  (tracks ?? []).map((track) => [track.language, track.label ?? '', track.url].join(' | ')).join('\n');
+const subtitleTracksFromInput = (value: string) =>
+  value
+    .split('\n')
+    .map((line) => line.split('|').map((part) => part.trim()))
+    .map(([language = '', label = '', url = '']) => ({ language, label: label || undefined, url }))
+    .filter((track) => track.language && track.url);
 const formatDate = (value?: string) => {
   const date = value ? new Date(value) : null;
   return date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString() : '—';
@@ -184,6 +192,9 @@ const LessonForm: React.FC<LessonFormProps> = ({ courseId, sections, lesson, onS
   const [sectionId, setSectionId] = useState(lesson?.sectionId ?? '');
   const [lessonType, setLessonType] = useState(lesson?.lessonType ?? 'article');
   const [videoUrl, setVideoUrl] = useState(lesson?.videoUrl ?? '');
+  const [transcript, setTranscript] = useState(lesson?.transcript ?? '');
+  const [transcriptLanguage, setTranscriptLanguage] = useState(lesson?.transcriptLanguage ?? '');
+  const [subtitleTracks, setSubtitleTracks] = useState(subtitleTracksToInput(lesson?.subtitleTracks));
   const [attachments, setAttachments] = useState((lesson?.attachments ?? []).join('\n'));
   const [estimatedTime, setEstimatedTime] = useState(String(lesson?.estimatedTime ?? lesson?.duration ?? 0));
   const [isPreview, setIsPreview] = useState(Boolean(lesson?.isPreview));
@@ -191,7 +202,7 @@ const LessonForm: React.FC<LessonFormProps> = ({ courseId, sections, lesson, onS
   const [error, setError] = useState('');
   const save = useMutation({
     mutationFn: async () => {
-      const payload: LessonManagementPayload = { courseId, title: title.trim(), description: description.trim() || undefined, contentMarkdown: contentMarkdown || undefined, sectionId: sectionId || undefined, lessonType, videoUrl: videoUrl.trim() || undefined, attachments: attachments.split('\n').map((item) => item.trim()).filter(Boolean), estimatedTime: Number(estimatedTime), isPreview, isLocked };
+      const payload: LessonManagementPayload = { courseId, title: title.trim(), description: description.trim() || undefined, contentMarkdown: contentMarkdown || undefined, sectionId: sectionId || undefined, lessonType, videoUrl: videoUrl.trim() || undefined, transcript: transcript.trim() || undefined, transcriptLanguage: transcriptLanguage.trim() || undefined, subtitleTracks: subtitleTracksFromInput(subtitleTracks), attachments: attachments.split('\n').map((item) => item.trim()).filter(Boolean), estimatedTime: Number(estimatedTime), isPreview, isLocked };
       return lesson ? lessonsService.update(getLessonId(lesson), payload) : lessonsService.create(payload);
     },
     onSuccess: () => { toast.success(lesson ? 'Lesson updated' : 'Lesson created'); onSaved(); },
@@ -200,6 +211,8 @@ const LessonForm: React.FC<LessonFormProps> = ({ courseId, sections, lesson, onS
   return <form className="flex max-h-[calc(100dvh-11rem)] flex-col gap-4 overflow-y-auto overscroll-contain pr-2" onSubmit={(event) => { event.preventDefault(); if (!title.trim()) { setError('Lesson title is required'); return; } if (!Number.isFinite(Number(estimatedTime)) || Number(estimatedTime) < 0) { setError('Estimated time must be zero or greater'); return; } setError(''); save.mutate(); }}>
     <div className="grid gap-4 md:grid-cols-2"><Input label="Lesson title" value={title} onChange={(event) => setTitle(event.target.value)} error={error} autoFocus /><label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Section<select value={sectionId} onChange={(event) => setSectionId(event.target.value)} className="input-field"><option value="">No section</option>{sections.map((section) => <option key={getSectionId(section)} value={getSectionId(section)}>{section.title}</option>)}</select></label></div>
     <div className="grid gap-4 md:grid-cols-3"><label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Type<select value={lessonType} onChange={(event) => setLessonType(event.target.value as NonNullable<LessonManagementPayload['lessonType']>)} className="input-field">{['article', 'video', 'coding', 'quiz', 'assignment', 'mixed'].map((type) => <option key={type} value={type}>{type}</option>)}</select></label><Input label="Estimated time (minutes)" type="number" min={0} value={estimatedTime} onChange={(event) => setEstimatedTime(event.target.value)} /><Input label="Video URL" type="url" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} /></div>
+    <div className="grid gap-4 md:grid-cols-2"><Input label="Transcript language" value={transcriptLanguage} onChange={(event) => setTranscriptLanguage(event.target.value)} placeholder="en, vi, ja" /><label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Subtitle tracks (language | label | WebVTT URL, one per line)<textarea value={subtitleTracks} onChange={(event) => setSubtitleTracks(event.target.value)} className="input-field min-h-20 resize-y font-mono text-xs" placeholder="en | English | https://cdn.example.com/lesson.en.vtt\nvi | Tiếng Việt | https://cdn.example.com/lesson.vi.vtt" /></label></div>
+    <label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Transcript (searchable text)<textarea value={transcript} onChange={(event) => setTranscript(event.target.value)} className="input-field min-h-36 resize-y" placeholder="Paste the lesson transcript here. This will be searchable for learners in the next phase." /></label>
     <label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} className="input-field min-h-20 resize-y" /></label>
     <label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Lesson content (Markdown)<textarea value={contentMarkdown} onChange={(event) => setContentMarkdown(event.target.value)} className="input-field min-h-48 resize-y font-mono text-xs" placeholder="# Lesson title\n\nWrite the lesson content here..." /></label>
     <label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Attachment URLs (one per line)<textarea value={attachments} onChange={(event) => setAttachments(event.target.value)} className="input-field min-h-20 resize-y" /></label>

@@ -183,6 +183,12 @@ export interface LessonCodeSnippet {
   description?: string;
 }
 
+export interface LessonSubtitleTrack {
+  language: string;
+  label?: string;
+  url: string;
+}
+
 export interface Lesson {
   _id: string;
   id?: string;
@@ -197,6 +203,9 @@ export interface Lesson {
   attachmentUrl?: string;
   attachments?: string[];
   videoUrl?: string;
+  transcript?: string;
+  transcriptLanguage?: string;
+  subtitleTracks?: LessonSubtitleTrack[];
   codeSnippets?: LessonCodeSnippet[];
   duration?: number; // minutes
   estimatedTime?: number;
@@ -216,6 +225,9 @@ export interface LessonManagementPayload {
   contentMarkdown?: string;
   lessonType?: NonNullable<Lesson['lessonType']>;
   videoUrl?: string;
+  transcript?: string;
+  transcriptLanguage?: string;
+  subtitleTracks?: LessonSubtitleTrack[];
   attachments?: string[];
   codeSnippets?: LessonCodeSnippet[];
   orderIndex?: number;
