@@ -432,7 +432,10 @@ export interface QuizSubmitResult {
 
 export interface Comment {
   _id: string;
-  lessonId: string;
+  lessonId?: string;
+  courseId?: string;
+  targetType?: 'COURSE' | 'LESSON';
+  targetId?: string;
   userId: string;
   user?: Pick<User, '_id' | 'name' | 'avatarUrl'>;
   content: string;
@@ -442,6 +445,12 @@ export interface Comment {
   isEdited?: boolean;
   editedAt?: string;
   likes: string[];
+  reactionCount?: number;
+  mentionUserIds?: string[];
+  postType?: 'GENERAL' | 'QUESTION' | 'CODE_HELP' | 'CODE_REVIEW' | 'EXPLANATION_REQUEST' | 'CODE_SOLUTION';
+  questionStatus?: 'OPEN' | 'SOLVED' | 'CLOSED';
+  codeShareId?: string;
+  acceptedReplyId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -485,6 +494,33 @@ export interface Note {
     title: string;
     courseId: string;
   };
+  sourceType?: 'DISCUSSION_CODE_SHARE';
+  sourceCodeShareId?: string;
+  sourceAuthorId?: string;
+  sourceAuthorName?: string;
+  sourceLink?: string;
+}
+
+export interface CodeShare {
+  _id: string;
+  authorId: string;
+  author?: Pick<User, '_id' | 'name' | 'avatarUrl'>;
+  targetType: 'COURSE' | 'LESSON';
+  targetId: string;
+  courseId?: string;
+  lessonId?: string;
+  exerciseId?: string;
+  language: string;
+  sourceCode: string;
+  status: string;
+  stdout: string;
+  stderr: string;
+  compileOutput: string;
+  outputTruncated?: boolean;
+  runtime: string;
+  memory: number;
+  visibility: 'COURSE' | 'CLASS';
+  createdAt: string;
 }
 
 export interface CodeExecutionResult {
@@ -522,6 +558,11 @@ export type NotificationType =
   | 'NEW_USER_REGISTERED'
   | 'STUDENT_COMMENT_REPORT'
   | 'COMMENT_REPLY'
+  | 'DISCUSSION_REPLY'
+  | 'DISCUSSION_MENTION'
+  | 'CODE_SOLUTION_SUBMITTED'
+  | 'CODE_SOLUTION_ACCEPTED'
+  | 'DISCUSSION_REOPENED'
   | 'AI_FEEDBACK'
   | 'SYSTEM_ERROR';
 

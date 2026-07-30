@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { coursesService, enrollmentsService, learningPlanService } from '../../services';
 import { extractApiError, extractApiErrorCode } from '../../services/apiClient';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
+import { ContextualDiscussionRoom } from '../discussions/ContextualDiscussionRoom';
 import { useAuthStore } from '../../store';
 import type { CourseGoalPriority, CourseLevel, CourseSection, Enrollment, Lesson, User } from '../../types';
 import {
@@ -685,6 +686,11 @@ export const CourseDetailPage: React.FC = () => {
           ) : null}
         </aside>
       </section>
+      {isEnrolled && courseObjectId ? (
+        <section className="mt-6 rounded-lg border border-black/10 bg-white p-5 sm:p-6">
+          <ContextualDiscussionRoom targetType="COURSE" targetId={courseObjectId} />
+        </section>
+      ) : null}
     </DemoPageRoot>
   );
 };

@@ -19,6 +19,20 @@ type RealtimeNotification = {
 };
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+let activeSocket: Socket | null = null;
+const socketSubscribers = new Set<(socket: Socket | null) => void>();
+
+const publishSocket = (socket: Socket | null) => {
+  activeSocket = socket;
+  socketSubscribers.forEach((subscriber) => subscriber(socket));
+};
+
+/** Subscribe to the authenticated application socket without opening another connection. */
+export const subscribeRealtimeSocket = (subscriber: (socket: Socket | null) => void) => {
+  socketSubscribers.add(subscriber);
+  subscriber(activeSocket);
+  return () => socketSubscribers.delete(subscriber);
+};
 
 /**
  * Socket.IO hook — connects when authenticated, auto-joins user room.
@@ -46,6 +60,7 @@ export function useSocket() {
     });
 
     socketRef.current = socket;
+    publishSocket(socket);
 
     socket.on('connect', () => {
       console.log('[Socket] Connected:', socket.id);
@@ -104,6 +119,7 @@ export function useSocket() {
     return () => {
       socket.disconnect();
       socketRef.current = null;
+      if (activeSocket === socket) publishSocket(null);
     };
   }, [isAuthenticated, accessToken, queryClient, userId]);
 

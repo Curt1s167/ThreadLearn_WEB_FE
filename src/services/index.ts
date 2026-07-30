@@ -24,6 +24,7 @@ import type {
   QuestionPayload,
   SubmitAttemptPayload,
   Comment,
+  CodeShare,
   CodeExecutionResult,
   Bookmark,
   BookmarkToggleResult,
@@ -370,6 +371,55 @@ export const commentsService = {
   },
 };
 
+export const discussionService = {
+  list: async (targetType: 'COURSE' | 'LESSON', targetId: string, page = 1, limit = 20, filters?: { postType?: NonNullable<Comment['postType']>; questionStatus?: NonNullable<Comment['questionStatus']> }) => {
+    const { data } = await apiClient.get<ApiResponse<Comment[]>>('/comments', {
+      params: { targetType, targetId, page, limit, ...filters },
+    });
+    return { items: data.data, meta: data.meta };
+  },
+  create: async (payload: {
+    targetType: 'COURSE' | 'LESSON'; targetId: string; content: string; isAnonymous?: boolean;
+    postType?: Comment['postType']; codeShareId?: string;
+  }) => {
+    const { data } = await apiClient.post<ApiResponse<Comment>>('/comments', payload);
+    return data.data;
+  },
+  replies: commentsService.getReplies,
+  reply: async (commentId: string, payload: { content: string; isAnonymous?: boolean; codeShareId?: string }) => {
+    const { data } = await apiClient.post<ApiResponse<Comment>>(`/comments/${commentId}/replies`, {
+      content: payload.content,
+      isAnonymous: payload.isAnonymous ?? false,
+      postType: payload.codeShareId ? 'CODE_SOLUTION' : 'TEXT_REPLY',
+      codeShareId: payload.codeShareId,
+    });
+    return data.data;
+  },
+  accept: async (commentId: string, replyId: string) => {
+    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${commentId}/accept`, { replyId });
+    return data.data;
+  },
+  close: async (commentId: string) => {
+    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${commentId}/close`);
+    return data.data;
+  },
+  reopen: async (commentId: string) => {
+    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${commentId}/reopen`);
+    return data.data;
+  },
+};
+
+export const codeShareService = {
+  createFromExecution: async (payload: { sourceExecutionId: string; targetType: 'COURSE' | 'LESSON'; targetId: string; visibility?: 'COURSE' | 'CLASS' }) => {
+    const { data } = await apiClient.post<ApiResponse<CodeShare>>('/code-shares/from-execution', payload);
+    return data.data;
+  },
+  get: async (id: string) => {
+    const { data } = await apiClient.get<ApiResponse<CodeShare>>(`/code-shares/${id}`);
+    return data.data;
+  },
+};
+
 // ─── Bookmarks (UC38–UC39) ────────────────────────────────────────────────────
 export const bookmarksService = {
   getAll: async (page = 1, limit = 20, targetType?: 'COURSE' | 'LESSON') => {
@@ -431,6 +481,10 @@ export const notesService = {
     const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(`/notes/${noteId}`);
     return data.data;
   },
+  createFromCodeShare: async (payload: { codeShareId: string; lessonId: string; noteText?: string }) => {
+    const { data } = await apiClient.post<ApiResponse<Note>>('/notes/from-code-share', payload);
+    return data.data;
+  },
 };
 
 // ─── Code execution (UC44–UC45) ─────────────────────────────────────────────
@@ -441,6 +495,7 @@ export const codeExecutionService = {
     stdin?: string;
     courseId?: string;
     lessonId?: string;
+    exerciseId?: string;
   }) => {
     const { data } = await apiClient.post<ApiResponse<CodeExecutionResult>>('/code-execution/run', payload);
     return data.data;

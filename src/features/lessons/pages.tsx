@@ -27,9 +27,10 @@ import {
   quizService,
 } from '../../services';
 import { Button, EmptyState } from '../../components/shared';
+import { CodeDiffView } from '../../components/shared/code/CodeDiffView';
 import { DemoPageRoot, DemoPill } from '../ui-reskin/demo-ui';
 import { useAuthStore } from '../../store';
-import type { CodeExecutionResult, Enrollment } from '../../types';
+import type { CodeExecutionResult, CodeShare, Enrollment } from '../../types';
 import { VideoLessonPlayer } from './VideoLessonPlayer';
 
 const LessonReader = dynamic(
@@ -67,17 +68,38 @@ function LessonCodeRunner({
   courseId,
   language,
   initialCode,
+  userId,
+  requestedShare,
+  onApplyHandled,
   onReviewed,
 }: {
   lessonId: string;
   courseId: string;
   language: string;
   initialCode: string;
+  userId?: string;
+  requestedShare?: CodeShare | null;
+  onApplyHandled?: () => void;
   onReviewed?: () => void;
 }) {
+  const draftKey = `threadlearn:lesson-draft:${userId ?? 'anonymous'}:${lessonId}:default`;
   const [code, setCode] = useState(initialCode);
   const [result, setResult] = useState<CodeExecutionResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const [compareShare, setCompareShare] = useState<CodeShare | null>(null);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(draftKey);
+    if (stored) setCode(stored);
+  }, [draftKey]);
+
+  useEffect(() => {
+    window.localStorage.setItem(draftKey, code);
+  }, [code, draftKey]);
+
+  useEffect(() => {
+    if (requestedShare) setCompareShare(requestedShare);
+  }, [requestedShare]);
 
   const { mutate: runCode, isPending } = useMutation({
     mutationFn: () =>
@@ -185,6 +207,19 @@ function LessonCodeRunner({
           {output.join('\n')}
         </pre>
       </aside>
+      {compareShare ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button type="button" aria-label="Close code comparison" onClick={() => { setCompareShare(null); onApplyHandled?.(); }} className="absolute inset-0 bg-black/40" />
+          <div className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl border border-black/10 bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div><h3 className="text-lg font-semibold text-ink">So sánh trước khi áp dụng</h3><p className="mt-1 text-sm text-ink-faint">Mã của bạn chỉ thay đổi sau khi xác nhận. Việc áp dụng không tự chạy hoặc tự nộp bài.</p></div>
+              <button type="button" onClick={() => { setCompareShare(null); onApplyHandled?.(); }} className="rounded-md px-2 py-1 text-sm hover:bg-black/[0.05]">Đóng</button>
+            </div>
+            <div className="mt-4 max-h-[54vh] overflow-auto rounded-lg border border-black/10"><CodeDiffView oldCode={code} newCode={compareShare.sourceCode} /></div>
+            <div className="mt-4 flex justify-end gap-2"><Button variant="outline" onClick={() => { setCompareShare(null); onApplyHandled?.(); }}>Hủy</Button><Button onClick={() => { setCode(compareShare.sourceCode); setResult(null); setRunError(null); setCompareShare(null); onApplyHandled?.(); toast.success('Đã áp dụng vào bản nháp cục bộ.'); }}>Xác nhận áp dụng</Button></div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -198,6 +233,7 @@ export const LessonPage: React.FC = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const [requestedShare, setRequestedShare] = useState<CodeShare | null>(null);
   const [activePanel, setActivePanel] = useState<'notes' | 'comments'>('notes');
   const [selectedNoteAnchor, setSelectedNoteAnchor] = useState<{
     text: string;
@@ -516,6 +552,9 @@ export const LessonPage: React.FC = () => {
                   courseId={lesson.courseId}
                   language={runnableSnippet.language}
                   initialCode={runnableSnippet.code}
+                  userId={user?._id}
+                  requestedShare={requestedShare}
+                  onApplyHandled={() => setRequestedShare(null)}
                   onReviewed={() => setReviewStep('mediaReviewed', true)}
                 />
               ) : null}
@@ -576,7 +615,7 @@ export const LessonPage: React.FC = () => {
               {activePanel === 'notes' ? (
                 <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
               ) : (
-                <CommentsSection lessonId={id!} />
+                <CommentsSection lessonId={id!} onApplyCode={setRequestedShare} />
               )}
             </div>
           </article>
@@ -735,7 +774,7 @@ export const LessonPage: React.FC = () => {
             </div>
 
             <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
-              <CommentsSection lessonId={id!} />
+              <CommentsSection lessonId={id!} onApplyCode={setRequestedShare} />
             </div>
           </aside>
         </div>
