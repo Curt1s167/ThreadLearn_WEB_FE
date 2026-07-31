@@ -396,6 +396,10 @@ export interface QuizBankImport {
     questionText?: string;
     options?: string[];
     correctAnswer?: string;
+    explanation?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    difficultyInput?: string;
+    tags?: string[];
     errors: string[];
   }>;
   meta?: PaginationMeta;

@@ -91,6 +91,9 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   const [libraryFile, setLibraryFile] = useState<File | null>(null);
   const [libraryQuestionCount, setLibraryQuestionCount] = useState('5');
   const [libraryImport, setLibraryImport] = useState<QuizBankImport | null>(null);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [editingImportRow, setEditingImportRow] = useState<number | null>(null);
+  const [importRowDraft, setImportRowDraft] = useState({ questionText: '', options: '', correctAnswer: '', difficulty: '', explanation: '', tags: '' });
   const [errors, setErrors] = useState<FormErrors>({ questionErrors: {} });
 
   const originalQuestionIds = useMemo(
@@ -114,6 +117,18 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
     enabled: !isEditing && Boolean(courseId),
   });
   const selectableLessons = sectionId ? lessons.filter((lesson) => lesson.sectionId === sectionId) : lessons;
+  const { data: pagedImport } = useQuery({
+    queryKey: ['quiz-bank-import', libraryImport?.id, reviewPage],
+    queryFn: () => quizService.getQuestionBankImport(libraryImport!.id, reviewPage, 20),
+    enabled: Boolean(libraryImport?.id),
+  });
+  const activeImport = pagedImport ?? libraryImport;
+  const { data: bankQuestions } = useQuery({
+    queryKey: ['quiz-bank-questions', quiz?.id ?? quiz?._id],
+    queryFn: () => quizService.getQuestionBankQuestions(getQuizId(quiz!), { page: 1, limit: 20 }),
+    enabled: Boolean(quiz),
+    retry: false,
+  });
 
   const createQuizMutation = useMutation({
     mutationFn: (payload: QuizCreatePayload) => quizService.create(payload),
@@ -170,15 +185,19 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
 
   const uploadLibraryMutation = useMutation({
     mutationFn: async () => {
-      if (!quiz || !libraryFile) throw new Error('Choose a .xlsx or .docx library first.');
+      if (!libraryFile) throw new Error('Choose a .xlsx or .docx library first.');
+      if (!quiz && !lessonId) throw new Error('Choose a lesson before uploading a question library.');
       return quizService.uploadQuestionBank({
-        quizId: getQuizId(quiz),
+        quizId: quiz ? getQuizId(quiz) : undefined,
+        lessonId: quiz ? undefined : lessonId,
+        title: title.trim() || undefined,
         file: libraryFile,
         questionCount: Number(libraryQuestionCount),
       });
     },
     onSuccess: (result) => {
       setLibraryImport(result);
+      setReviewPage(1);
       toast.success(`${result.validCount} valid questions parsed. Review then publish.`);
     },
     onError: () => toast.error('Could not parse the question library'),
@@ -186,16 +205,73 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
 
   const publishLibraryMutation = useMutation({
     mutationFn: async () => {
-      if (!libraryImport) throw new Error('No question library to publish.');
-      return quizService.commitQuestionBankImport(libraryImport.id);
+      if (!activeImport) throw new Error('No question library to publish.');
+      return quizService.commitQuestionBankImport(activeImport.id);
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['admin-quizzes'] });
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-questions'] });
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-import'] });
       toast.success(`Question library published with ${result.activeQuestionCount} active questions.`);
       setLibraryImport((current) => current ? { ...current, status: 'committed' } : current);
+      if (!isEditing) onSaved();
     },
     onError: () => toast.error('Question library could not be published'),
   });
+
+  const updateImportRowMutation = useMutation({
+    mutationFn: async () => {
+      if (!activeImport || editingImportRow === null) throw new Error('No import row selected.');
+      return quizService.updateQuestionBankImportItem(activeImport.id, editingImportRow, {
+        questionText: importRowDraft.questionText,
+        options: importRowDraft.options.split('|').map((option) => option.trim()).filter(Boolean),
+        correctAnswer: importRowDraft.correctAnswer.trim().toUpperCase(),
+        difficulty: (importRowDraft.difficulty.trim().toLowerCase() || undefined) as 'easy' | 'medium' | 'hard' | undefined,
+        difficultyInput: importRowDraft.difficulty.trim().toLowerCase() || undefined,
+        explanation: importRowDraft.explanation.trim() || undefined,
+        tags: importRowDraft.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      });
+    },
+    onSuccess: () => {
+      setEditingImportRow(null);
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-import'] });
+      toast.success('Import row updated');
+    },
+    onError: () => toast.error('Could not update the import row'),
+  });
+
+  const removeImportRowMutation = useMutation({
+    mutationFn: async (row: number) => {
+      if (!activeImport) throw new Error('No import selected.');
+      return quizService.removeQuestionBankImportItem(activeImport.id, row);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-import'] });
+      toast.success('Import row removed');
+    },
+    onError: () => toast.error('Could not remove the import row'),
+  });
+
+  const toggleBankQuestionMutation = useMutation({
+    mutationFn: ({ questionId, status }: { questionId: string; status: 'active' | 'disabled' }) => quizService.setQuestionBankQuestionStatus(getQuizId(quiz!), questionId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-questions'] });
+      toast.success('Question status updated');
+    },
+    onError: () => toast.error('The library must retain enough active questions for each attempt'),
+  });
+
+  const startEditingImportRow = (item: QuizBankImport['items'][number]) => {
+    setEditingImportRow(item.row);
+    setImportRowDraft({
+      questionText: item.questionText ?? '',
+      options: (item.options ?? []).join(' | '),
+      correctAnswer: item.correctAnswer ?? '',
+      difficulty: item.difficultyInput ?? item.difficulty ?? '',
+      explanation: item.explanation ?? '',
+      tags: (item.tags ?? []).join(', '),
+    });
+  };
 
   const validate = () => {
     const nextErrors: FormErrors = { questionErrors: {} };
@@ -417,76 +493,96 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
         />
       </div>
 
-      {isEditing ? (
-        <section className="rounded-xl border border-dashed border-black/15 bg-[#f7f4ee]/60 p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-ink">Question library</h3>
-              <p className="mt-1 text-xs text-black/55">Upload a structured .xlsx or .docx file. The library is only used after you review and publish it.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void quizService.downloadQuestionBankTemplate()}
-              className="text-xs font-medium underline underline-offset-4"
-            >
-              Download .xlsx template
-            </button>
+      <section className="rounded-xl border border-dashed border-black/15 bg-[#f7f4ee]/60 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-ink">Question library</h3>
+            <p className="mt-1 text-xs text-black/55">
+              {isEditing ? 'Upload another library for this quiz.' : 'Choose a lesson above, then upload a .xlsx or .docx library. A quiz is created automatically when the library is published.'}
+            </p>
           </div>
-          <div className="mt-3 grid gap-3 md:grid-cols-[1fr_140px_auto] md:items-end">
-            <label className="block text-xs font-medium text-ink-muted">
-              Library file
-              <input
-                type="file"
-                accept=".xlsx,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                onChange={(event) => {
-                  setLibraryFile(event.target.files?.[0] ?? null);
-                  setLibraryImport(null);
-                }}
-                className="mt-1 block w-full text-xs"
-              />
-            </label>
-            <Input
-              label="Questions / attempt"
-              type="number"
-              min={5}
-              max={10}
-              value={libraryQuestionCount}
-              onChange={(event) => setLibraryQuestionCount(event.target.value)}
+          <button
+            type="button"
+            onClick={() => void quizService.downloadQuestionBankTemplate()}
+            className="text-xs font-medium underline underline-offset-4"
+          >
+            Download .xlsx template
+          </button>
+        </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-[1fr_140px_auto] md:items-end">
+          <label className="block text-xs font-medium text-ink-muted">
+            Library file
+            <input
+              type="file"
+              accept=".xlsx,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(event) => {
+                setLibraryFile(event.target.files?.[0] ?? null);
+                setLibraryImport(null);
+                setReviewPage(1);
+              }}
+              className="mt-1 block w-full text-xs"
             />
+          </label>
+          <Input
+            label="Questions / attempt"
+            type="number"
+            min={5}
+            max={10}
+            value={libraryQuestionCount}
+            onChange={(event) => setLibraryQuestionCount(event.target.value)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            loading={uploadLibraryMutation.isPending}
+            disabled={!libraryFile || (!quiz && !lessonId) || Number(libraryQuestionCount) < 5 || Number(libraryQuestionCount) > 10}
+            onClick={() => uploadLibraryMutation.mutate()}
+          >
+            Parse & preview
+          </Button>
+        </div>
+        {activeImport ? (
+          <div className="mt-4 rounded-lg bg-white p-3 text-xs text-black/70">
+            <p><span className="font-semibold text-ink">{activeImport.validCount}</span> valid · {activeImport.invalidCount} invalid · {activeImport.duplicateCount} duplicate · {activeImport.meta?.total ?? activeImport.items.length} total</p>
+            <div className="mt-3 space-y-2">
+              {activeImport.items.map((item) => (
+                <div key={item.row} className="rounded border border-black/10 p-2">
+                  {editingImportRow === item.row ? (
+                    <div className="grid gap-2">
+                      <input className="input-field" value={importRowDraft.questionText} onChange={(event) => setImportRowDraft((draft) => ({ ...draft, questionText: event.target.value }))} placeholder="Question" />
+                      <input className="input-field" value={importRowDraft.options} onChange={(event) => setImportRowDraft((draft) => ({ ...draft, options: event.target.value }))} placeholder="Options separated by |" />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input className="input-field" value={importRowDraft.correctAnswer} onChange={(event) => setImportRowDraft((draft) => ({ ...draft, correctAnswer: event.target.value }))} placeholder="Correct answer (A-F)" />
+                        <input className="input-field" value={importRowDraft.difficulty} onChange={(event) => setImportRowDraft((draft) => ({ ...draft, difficulty: event.target.value }))} placeholder="easy / medium / hard" />
+                      </div>
+                      <input className="input-field" value={importRowDraft.explanation} onChange={(event) => setImportRowDraft((draft) => ({ ...draft, explanation: event.target.value }))} placeholder="Explanation (optional)" />
+                      <input className="input-field" value={importRowDraft.tags} onChange={(event) => setImportRowDraft((draft) => ({ ...draft, tags: event.target.value }))} placeholder="Tags separated by commas" />
+                      <div className="flex gap-2"><Button type="button" size="sm" loading={updateImportRowMutation.isPending} onClick={() => updateImportRowMutation.mutate()}>Save row</Button><Button type="button" size="sm" variant="outline" onClick={() => setEditingImportRow(null)}>Cancel</Button></div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between gap-3">
+                      <div><p className="font-medium text-ink">Row {item.row}: {item.questionText || '(empty question)'}</p><p className="mt-1">{(item.options ?? []).join(' · ')} {item.correctAnswer ? `· Correct: ${item.correctAnswer}` : ''}</p>{item.errors.length > 0 ? <p className="mt-1 text-rose-700">{item.errors.join(' ')}</p> : null}</div>
+                      {activeImport.status === 'needs_review' ? <div className="flex shrink-0 gap-2"><button type="button" className="underline" onClick={() => startEditingImportRow(item)}>Edit</button><button type="button" className="text-rose-700 underline" onClick={() => removeImportRowMutation.mutate(item.row)}>Delete</button></div> : null}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {(activeImport.meta?.totalPages ?? 1) > 1 ? <div className="mt-3 flex items-center justify-between"><Button type="button" size="sm" variant="outline" disabled={reviewPage <= 1} onClick={() => setReviewPage((page) => page - 1)}>Previous</Button><span>Page {reviewPage} / {activeImport.meta?.totalPages}</span><Button type="button" size="sm" variant="outline" disabled={reviewPage >= (activeImport.meta?.totalPages ?? 1)} onClick={() => setReviewPage((page) => page + 1)}>Next</Button></div> : null}
             <Button
               type="button"
-              variant="outline"
-              loading={uploadLibraryMutation.isPending}
-              disabled={!libraryFile || Number(libraryQuestionCount) < 5 || Number(libraryQuestionCount) > 10}
-              onClick={() => uploadLibraryMutation.mutate()}
+              size="sm"
+              className="mt-3"
+              loading={publishLibraryMutation.isPending}
+              disabled={activeImport.status === 'committed' || activeImport.validCount < Number(libraryQuestionCount)}
+              onClick={() => publishLibraryMutation.mutate()}
             >
-              Parse & preview
+              {activeImport.status === 'committed' ? 'Published' : 'Publish question library'}
             </Button>
           </div>
-          {libraryImport ? (
-            <div className="mt-4 rounded-lg bg-white p-3 text-xs text-black/70">
-              <p><span className="font-semibold text-ink">{libraryImport.validCount}</span> valid · {libraryImport.invalidCount} invalid · {libraryImport.items.length} total</p>
-              {libraryImport.invalidCount > 0 ? (
-                <ul className="mt-2 list-disc space-y-1 pl-4 text-rose-700">
-                  {libraryImport.items.filter((item) => item.errors.length > 0).slice(0, 3).map((item) => (
-                    <li key={item.row}>Row {item.row}: {item.errors.join(' ')}</li>
-                  ))}
-                </ul>
-              ) : null}
-              <Button
-                type="button"
-                size="sm"
-                className="mt-3"
-                loading={publishLibraryMutation.isPending}
-                disabled={libraryImport.status === 'committed' || libraryImport.validCount < Number(libraryQuestionCount)}
-                onClick={() => publishLibraryMutation.mutate()}
-              >
-                {libraryImport.status === 'committed' ? 'Published' : 'Publish question library'}
-              </Button>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
+        ) : null}
+        {bankQuestions?.items.length ? <div className="mt-4 rounded-lg bg-white p-3 text-xs"><p className="font-semibold text-ink">Published questions</p>{bankQuestions.items.map((question) => <div key={question.id} className="mt-2 flex items-center justify-between gap-3"><span>{question.questionText}</span><button type="button" className="underline" onClick={() => toggleBankQuestionMutation.mutate({ questionId: question.id, status: question.status === 'active' ? 'disabled' : 'active' })}>{question.status === 'active' ? 'Disable' : 'Enable'}</button></div>)}</div> : null}
+      </section>
 
       <div className="flex items-center justify-between gap-3">
         <div>
