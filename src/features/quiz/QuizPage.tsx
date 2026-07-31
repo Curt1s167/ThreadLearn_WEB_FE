@@ -47,10 +47,10 @@ export const QuizPage: React.FC = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [startTime] = useState(new Date().toISOString());
   const [result, setResult] = useState<QuizResultSummary | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const autoSubmittedRef = useRef(false);
+  const submissionKeyRef = useRef<string | null>(null);
 
   const {
     data: quiz,
@@ -59,19 +59,21 @@ export const QuizPage: React.FC = () => {
     isError,
   } = useQuery({
     queryKey: ['quiz', lessonId],
-    queryFn: () => quizService.getByLesson(lessonId!),
+    queryFn: () => quizService.startSession(lessonId!),
     enabled: !!lessonId,
   });
 
   const isQuizMissing = isError && getHttpStatus(error) === 404;
 
   const { mutate: submit, isPending } = useMutation({
-    mutationFn: () =>
-      quizService.submit({
-        quizId: quiz!._id,
-        answers,
-        startTime,
-      }),
+    mutationFn: () => {
+      if (!submissionKeyRef.current) {
+        submissionKeyRef.current = typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : quiz!.attemptSessionId;
+      }
+      return quizService.submitSession(quiz!.attemptSessionId, answers, submissionKeyRef.current);
+    },
     onSuccess: (data) => {
       const attemptId = data.attempt.id ?? data.attempt._id;
       setResult({
@@ -91,8 +93,25 @@ export const QuizPage: React.FC = () => {
     onError: () => toast.error('Failed to submit quiz'),
   });
 
+  const startTime = quiz?.startedAt ?? new Date().toISOString();
   const timeLimit = quiz?.timeLimitSeconds ?? quiz?.timeLimit;
   const hasTimeLimit = typeof timeLimit === 'number' && Number.isFinite(timeLimit) && timeLimit > 0;
+
+  useEffect(() => {
+    if (!quiz) return;
+    setAnswers(quiz.answers ?? {});
+    submissionKeyRef.current = null;
+  }, [quiz?.attemptSessionId]);
+
+  useEffect(() => {
+    if (!quiz || result || isPending) return;
+    const timer = window.setTimeout(() => {
+      void quizService.saveSessionAnswers(quiz.attemptSessionId, answers).catch(() => {
+        // Autosave is best-effort; the next change or submit sends the full snapshot.
+      });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [answers, isPending, quiz?.attemptSessionId, result]);
 
   useEffect(() => {
     if (!hasTimeLimit) {

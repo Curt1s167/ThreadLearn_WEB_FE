@@ -371,6 +371,51 @@ export interface Quiz {
   createdAt: string;
 }
 
+/** Server-created snapshot; reload cùng lesson sẽ nhận lại session này thay vì random lại. */
+export interface QuizSession extends Quiz {
+  attemptSessionId: string;
+  startedAt: string;
+  expiresAt?: string;
+  status: 'in_progress' | 'submitted' | 'expired' | 'abandoned' | 'submitting';
+  answers?: Record<string, number>;
+}
+
+export interface QuizBankImport {
+  id: string;
+  quizId: string;
+  lessonId: string;
+  fileName: string;
+  fileType: 'xlsx' | 'docx';
+  status: 'needs_review' | 'committed' | 'failed';
+  questionCount: number;
+  validCount: number;
+  invalidCount: number;
+  duplicateCount: number;
+  items: Array<{
+    row: number;
+    questionText?: string;
+    options?: string[];
+    correctAnswer?: string;
+    errors: string[];
+  }>;
+  meta?: PaginationMeta;
+}
+
+export interface QuizBankQuestion {
+  id: string;
+  quizId: string;
+  questionText: string;
+  options: Array<{ optionId: string; text: string }>;
+  correctOptionId: string;
+  explanation?: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  tags: string[];
+  status: 'active' | 'disabled';
+  bankVersion: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface QuizAttempt {
   _id: string;
   id?: string;

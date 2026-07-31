@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { quizService } from '../../services';
+import { coursesService, lessonsService, quizService, sectionsService } from '../../services';
 import { Button, Input } from '../../components/shared';
 import { cn } from '../../utils';
-import type { QuestionPayload, Quiz, QuizCreatePayload, QuizUpdatePayload } from '../../types';
+import type { QuestionPayload, Quiz, QuizBankImport, QuizCreatePayload, QuizUpdatePayload } from '../../types';
 
 type DraftQuestion = QuestionPayload & {
   id?: string;
@@ -74,6 +74,8 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   const queryClient = useQueryClient();
   const isEditing = Boolean(quiz);
   const [lessonId, setLessonId] = useState(quiz?.lessonId ?? '');
+  const [courseId, setCourseId] = useState('');
+  const [sectionId, setSectionId] = useState('');
   const [title, setTitle] = useState(quiz?.title ?? '');
   const [description, setDescription] = useState(quiz?.description ?? '');
   const [passingScorePercent, setPassingScorePercent] = useState(
@@ -86,12 +88,32 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   const [questions, setQuestions] = useState<DraftQuestion[]>(
     quiz?.questions.length ? quiz.questions.map(toDraftQuestion) : [createBlankQuestion()]
   );
+  const [libraryFile, setLibraryFile] = useState<File | null>(null);
+  const [libraryQuestionCount, setLibraryQuestionCount] = useState('5');
+  const [libraryImport, setLibraryImport] = useState<QuizBankImport | null>(null);
   const [errors, setErrors] = useState<FormErrors>({ questionErrors: {} });
 
   const originalQuestionIds = useMemo(
     () => new Set((quiz?.questions ?? []).map(getQuestionId)),
     [quiz]
   );
+
+  const { data: coursesPage } = useQuery({
+    queryKey: ['admin-courses', 'quiz-selector'],
+    queryFn: () => coursesService.list({ includeAll: true, limit: 100 }),
+    enabled: !isEditing,
+  });
+  const { data: sections = [] } = useQuery({
+    queryKey: ['course-sections', courseId],
+    queryFn: () => sectionsService.listByCourse(courseId),
+    enabled: !isEditing && Boolean(courseId),
+  });
+  const { data: lessons = [] } = useQuery({
+    queryKey: ['course-lessons', courseId],
+    queryFn: () => lessonsService.getByCourse(courseId),
+    enabled: !isEditing && Boolean(courseId),
+  });
+  const selectableLessons = sectionId ? lessons.filter((lesson) => lesson.sectionId === sectionId) : lessons;
 
   const createQuizMutation = useMutation({
     mutationFn: (payload: QuizCreatePayload) => quizService.create(payload),
@@ -144,6 +166,35 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
       onSaved();
     },
     onError: () => toast.error('Failed to update quiz'),
+  });
+
+  const uploadLibraryMutation = useMutation({
+    mutationFn: async () => {
+      if (!quiz || !libraryFile) throw new Error('Choose a .xlsx or .docx library first.');
+      return quizService.uploadQuestionBank({
+        quizId: getQuizId(quiz),
+        file: libraryFile,
+        questionCount: Number(libraryQuestionCount),
+      });
+    },
+    onSuccess: (result) => {
+      setLibraryImport(result);
+      toast.success(`${result.validCount} valid questions parsed. Review then publish.`);
+    },
+    onError: () => toast.error('Could not parse the question library'),
+  });
+
+  const publishLibraryMutation = useMutation({
+    mutationFn: async () => {
+      if (!libraryImport) throw new Error('No question library to publish.');
+      return quizService.commitQuestionBankImport(libraryImport.id);
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-quizzes'] });
+      toast.success(`Question library published with ${result.activeQuestionCount} active questions.`);
+      setLibraryImport((current) => current ? { ...current, status: 'committed' } : current);
+    },
+    onError: () => toast.error('Question library could not be published'),
   });
 
   const validate = () => {
@@ -289,14 +340,35 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div className="grid md:grid-cols-2 gap-4">
-        <Input
-          label="Lesson ID"
-          value={lessonId}
-          onChange={(event) => setLessonId(event.target.value)}
-          error={errors.lessonId}
-          disabled={isEditing}
-          placeholder="665f1b2c3d4e5f6a7b8c9d0e"
-        />
+        {isEditing ? (
+          <Input label="Lesson ID" value={lessonId} disabled error={errors.lessonId} />
+        ) : (
+          <div className="grid gap-2">
+            <label className="text-xs font-medium text-ink-muted">Course / section / lesson</label>
+            <select
+              className="input-field"
+              value={courseId}
+              onChange={(event) => { setCourseId(event.target.value); setSectionId(''); setLessonId(''); }}
+            >
+              <option value="">Choose a course</option>
+              {(coursesPage?.items ?? []).map((course) => <option key={course.id ?? course._id} value={course.id ?? course._id}>{course.title}</option>)}
+            </select>
+            <select
+              className="input-field"
+              value={sectionId}
+              disabled={!courseId}
+              onChange={(event) => { setSectionId(event.target.value); setLessonId(''); }}
+            >
+              <option value="">All sections / unsectioned lessons</option>
+              {sections.map((section) => <option key={section.id ?? section._id} value={section.id ?? section._id}>{section.title}</option>)}
+            </select>
+            <select className="input-field" value={lessonId} disabled={!courseId} onChange={(event) => setLessonId(event.target.value)}>
+              <option value="">Choose a lesson</option>
+              {selectableLessons.map((lesson) => <option key={lesson.id ?? lesson._id} value={lesson.id ?? lesson._id}>{lesson.title}</option>)}
+            </select>
+            {errors.lessonId ? <p className="text-xs text-rose-600">{errors.lessonId}</p> : null}
+          </div>
+        )}
         <Input
           label="Title"
           value={title}
@@ -344,6 +416,77 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
           error={errors.xpReward}
         />
       </div>
+
+      {isEditing ? (
+        <section className="rounded-xl border border-dashed border-black/15 bg-[#f7f4ee]/60 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Question library</h3>
+              <p className="mt-1 text-xs text-black/55">Upload a structured .xlsx or .docx file. The library is only used after you review and publish it.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void quizService.downloadQuestionBankTemplate()}
+              className="text-xs font-medium underline underline-offset-4"
+            >
+              Download .xlsx template
+            </button>
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-[1fr_140px_auto] md:items-end">
+            <label className="block text-xs font-medium text-ink-muted">
+              Library file
+              <input
+                type="file"
+                accept=".xlsx,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={(event) => {
+                  setLibraryFile(event.target.files?.[0] ?? null);
+                  setLibraryImport(null);
+                }}
+                className="mt-1 block w-full text-xs"
+              />
+            </label>
+            <Input
+              label="Questions / attempt"
+              type="number"
+              min={5}
+              max={10}
+              value={libraryQuestionCount}
+              onChange={(event) => setLibraryQuestionCount(event.target.value)}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              loading={uploadLibraryMutation.isPending}
+              disabled={!libraryFile || Number(libraryQuestionCount) < 5 || Number(libraryQuestionCount) > 10}
+              onClick={() => uploadLibraryMutation.mutate()}
+            >
+              Parse & preview
+            </Button>
+          </div>
+          {libraryImport ? (
+            <div className="mt-4 rounded-lg bg-white p-3 text-xs text-black/70">
+              <p><span className="font-semibold text-ink">{libraryImport.validCount}</span> valid · {libraryImport.invalidCount} invalid · {libraryImport.items.length} total</p>
+              {libraryImport.invalidCount > 0 ? (
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-rose-700">
+                  {libraryImport.items.filter((item) => item.errors.length > 0).slice(0, 3).map((item) => (
+                    <li key={item.row}>Row {item.row}: {item.errors.join(' ')}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                className="mt-3"
+                loading={publishLibraryMutation.isPending}
+                disabled={libraryImport.status === 'committed' || libraryImport.validCount < Number(libraryQuestionCount)}
+                onClick={() => publishLibraryMutation.mutate()}
+              >
+                {libraryImport.status === 'committed' ? 'Published' : 'Publish question library'}
+              </Button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       <div className="flex items-center justify-between gap-3">
         <div>

@@ -16,6 +16,9 @@ import type {
   CourseSection,
   CourseSectionPayload,
   Quiz,
+  QuizSession,
+  QuizBankImport,
+  QuizBankQuestion,
   QuizAttempt,
   PaginationMeta,
   QuizSubmitResult,
@@ -263,6 +266,77 @@ export const quizService = {
     const { data } = await apiClient.get<ApiResponse<Quiz>>(
       `/quiz/lesson/${lessonId}`
     );
+    return data.data;
+  },
+  startSession: async (lessonId: string) => {
+    const { data } = await apiClient.post<ApiResponse<QuizSession>>(`/quiz/lesson/${lessonId}/attempts`);
+    return data.data;
+  },
+  getSession: async (sessionId: string) => {
+    const { data } = await apiClient.get<ApiResponse<QuizSession>>(`/quiz/attempts/session/${sessionId}`);
+    return data.data;
+  },
+  submitSession: async (sessionId: string, answers: Record<string, number>, idempotencyKey?: string) => {
+    const { data } = await apiClient.post<ApiResponse<QuizSubmitResult>>(`/quiz/attempts/${sessionId}/submit`, { answers }, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    });
+    return data.data;
+  },
+  saveSessionAnswers: async (sessionId: string, answers: Record<string, number>) => {
+    const { data } = await apiClient.patch<ApiResponse<{ attemptSessionId: string; answers: Record<string, number>; savedAt: string }>>(`/quiz/attempts/session/${sessionId}/answers`, { answers });
+    return data.data;
+  },
+  uploadQuestionBank: async (input: { file: File; quizId?: string; lessonId?: string; title?: string; questionCount?: number }) => {
+    const form = new FormData();
+    form.append('file', input.file);
+    if (input.quizId) form.append('quizId', input.quizId);
+    if (input.lessonId) form.append('lessonId', input.lessonId);
+    if (input.title) form.append('title', input.title);
+    if (input.questionCount) form.append('questionCount', String(input.questionCount));
+    const { data } = await apiClient.post<ApiResponse<QuizBankImport>>('/quiz/imports', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.data;
+  },
+  downloadQuestionBankTemplate: async () => {
+    const response = await apiClient.get('/quiz/import-template', { params: { format: 'xlsx' }, responseType: 'blob' });
+    const url = URL.createObjectURL(response.data as Blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'threadlearn-quiz-library-template.xlsx';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  },
+  getQuestionBankImport: async (importId: string, page = 1, limit = 50) => {
+    const { data } = await apiClient.get<ApiResponse<QuizBankImport>>(`/quiz/imports/${importId}`, { params: { page, limit } });
+    return data.data;
+  },
+  updateQuestionBankImportItem: async (importId: string, row: number, item: Partial<QuizBankImport['items'][number]>) => {
+    const { data } = await apiClient.patch<ApiResponse<QuizBankImport>>(`/quiz/imports/${importId}/items/${row}`, item);
+    return data.data;
+  },
+  removeQuestionBankImportItem: async (importId: string, row: number) => {
+    const { data } = await apiClient.delete<ApiResponse<QuizBankImport>>(`/quiz/imports/${importId}/items/${row}`);
+    return data.data;
+  },
+  commitQuestionBankImport: async (importId: string) => {
+    const { data } = await apiClient.post<ApiResponse<{ activeQuestionCount: number; questionCount: number }>>(`/quiz/imports/${importId}/commit`);
+    return data.data;
+  },
+  getQuestionBankQuestions: async (quizId: string, query?: { page?: number; limit?: number; search?: string; status?: string; difficulty?: string; tag?: string }) => {
+    const { data } = await apiClient.get<ApiResponse<QuizBankQuestion[]>>(`/quiz/${quizId}/question-bank/questions`, { params: query });
+    return { items: data.data, meta: data.meta };
+  },
+  createQuestionBankQuestion: async (quizId: string, payload: Omit<QuizBankQuestion, 'id' | 'quizId' | 'status' | 'bankVersion' | 'createdAt' | 'updatedAt'>) => {
+    const { data } = await apiClient.post<ApiResponse<QuizBankQuestion>>(`/quiz/${quizId}/question-bank/questions`, payload);
+    return data.data;
+  },
+  updateQuestionBankQuestion: async (quizId: string, questionId: string, payload: Partial<QuizBankQuestion>) => {
+    const { data } = await apiClient.patch<ApiResponse<QuizBankQuestion>>(`/quiz/${quizId}/question-bank/questions/${questionId}`, payload);
+    return data.data;
+  },
+  setQuestionBankQuestionStatus: async (quizId: string, questionId: string, status: 'active' | 'disabled') => {
+    const { data } = await apiClient.patch<ApiResponse<QuizBankQuestion>>(`/quiz/${quizId}/question-bank/questions/${questionId}/status`, { status });
     return data.data;
   },
   getAttemptById: async (attemptId: string) => {
