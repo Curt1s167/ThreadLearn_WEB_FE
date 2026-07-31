@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { JetBrains_Mono } from 'next/font/google';
 import { Providers } from '@/components/providers/Providers';
+import { PWARegister } from '@/components/providers/PWARegister';
 import '@/styles/globals.css';
 
 const jetBrainsMono = JetBrains_Mono({
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
   description:
     'ThreadLearn — AI-powered concurrent programming learning platform for JavaScript and system concurrency.',
   applicationName: 'ThreadLearn',
+  manifest: '/manifest.webmanifest',
   icons: {
     icon: [
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
@@ -39,7 +41,10 @@ export default function RootLayout({
         <a className="skip-link" href="#main-content">
           Skip to main content
         </a>
-        <Providers>{children}</Providers>
+        <Providers>
+          <PWARegister />
+          {children}
+        </Providers>
       </body>
     </html>
   );
