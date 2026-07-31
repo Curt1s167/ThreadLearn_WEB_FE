@@ -101,7 +101,7 @@ export const QuizPage: React.FC = () => {
     if (!quiz) return;
     setAnswers(quiz.answers ?? {});
     submissionKeyRef.current = null;
-  }, [quiz?.attemptSessionId]);
+  }, [quiz]);
 
   useEffect(() => {
     if (!quiz || result || isPending) return;
@@ -111,7 +111,7 @@ export const QuizPage: React.FC = () => {
       });
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [answers, isPending, quiz?.attemptSessionId, result]);
+  }, [answers, isPending, quiz, result]);
 
   useEffect(() => {
     if (!hasTimeLimit) {
