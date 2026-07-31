@@ -316,6 +316,7 @@ export interface LearningPlan {
   preferredDays: number[];
   targetDate: string | null;
   reminderEnabled: boolean;
+  emailReminderEnabled: boolean;
   reminderTime: string;
   timezone: string;
   isConfigured: boolean;
@@ -327,6 +328,7 @@ export interface UpdateLearningPlanPayload {
   preferredDays: number[];
   targetDate?: string | null;
   reminderEnabled: boolean;
+  emailReminderEnabled?: boolean;
   reminderTime?: string;
   timezone?: string;
 }
