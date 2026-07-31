@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CalendarDays, Clock3 } from 'lucide-react';
+import { Bell, CalendarDays, Clock3, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
 import { learningPlanService } from '../../services';
@@ -34,6 +34,7 @@ export const LearningPlanPage: React.FC = () => {
   const [weeklyHours, setWeeklyHours] = useState(3);
   const [preferredDays, setPreferredDays] = useState([1, 3, 5]);
   const [reminderEnabled, setReminderEnabled] = useState(true);
+  const [emailReminderEnabled, setEmailReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('19:00');
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export const LearningPlanPage: React.FC = () => {
     setWeeklyHours(plan.weeklyHours);
     setPreferredDays(plan.preferredDays);
     setReminderEnabled(plan.reminderEnabled);
+    setEmailReminderEnabled(plan.emailReminderEnabled);
     setReminderTime(plan.reminderTime);
   }, [plan]);
 
@@ -74,6 +76,7 @@ export const LearningPlanPage: React.FC = () => {
       weeklyHours,
       preferredDays,
       reminderEnabled,
+      emailReminderEnabled,
       reminderTime,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
@@ -163,7 +166,7 @@ export const LearningPlanPage: React.FC = () => {
                     onChange={(event) => setReminderEnabled(event.target.checked)}
                     className="size-4 accent-black"
                   />
-                  Enable reminders
+                  Enable in-app reminders
                 </label>
                 <input
                   aria-label="Reminder time"
@@ -173,6 +176,26 @@ export const LearningPlanPage: React.FC = () => {
                   onChange={(event) => setReminderTime(event.target.value)}
                   className="bg-transparent text-sm disabled:text-black/30"
                 />
+              </div>
+              <div className="mt-3 rounded-lg border border-black/10 bg-black/[0.02] px-3 py-3">
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={emailReminderEnabled}
+                    disabled={!reminderEnabled}
+                    onChange={(event) => setEmailReminderEnabled(event.target.checked)}
+                    className="mt-0.5 size-4 accent-black disabled:cursor-not-allowed"
+                  />
+                  <span>
+                    <span className="flex items-center gap-1.5 font-medium text-black">
+                      <Mail size={15} />
+                      Send a copy to my verified email
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-black/55">
+                      Save your preference now. Email delivery will be enabled in the next update.
+                    </span>
+                  </span>
+                </label>
               </div>
             </div>
           </section>
