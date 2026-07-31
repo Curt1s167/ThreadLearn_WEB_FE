@@ -104,7 +104,7 @@ export const NotesListPage: React.FC = () => {
                 <div className="flex items-start justify-between gap-3">
                   <button
                     type="button"
-                    onClick={() => router.push(`/lessons/${note.lessonId}`)}
+                    onClick={() => router.push(note.sourceLink || `/lessons/${note.lessonId}`)}
                     className="min-w-0 flex-1 text-left"
                   >
                     <p className="text-xs uppercase tracking-[0.14em] text-black/40">

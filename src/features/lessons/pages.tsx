@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -57,13 +57,22 @@ const normalizeRunnableLanguage = (language: string) =>
       ? 'python'
       : language.toLowerCase();
 
+export const lessonDraftKey = (userId: string | undefined, lessonId: string, exerciseId: string) =>
+  `threadlearn:lesson-draft:${userId ?? 'anonymous'}:${lessonId}:${exerciseId}`;
+
+export const isShareExerciseCompatible = (share: CodeShare, exerciseId: string) =>
+  !share.exerciseId || share.exerciseId === exerciseId;
+
+export const isShareLanguageMismatch = (share: CodeShare, language: string) =>
+  normalizeRunnableLanguage(share.language) !== normalizeRunnableLanguage(language);
+
 type LessonReviewProgress = {
   key: string;
   explanationReviewed: boolean;
   mediaReviewed: boolean;
 };
 
-function LessonCodeRunner({
+export function LessonCodeRunner({
   lessonId,
   courseId,
   language,
@@ -84,38 +93,84 @@ function LessonCodeRunner({
   onApplyHandled?: () => void;
   onReviewed?: () => void;
 }) {
-  const draftKey = `threadlearn:lesson-draft:${userId ?? 'anonymous'}:${lessonId}:${exerciseId}`;
+  const draftKey = lessonDraftKey(userId, lessonId, exerciseId);
   const [code, setCode] = useState(initialCode);
   const [result, setResult] = useState<CodeExecutionResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const [compareShare, setCompareShare] = useState<CodeShare | null>(null);
   const comparisonDialogRef = useRef<HTMLDivElement | null>(null);
+  const hydratedDraftKeyRef = useRef('');
+  const skipNextAutosaveRef = useRef(false);
+  const currentCodeRef = useRef(code);
+  const comparisonOpenerRef = useRef<HTMLElement | null>(null);
+  const [draftConflict, setDraftConflict] = useState<string | null>(null);
+  const [languageMismatchAccepted, setLanguageMismatchAccepted] = useState(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(draftKey);
-    if (stored) setCode(stored);
-  }, [draftKey]);
+    setCode(stored ?? initialCode);
+    setDraftConflict(null);
+    hydratedDraftKeyRef.current = draftKey;
+    skipNextAutosaveRef.current = true;
+  }, [draftKey, initialCode]);
 
   useEffect(() => {
+    currentCodeRef.current = code;
+    if (hydratedDraftKeyRef.current !== draftKey) return;
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false;
+      return;
+    }
     window.localStorage.setItem(draftKey, code);
   }, [code, draftKey]);
 
   useEffect(() => {
-    if (requestedShare) setCompareShare(requestedShare);
-  }, [requestedShare]);
+    if (!requestedShare) return;
+    if (!isShareExerciseCompatible(requestedShare, exerciseId)) {
+      toast.error('Lời giải thuộc bài tập khác và không thể áp dụng vào bản nháp này.');
+      onApplyHandled?.();
+      return;
+    }
+    comparisonOpenerRef.current = document.activeElement as HTMLElement | null;
+    setLanguageMismatchAccepted(false);
+    setCompareShare(requestedShare);
+  }, [exerciseId, onApplyHandled, requestedShare]);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== draftKey || event.newValue === null || event.newValue === currentCodeRef.current) return;
+      setDraftConflict(event.newValue);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [draftKey]);
+
+  const closeComparison = useCallback(() => {
+    setCompareShare(null);
+    onApplyHandled?.();
+    window.setTimeout(() => comparisonOpenerRef.current?.focus(), 0);
+  }, [onApplyHandled]);
 
   useEffect(() => {
     if (!compareShare) return;
     comparisonDialogRef.current?.focus();
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setCompareShare(null);
-        onApplyHandled?.();
+        closeComparison();
+        return;
       }
+      if (event.key !== 'Tab' || !comparisonDialogRef.current) return;
+      const focusable = Array.from(comparisonDialogRef.current.querySelectorAll<HTMLElement>('button, input'))
+        .filter((element) => !element.hasAttribute('disabled'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [compareShare, onApplyHandled]);
+  }, [closeComparison, compareShare]);
 
   const { mutate: runCode, isPending } = useMutation({
     mutationFn: () =>
@@ -157,12 +212,16 @@ function LessonCodeRunner({
       : runError
         ? 'failed'
         : 'idle';
+  const languageMismatch = Boolean(
+    compareShare && isShareLanguageMismatch(compareShare, language),
+  );
 
   return (
     <div
       id="lesson-code-runner"
       className="mt-8 grid scroll-mt-28 gap-4 xl:grid-cols-[1fr_320px]"
     >
+      {draftConflict !== null ? <div role="alert" className="xl:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"><span>Bản nháp đã thay đổi ở tab khác. Chọn phiên bản muốn giữ.</span><div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => setDraftConflict(null)}>Giữ bản hiện tại</Button><Button size="sm" onClick={() => { setCode(draftConflict); setDraftConflict(null); }}>Tải bản từ tab khác</Button></div></div> : null}
       <section className="overflow-hidden rounded-lg border border-black/10 bg-[#111827] text-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-2">
@@ -226,14 +285,15 @@ function LessonCodeRunner({
       </aside>
       {compareShare ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <button type="button" aria-label="Close code comparison" onClick={() => { setCompareShare(null); onApplyHandled?.(); }} className="absolute inset-0 bg-black/40" />
+          <button type="button" aria-label="Close code comparison" onClick={closeComparison} className="absolute inset-0 bg-black/40" />
           <div ref={comparisonDialogRef} role="dialog" aria-modal="true" aria-label="So sánh trước khi áp dụng mã" tabIndex={-1} className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl border border-black/10 bg-white p-5 shadow-2xl outline-none">
             <div className="flex items-start justify-between gap-4">
               <div><h3 className="text-lg font-semibold text-ink">So sánh trước khi áp dụng</h3><p className="mt-1 text-sm text-ink-faint">Mã của bạn chỉ thay đổi sau khi xác nhận. Việc áp dụng không tự chạy hoặc tự nộp bài.</p></div>
-              <button type="button" onClick={() => { setCompareShare(null); onApplyHandled?.(); }} className="rounded-md px-2 py-1 text-sm hover:bg-black/[0.05]">Đóng</button>
+              <button type="button" onClick={closeComparison} className="rounded-md px-2 py-1 text-sm hover:bg-black/[0.05]">Đóng</button>
             </div>
+            {languageMismatch ? <label className="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"><input type="checkbox" checked={languageMismatchAccepted} onChange={(event) => setLanguageMismatchAccepted(event.target.checked)} /><span>Lời giải dùng {compareShare.language}, khác ngôn ngữ {language}. Tôi hiểu việc thay thế có thể không tương thích.</span></label> : null}
             <div className="mt-4 max-h-[54vh] overflow-auto rounded-lg border border-black/10"><CodeDiffView oldCode={code} newCode={compareShare.sourceCode ?? code} /></div>
-            <div className="mt-4 flex justify-end gap-2"><Button variant="outline" onClick={() => { setCompareShare(null); onApplyHandled?.(); }}>Hủy</Button><Button disabled={!compareShare.sourceCode} onClick={() => { if (!compareShare.sourceCode) return; setCode(compareShare.sourceCode); setResult(null); setRunError(null); setCompareShare(null); onApplyHandled?.(); toast.success('Đã áp dụng vào bản nháp cục bộ.'); }}>Xác nhận áp dụng</Button></div>
+            <div className="mt-4 flex justify-end gap-2"><Button variant="outline" onClick={closeComparison}>Hủy</Button><Button disabled={!compareShare.sourceCode || (languageMismatch && !languageMismatchAccepted)} onClick={() => { if (!compareShare.sourceCode) return; setCode(compareShare.sourceCode); setResult(null); setRunError(null); closeComparison(); toast.success('Đã áp dụng vào bản nháp cục bộ.'); }}>Xác nhận áp dụng</Button></div>
           </div>
         </div>
       ) : null}
@@ -429,6 +489,9 @@ export const LessonPage: React.FC = () => {
   const runnableSnippet = lesson?.codeSnippets?.find((snippet) =>
     runnableLanguages.has(snippet.language.toLowerCase())
   );
+  const discussionExerciseId = runnableSnippet
+    ? `snippet-${lesson?.codeSnippets?.indexOf(runnableSnippet) ?? 0}`
+    : undefined;
   const hasMarkdownCode = /```[^\n]*\n[\s\S]*?```/.test(content);
   const hasCodeMaterial = Boolean(lesson?.codeSnippets?.length || hasMarkdownCode);
   const requiresMediaReview = Boolean(lesson?.videoUrl || hasCodeMaterial);
@@ -568,7 +631,7 @@ export const LessonPage: React.FC = () => {
                   lessonId={id!}
                   courseId={lesson.courseId}
                   language={runnableSnippet.language}
-                  exerciseId={`snippet-${lesson.codeSnippets?.indexOf(runnableSnippet) ?? 0}`}
+                  exerciseId={discussionExerciseId!}
                   initialCode={runnableSnippet.code}
                   userId={user?._id}
                   requestedShare={requestedShare}
@@ -633,7 +696,7 @@ export const LessonPage: React.FC = () => {
               {activePanel === 'notes' ? (
                 <NotesPanel lessonId={id!} selection={selectedNoteAnchor} />
               ) : (
-                <CommentsSection lessonId={id!} onApplyCode={(share) => share.sourceCode ? setRequestedShare(share) : toast.error('Hãy tự chạy bài tập trước khi áp dụng lời giải.')} />
+                <CommentsSection lessonId={id!} exerciseId={discussionExerciseId} onApplyCode={(share) => share.sourceCode ? setRequestedShare(share) : toast.error('Hãy tự chạy bài tập trước khi áp dụng lời giải.')} />
               )}
             </div>
           </article>
@@ -792,7 +855,7 @@ export const LessonPage: React.FC = () => {
             </div>
 
             <div className="hidden rounded-lg border border-black/10 bg-white p-5 xl:block">
-              <CommentsSection lessonId={id!} onApplyCode={(share) => share.sourceCode ? setRequestedShare(share) : toast.error('Hãy tự chạy bài tập trước khi áp dụng lời giải.')} />
+              <CommentsSection lessonId={id!} exerciseId={discussionExerciseId} onApplyCode={(share) => share.sourceCode ? setRequestedShare(share) : toast.error('Hãy tự chạy bài tập trước khi áp dụng lời giải.')} />
             </div>
           </aside>
         </div>

@@ -498,6 +498,13 @@ export const discussionService = {
     const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${commentId}/moderation`, payload);
     return data.data;
   },
+  moderationQueue: async (filters: {
+    page?: number; limit?: number; status?: 'OPEN' | 'RESOLVED'; reason?: string;
+    courseId?: string; lessonId?: string;
+  }) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').DiscussionModerationReport[]>>('/comments/moderation/queue', { params: filters });
+    return { items: data.data, meta: data.meta };
+  },
 };
 
 export const codeShareService = {

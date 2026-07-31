@@ -79,7 +79,7 @@ export interface AdminStudentUpdatePayload {
 // ─── User Stats & Gamification ───────────────────────────────────────────────
 
 export interface UserStats {
-  userId: string;
+  userId?: string;
   xp: number;
   level: number;
   streak?: number;
@@ -485,9 +485,11 @@ export interface Comment {
   _id: string;
   lessonId?: string;
   courseId?: string;
+  exerciseId?: string;
+  lessonVersionId?: string;
   targetType?: 'COURSE' | 'LESSON';
   targetId?: string;
-  userId: string;
+  userId?: string;
   user?: Pick<User, '_id' | 'name' | 'avatarUrl'>;
   content: string;
   parentId?: string;
@@ -507,6 +509,15 @@ export interface Comment {
   learningContext?: { expectedResult?: string; actualResult?: string; tried?: string };
   instructorVerifiedAt?: string;
   instructorVerifiedBy?: string;
+  authorLabel?: string;
+  isOwner?: boolean;
+  capabilities?: {
+    canVerify: boolean;
+    canModerate: boolean;
+    canAccept: boolean;
+    canEdit: boolean;
+    canDelete: boolean;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -555,6 +566,8 @@ export interface Note {
   sourceAuthorId?: string;
   sourceAuthorName?: string;
   sourceLink?: string;
+  sourceDiscussionId?: string;
+  sourceCommentId?: string;
 }
 
 export interface CodeShare {
@@ -566,6 +579,7 @@ export interface CodeShare {
   courseId?: string;
   lessonId?: string;
   exerciseId?: string;
+  lessonVersionId?: string;
   language: string;
   sourceCode?: string;
   status: string;
@@ -896,6 +910,16 @@ export interface PaginationMeta {
   limit: number;
   totalPages: number;
   hasMore?: boolean;
+  capabilities?: { canModerate?: boolean; canVerify?: boolean };
+}
+
+export interface DiscussionModerationReport {
+  id: string;
+  reason: 'SPAM' | 'ABUSE' | 'INCORRECT' | 'SPOILER' | 'UNSAFE_CODE' | 'OTHER';
+  details?: string;
+  status: 'OPEN' | 'RESOLVED';
+  createdAt: string;
+  comment: Comment;
 }
 
 export interface PaginatedResponse<T> {

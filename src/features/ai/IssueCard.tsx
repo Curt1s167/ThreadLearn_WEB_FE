@@ -175,7 +175,11 @@ export const IssueCard: React.FC<{
         </div>
       )}
 
-      {canDiff ? (
+      {!issue.fix ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Suggested fix details are available with Premium.
+        </p>
+      ) : canDiff ? (
         <DiffView oldCode={originalSnapshot!} newCode={code} />
       ) : (
         <pre className="max-h-96 overflow-auto rounded-lg bg-[#111827] p-3">
