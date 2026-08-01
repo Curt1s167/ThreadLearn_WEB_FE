@@ -446,12 +446,39 @@ export interface QuizAttempt {
   score: number;
   passed: boolean;
   timeTaken?: number; // seconds
+  durationSeconds?: number;
   createdAt?: string;
   startedAt?: string;
   completedAt?: string;
+  gradedAt?: string;
   xpRewarded?: number;
   passingScorePercent?: number;
   isTimeout?: boolean;
+  attemptStatus?: 'submitted' | 'timed_out';
+  completionStatus?: 'completed';
+  gradingStatus?: 'graded';
+  rewardStatus?: 'awarded' | 'not_awarded';
+  questionCount?: number;
+  correctCount?: number;
+  incorrectCount?: number;
+  unansweredCount?: number;
+  reviewUnavailable?: boolean;
+  questions?: QuizAttemptReviewQuestion[];
+}
+
+export interface QuizAttemptReviewQuestion {
+  sourceQuestionId: string;
+  questionText: string;
+  options: Array<{ optionId: string; text: string }>;
+  selectedOptionIndex?: number;
+  selectedOptionId?: string;
+  selectedOptionText?: string;
+  correctOptionIndex: number;
+  correctOptionId: string;
+  correctOptionText?: string;
+  isCorrect: boolean;
+  answerStatus: 'correct' | 'incorrect' | 'unanswered';
+  explanation?: string;
 }
 
 export interface SubmitAttemptPayload {
