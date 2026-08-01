@@ -53,10 +53,10 @@ export const Modal: React.FC<ModalProps> = ({
         onClick={handleClose}
       />
       <div
-        className={`relative w-full ${sizeMap[size]} bg-white border border-black/10 rounded-2xl panel-shadow animate-slide-in`}
+        className={`relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden ${sizeMap[size]} bg-white border border-black/10 rounded-2xl panel-shadow animate-slide-in`}
       >
         {title && (
-          <div className="flex items-start justify-between p-5 border-b border-black/10">
+          <div className="flex shrink-0 items-start justify-between p-5 border-b border-black/10">
             <div>
               <h2 className="font-semibold text-ink">{title}</h2>
               {description && (
@@ -72,7 +72,7 @@ export const Modal: React.FC<ModalProps> = ({
             </button>
           </div>
         )}
-        <div className="p-5">{children}</div>
+        <div className="min-h-0 overflow-y-auto overscroll-contain p-5">{children}</div>
       </div>
     </div>
   );

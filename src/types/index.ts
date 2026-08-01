@@ -370,6 +370,8 @@ export interface Quiz {
   timeLimitSeconds?: number;
   passingScore: number; // percentage
   passingScorePercent?: number;
+  useQuestionBank?: boolean;
+  randomQuestionCount?: number;
   createdAt: string;
 }
 
@@ -389,6 +391,7 @@ export interface QuizBankImport {
   fileName: string;
   fileType: 'xlsx' | 'docx';
   status: 'needs_review' | 'committed' | 'failed';
+  mode?: 'publish' | 'replace';
   questionCount: number;
   validCount: number;
   invalidCount: number;
@@ -405,6 +408,18 @@ export interface QuizBankImport {
     errors: string[];
   }>;
   meta?: PaginationMeta;
+}
+
+export interface QuizBankSummary {
+  quizId: string;
+  lessonId: string;
+  version: number;
+  questionCount: number;
+  activeQuestionCount: number;
+  totalQuestionCount: number;
+  disabledQuestionCount: number;
+  status: 'draft' | 'published' | 'archived';
+  lastImportId?: string;
 }
 
 export interface QuizBankQuestion {

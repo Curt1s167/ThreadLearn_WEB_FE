@@ -286,13 +286,14 @@ export const quizService = {
     const { data } = await apiClient.patch<ApiResponse<{ attemptSessionId: string; answers: Record<string, number>; savedAt: string }>>(`/quiz/attempts/session/${sessionId}/answers`, { answers });
     return data.data;
   },
-  uploadQuestionBank: async (input: { file: File; quizId?: string; lessonId?: string; title?: string; questionCount?: number }) => {
+  uploadQuestionBank: async (input: { file: File; quizId?: string; lessonId?: string; title?: string; questionCount?: number; replaceExisting?: boolean }) => {
     const form = new FormData();
     form.append('file', input.file);
     if (input.quizId) form.append('quizId', input.quizId);
     if (input.lessonId) form.append('lessonId', input.lessonId);
     if (input.title) form.append('title', input.title);
     if (input.questionCount) form.append('questionCount', String(input.questionCount));
+    if (input.replaceExisting) form.append('replaceExisting', 'true');
     const { data } = await apiClient.post<ApiResponse<QuizBankImport>>('/quiz/imports', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -323,6 +324,14 @@ export const quizService = {
     const { data } = await apiClient.post<ApiResponse<{ activeQuestionCount: number; questionCount: number }>>(`/quiz/imports/${importId}/commit`);
     return data.data;
   },
+  replaceQuestionBankImport: async (importId: string) => {
+    const { data } = await apiClient.post<ApiResponse<{ activeQuestionCount: number; questionCount: number }>>(`/quiz/imports/${importId}/replace`);
+    return data.data;
+  },
+  getQuestionBankSummary: async (quizId: string) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').QuizBankSummary>>(`/quiz/${quizId}/question-bank`);
+    return data.data;
+  },
   getQuestionBankQuestions: async (quizId: string, query?: { page?: number; limit?: number; search?: string; status?: string; difficulty?: string; tag?: string }) => {
     const { data } = await apiClient.get<ApiResponse<QuizBankQuestion[]>>(`/quiz/${quizId}/question-bank/questions`, { params: query });
     return { items: data.data, meta: data.meta };
@@ -337,6 +346,10 @@ export const quizService = {
   },
   setQuestionBankQuestionStatus: async (quizId: string, questionId: string, status: 'active' | 'disabled') => {
     const { data } = await apiClient.patch<ApiResponse<QuizBankQuestion>>(`/quiz/${quizId}/question-bank/questions/${questionId}/status`, { status });
+    return data.data;
+  },
+  deleteQuestionBankQuestion: async (quizId: string, questionId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ deleted: boolean }>>(`/quiz/${quizId}/question-bank/questions/${questionId}`);
     return data.data;
   },
   getAttemptById: async (attemptId: string) => {
