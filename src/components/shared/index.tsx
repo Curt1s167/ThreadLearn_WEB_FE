@@ -205,7 +205,9 @@ export const CourseCard: React.FC<{
   const lessons = course.totalLessons ?? course.lessonCount ?? 0;
   const learners = course.totalEnrollments ?? course.enrollmentCount ?? 0;
   const duration = course.estimatedDuration;
-  const thumbnailUrl = course.thumbnailUrl && !imageFailed ? course.thumbnailUrl : null;
+  const thumbnailUrl = course.thumbnailUrl && !imageFailed
+    ? normalizeMediaUrl(course.thumbnailUrl)
+    : null;
 
   return (
     <div

@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { coursesService, lessonsService, quizService, sectionsService } from '../../services';
 import { Button, Input } from '../../components/shared';
 import { cn } from '../../utils';
-import type { QuestionPayload, Quiz, QuizBankImport, QuizCreatePayload, QuizUpdatePayload } from '../../types';
+import type { QuestionPayload, Quiz, QuizBankImport, QuizBankQuestion, QuizCreatePayload, QuizUpdatePayload } from '../../types';
 
 type DraftQuestion = QuestionPayload & {
   id?: string;
@@ -17,6 +17,8 @@ type DraftQuestion = QuestionPayload & {
 type QuizEditPayload = Omit<QuizUpdatePayload, 'questions'> & {
   questions: DraftQuestion[];
 };
+
+type BankQuestionDraft = Omit<QuizBankQuestion, 'id' | 'quizId' | 'status' | 'bankVersion' | 'createdAt' | 'updatedAt'>;
 
 interface AdminQuizFormProps {
   quiz?: Quiz | null;
@@ -70,6 +72,27 @@ const cleanQuestion = (question: DraftQuestion): QuestionPayload => ({
   correctAnswerIndex: clampCorrectAnswerIndex(question.correctAnswerIndex, question.options.length),
 });
 
+const createBlankBankQuestion = (): BankQuestionDraft => ({
+  questionText: '',
+  options: [
+    { optionId: 'o1', text: '' },
+    { optionId: 'o2', text: '' },
+  ],
+  correctOptionId: 'o1',
+  explanation: '',
+  difficulty: 'medium',
+  tags: [],
+});
+
+const toBankQuestionDraft = (question: QuizBankQuestion): BankQuestionDraft => ({
+  questionText: question.questionText,
+  options: question.options.map((option) => ({ ...option })),
+  correctOptionId: question.correctOptionId,
+  explanation: question.explanation ?? '',
+  difficulty: question.difficulty,
+  tags: [...question.tags],
+});
+
 export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) => {
   const queryClient = useQueryClient();
   const isEditing = Boolean(quiz);
@@ -94,6 +117,9 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   const [reviewPage, setReviewPage] = useState(1);
   const [editingImportRow, setEditingImportRow] = useState<number | null>(null);
   const [importRowDraft, setImportRowDraft] = useState({ questionText: '', options: '', correctAnswer: '', difficulty: '', explanation: '', tags: '' });
+  const [bankPage, setBankPage] = useState(1);
+  const [editingBankQuestionId, setEditingBankQuestionId] = useState<string | null>(null);
+  const [bankQuestionDraft, setBankQuestionDraft] = useState<BankQuestionDraft | null>(null);
   const [errors, setErrors] = useState<FormErrors>({ questionErrors: {} });
 
   const originalQuestionIds = useMemo(
@@ -124,11 +150,18 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   });
   const activeImport = pagedImport ?? libraryImport;
   const { data: bankQuestions } = useQuery({
-    queryKey: ['quiz-bank-questions', quiz?.id ?? quiz?._id],
-    queryFn: () => quizService.getQuestionBankQuestions(getQuizId(quiz!), { page: 1, limit: 20 }),
+    queryKey: ['quiz-bank-questions', quiz?.id ?? quiz?._id, bankPage],
+    queryFn: () => quizService.getQuestionBankQuestions(getQuizId(quiz!), { page: bankPage, limit: 10 }),
     enabled: Boolean(quiz),
     retry: false,
   });
+  const { data: bankSummary } = useQuery({
+    queryKey: ['quiz-bank-summary', quiz?.id ?? quiz?._id],
+    queryFn: () => quizService.getQuestionBankSummary(getQuizId(quiz!)),
+    enabled: Boolean(quiz),
+    retry: false,
+  });
+  const usesQuestionBank = quiz?.useQuestionBank === true || Boolean(bankQuestions?.items.length);
 
   const createQuizMutation = useMutation({
     mutationFn: (payload: QuizCreatePayload) => quizService.create(payload),
@@ -152,6 +185,8 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
         timeLimitSeconds: payload.timeLimitSeconds,
         xpReward: payload.xpReward,
       });
+
+      if (usesQuestionBank) return;
 
       const submittedExistingIds = new Set(
         payload.questions
@@ -193,6 +228,7 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
         title: title.trim() || undefined,
         file: libraryFile,
         questionCount: Number(libraryQuestionCount),
+        replaceExisting: usesQuestionBank,
       });
     },
     onSuccess: (result) => {
@@ -206,17 +242,24 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   const publishLibraryMutation = useMutation({
     mutationFn: async () => {
       if (!activeImport) throw new Error('No question library to publish.');
+      if (activeImport.mode === 'replace' || usesQuestionBank) {
+        if (!window.confirm('Replace the active question library? The current library will be removed only after this preview is published successfully.')) {
+          throw new Error('Question library replacement was cancelled.');
+        }
+        return quizService.replaceQuestionBankImport(activeImport.id);
+      }
       return quizService.commitQuestionBankImport(activeImport.id);
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['admin-quizzes'] });
       queryClient.invalidateQueries({ queryKey: ['quiz-bank-questions'] });
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-summary'] });
       queryClient.invalidateQueries({ queryKey: ['quiz-bank-import'] });
       toast.success(`Question library published with ${result.activeQuestionCount} active questions.`);
       setLibraryImport((current) => current ? { ...current, status: 'committed' } : current);
       if (!isEditing) onSaved();
     },
-    onError: () => toast.error('Question library could not be published'),
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Question library could not be published'),
   });
 
   const updateImportRowMutation = useMutation({
@@ -256,9 +299,42 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
     mutationFn: ({ questionId, status }: { questionId: string; status: 'active' | 'disabled' }) => quizService.setQuestionBankQuestionStatus(getQuizId(quiz!), questionId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quiz-bank-questions'] });
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-summary'] });
       toast.success('Question status updated');
     },
     onError: () => toast.error('The library must retain enough active questions for each attempt'),
+  });
+
+  const saveBankQuestionMutation = useMutation({
+    mutationFn: async () => {
+      if (!quiz || !bankQuestionDraft) throw new Error('Question draft is unavailable.');
+      const quizId = getQuizId(quiz);
+      if (editingBankQuestionId) {
+        return quizService.updateQuestionBankQuestion(quizId, editingBankQuestionId, bankQuestionDraft);
+      }
+      return quizService.createQuestionBankQuestion(quizId, bankQuestionDraft);
+    },
+    onSuccess: () => {
+      setEditingBankQuestionId(null);
+      setBankQuestionDraft(null);
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-questions'] });
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-summary'] });
+      toast.success('Question library entry saved');
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'Could not save question library entry'),
+  });
+
+  const deleteBankQuestionMutation = useMutation({
+    mutationFn: async (questionId: string) => {
+      if (!quiz) throw new Error('Quiz is unavailable.');
+      return quizService.deleteQuestionBankQuestion(getQuizId(quiz), questionId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-questions'] });
+      queryClient.invalidateQueries({ queryKey: ['quiz-bank-summary'] });
+      toast.success('Question removed from library');
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'The library must retain enough active questions for each attempt'),
   });
 
   const startEditingImportRow = (item: QuizBankImport['items'][number]) => {
@@ -290,11 +366,11 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
     if (!Number.isInteger(reward) || reward <= 0) {
       nextErrors.xpReward = 'XP reward must be positive';
     }
-    if (questions.length < 1) {
+    if (!usesQuestionBank && questions.length < 1) {
       nextErrors.questions = 'At least one question is required';
     }
 
-    questions.forEach((question, index) => {
+    if (!usesQuestionBank) questions.forEach((question, index) => {
       const trimmedOptions = question.options.map((option) => option.trim());
       const filledOptions = trimmedOptions.filter(Boolean);
 
@@ -409,6 +485,33 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
         return { ...question, options, correctAnswerIndex };
       })
     );
+  };
+
+  const updateBankDraftOption = (optionId: string, text: string) => {
+    setBankQuestionDraft((current) => current
+      ? { ...current, options: current.options.map((option) => option.optionId === optionId ? { ...option, text } : option) }
+      : current);
+  };
+
+  const addBankDraftOption = () => {
+    setBankQuestionDraft((current) => {
+      if (!current || current.options.length >= 6) return current;
+      const optionId = `o${current.options.length + 1}`;
+      return { ...current, options: [...current.options, { optionId, text: '' }] };
+    });
+  };
+
+  const removeBankDraftOption = (optionId: string) => {
+    setBankQuestionDraft((current) => {
+      if (!current || current.options.length <= 2) return current;
+      const options = current.options.filter((option) => option.optionId !== optionId);
+      return { ...current, options, correctOptionId: current.correctOptionId === optionId ? options[0].optionId : current.correctOptionId };
+    });
+  };
+
+  const beginBankQuestionEdit = (question?: QuizBankQuestion) => {
+    setEditingBankQuestionId(question?.id ?? null);
+    setBankQuestionDraft(question ? toBankQuestionDraft(question) : createBlankBankQuestion());
   };
 
   const isSubmitting = createQuizMutation.isPending || updateQuizMutation.isPending;
@@ -581,26 +684,100 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
             </Button>
           </div>
         ) : null}
-        {bankQuestions?.items.length ? <div className="mt-4 rounded-lg bg-white p-3 text-xs"><p className="font-semibold text-ink">Published questions</p>{bankQuestions.items.map((question) => <div key={question.id} className="mt-2 flex items-center justify-between gap-3"><span>{question.questionText}</span><button type="button" className="underline" onClick={() => toggleBankQuestionMutation.mutate({ questionId: question.id, status: question.status === 'active' ? 'disabled' : 'active' })}>{question.status === 'active' ? 'Disable' : 'Enable'}</button></div>)}</div> : null}
+        {bankSummary ? (
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-white p-3 text-xs text-black/70 sm:grid-cols-4">
+            <p><span className="font-semibold text-ink">{bankSummary.totalQuestionCount}</span> total</p>
+            <p><span className="font-semibold text-emerald-700">{bankSummary.activeQuestionCount}</span> active</p>
+            <p><span className="font-semibold text-black/60">{bankSummary.disabledQuestionCount}</span> disabled</p>
+            <p><span className="font-semibold text-ink">{bankSummary.questionCount}</span> random / attempt</p>
+          </div>
+        ) : null}
       </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold text-ink">Questions</h3>
-          {errors.questions && <p className="mt-1 text-xs text-rose-600">{errors.questions}</p>}
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setQuestions((current) => [...current, createBlankQuestion()])}
-        >
-          <Plus size={13} />
-          Add question
-        </Button>
-      </div>
+      {usesQuestionBank ? (
+        <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold">Question library is active</p>
+              <p className="mt-1 text-xs leading-5 text-sky-800">
+                Each attempt receives {quiz?.randomQuestionCount ?? libraryQuestionCount} random questions from the active library. These are the live Question Bank records; legacy manual questions are retained only for backward compatibility.
+              </p>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={() => beginBankQuestionEdit()}>
+              <Plus size={13} />
+              Add library question
+            </Button>
+          </div>
 
-      <div className="flex flex-col gap-3 max-h-[50dvh] overflow-y-auto pr-1">
+          {bankQuestionDraft ? (
+            <div className="mt-4 rounded-lg border border-sky-200 bg-white p-3 text-xs text-ink">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold">{editingBankQuestionId ? 'Edit library question' : 'Add library question'}</p>
+                <button type="button" className="underline" onClick={() => { setEditingBankQuestionId(null); setBankQuestionDraft(null); }}>Cancel</button>
+              </div>
+              <input className="input-field mt-3" value={bankQuestionDraft.questionText} onChange={(event) => setBankQuestionDraft((current) => current ? { ...current, questionText: event.target.value } : current)} placeholder="Question text" />
+              <div className="mt-3 space-y-2">
+                {bankQuestionDraft.options.map((option, index) => (
+                  <div key={option.optionId} className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                    <input className="input-field" value={option.text} onChange={(event) => updateBankDraftOption(option.optionId, event.target.value)} placeholder={`Option ${index + 1}`} />
+                    <button type="button" onClick={() => setBankQuestionDraft((current) => current ? { ...current, correctOptionId: option.optionId } : current)} className={cn('h-10 rounded-lg border px-3 text-xs', bankQuestionDraft.correctOptionId === option.optionId ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-black/10 text-black/60')}>
+                      {bankQuestionDraft.correctOptionId === option.optionId ? 'Correct' : 'Mark correct'}
+                    </button>
+                    <button type="button" aria-label={`Remove option ${index + 1}`} onClick={() => removeBankDraftOption(option.optionId)} disabled={bankQuestionDraft.options.length <= 2} className="inline-flex size-10 items-center justify-center rounded-lg border border-black/10 disabled:opacity-40"><X size={14} /></button>
+                  </div>
+                ))}
+              </div>
+              <Button type="button" size="sm" variant="outline" className="mt-3" onClick={addBankDraftOption} disabled={bankQuestionDraft.options.length >= 6}><Plus size={13} />Add option</Button>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <select className="input-field" value={bankQuestionDraft.difficulty} onChange={(event) => setBankQuestionDraft((current) => current ? { ...current, difficulty: event.target.value as QuizBankQuestion['difficulty'] } : current)}><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select>
+                <input className="input-field" value={bankQuestionDraft.tags.join(', ')} onChange={(event) => setBankQuestionDraft((current) => current ? { ...current, tags: event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean) } : current)} placeholder="Tags, separated by commas" />
+              </div>
+              <textarea className="input-field mt-2 min-h-20" value={bankQuestionDraft.explanation ?? ''} onChange={(event) => setBankQuestionDraft((current) => current ? { ...current, explanation: event.target.value } : current)} placeholder="Explanation (optional)" />
+              <Button type="button" className="mt-3" size="sm" loading={saveBankQuestionMutation.isPending} onClick={() => saveBankQuestionMutation.mutate()}><Save size={13} />Save library question</Button>
+            </div>
+          ) : null}
+
+          <div className="mt-4 space-y-3">
+            {bankQuestions?.items.map((question, index) => (
+              <article key={question.id} className="rounded-lg border border-sky-200 bg-white p-3 text-xs text-ink">
+                <div className="flex items-start justify-between gap-3">
+                  <div><p className="font-semibold">{((bankQuestions.meta?.page ?? 1) - 1) * (bankQuestions.meta?.limit ?? 10) + index + 1}. {question.questionText}</p><p className="mt-1 text-black/55">{question.difficulty} {question.tags.length ? `· ${question.tags.join(', ')}` : ''}</p></div>
+                  <span className={question.status === 'active' ? 'text-emerald-700' : 'text-black/50'}>{question.status}</span>
+                </div>
+                <div className="mt-3 space-y-1">
+                  {question.options.map((option, optionIndex) => <p key={option.optionId} className={option.optionId === question.correctOptionId ? 'rounded bg-emerald-50 px-2 py-1 font-semibold text-emerald-800' : 'px-2 py-1'}>{String.fromCharCode(65 + optionIndex)}. {option.text}{option.optionId === question.correctOptionId ? ' — Correct answer' : ''}</p>)}
+                </div>
+                {question.explanation ? <p className="mt-2 rounded bg-black/[0.03] p-2 text-black/65">Explanation: {question.explanation}</p> : null}
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <button type="button" className="underline" onClick={() => beginBankQuestionEdit(question)}>Edit</button>
+                  <button type="button" className="underline" disabled={toggleBankQuestionMutation.isPending} onClick={() => toggleBankQuestionMutation.mutate({ questionId: question.id, status: question.status === 'active' ? 'disabled' : 'active' })}>{question.status === 'active' ? 'Disable' : 'Enable'}</button>
+                  <button type="button" className="text-rose-700 underline" disabled={deleteBankQuestionMutation.isPending} onClick={() => { if (window.confirm('Delete this question from the active library?')) deleteBankQuestionMutation.mutate(question.id); }}>Delete</button>
+                </div>
+              </article>
+            ))}
+            {!bankQuestions?.items.length ? <p className="rounded-lg bg-white p-3 text-xs text-black/60">No published library questions found yet.</p> : null}
+          </div>
+          {(bankQuestions?.meta?.totalPages ?? 1) > 1 ? <div className="mt-4 flex items-center justify-between"><Button type="button" size="sm" variant="outline" disabled={bankPage <= 1} onClick={() => setBankPage((page) => page - 1)}>Previous</Button><span className="text-xs">Page {bankPage} / {bankQuestions?.meta?.totalPages}</span><Button type="button" size="sm" variant="outline" disabled={bankPage >= (bankQuestions?.meta?.totalPages ?? 1)} onClick={() => setBankPage((page) => page + 1)}>Next</Button></div> : null}
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Manual questions</h3>
+              {errors.questions && <p className="mt-1 text-xs text-rose-600">{errors.questions}</p>}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setQuestions((current) => [...current, createBlankQuestion()])}
+            >
+              <Plus size={13} />
+              Add question
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-3">
         {questions.map((question, questionIndex) => (
           <div key={question.localId} className="rounded-xl border border-black/10 bg-[#f7f4ee]/50 p-4">
             <div className="flex items-start justify-between gap-3 mb-3">
@@ -673,7 +850,9 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
             </div>
           </div>
         ))}
-      </div>
+          </div>
+        </>
+      )}
 
       <div className="flex justify-end gap-3 border-t border-black/10 pt-4">
         <Button type="submit" loading={isSubmitting}>

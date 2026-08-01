@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { coursesService, enrollmentsService, learningPlanService } from '../../services';
 import { extractApiError, extractApiErrorCode } from '../../services/apiClient';
 import { Button, EmptyState, Skeleton } from '../../components/shared';
+import { normalizeMediaUrl } from '../../utils/media-url';
 import { ContextualDiscussionRoom } from '../discussions/ContextualDiscussionRoom';
 import { useAuthStore } from '../../store';
 import type { CourseGoalPriority, CourseLevel, CourseSection, Enrollment, Lesson, User } from '../../types';
@@ -369,7 +370,7 @@ export const CourseDetailPage: React.FC = () => {
           <div className="course-hero-status-card relative overflow-hidden rounded-2xl p-5 text-white">
             {course.thumbnailUrl ? (
               <div className="course-hero-status-image pointer-events-none absolute inset-0">
-                <Image src={course.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
+                <Image src={normalizeMediaUrl(course.thumbnailUrl) ?? course.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
               </div>
             ) : (
               <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black/[0.04]">

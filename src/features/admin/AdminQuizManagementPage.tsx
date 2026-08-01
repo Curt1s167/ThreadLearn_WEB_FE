@@ -209,7 +209,9 @@ export const AdminQuizManagementPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm tabular-nums text-black/70">
-                        {quiz.questions.length}
+                        {quiz.useQuestionBank
+                          ? `${quiz.randomQuestionCount ?? 5} random`
+                          : quiz.questions.length}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
