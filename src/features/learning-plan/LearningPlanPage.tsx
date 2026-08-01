@@ -192,7 +192,7 @@ export const LearningPlanPage: React.FC = () => {
                       Send a copy to my verified email
                     </span>
                     <span className="mt-1 block text-xs leading-5 text-black/55">
-                      Save your preference now. Email delivery will be enabled in the next update.
+                      We&apos;ll send study reminders to your verified account email at the time you choose.
                     </span>
                   </span>
                 </label>
