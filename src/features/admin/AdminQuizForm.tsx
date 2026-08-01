@@ -2,11 +2,13 @@
 
 import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Save, Trash2, X } from 'lucide-react';
+import { Pencil, Plus, Power, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { coursesService, lessonsService, quizService, sectionsService } from '../../services';
 import { Button, Input } from '../../components/shared';
+import { ConfirmModal } from '../../components/shared/Modal';
 import { cn } from '../../utils';
+import { useUIStore } from '../../store';
 import type { QuestionPayload, Quiz, QuizBankImport, QuizBankQuestion, QuizCreatePayload, QuizUpdatePayload } from '../../types';
 
 type DraftQuestion = QuestionPayload & {
@@ -45,6 +47,9 @@ const getQuestionId = (question: { id?: string; _id: string }) => question.id ??
 const normalizeOptionValue = (option: string) => option.trim().replace(/\s+/g, ' ').toLowerCase();
 const clampCorrectAnswerIndex = (index: number, optionCount: number) =>
   Math.min(Math.max(index, 0), Math.max(optionCount - 1, 0));
+
+const REPLACE_LIBRARY_CONFIRM_MODAL = 'replace-question-library-confirm';
+const DELETE_LIBRARY_QUESTION_CONFIRM_MODAL = 'delete-library-question-confirm';
 
 const createBlankQuestion = (): DraftQuestion => ({
   localId: makeLocalId(),
@@ -120,7 +125,9 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   const [bankPage, setBankPage] = useState(1);
   const [editingBankQuestionId, setEditingBankQuestionId] = useState<string | null>(null);
   const [bankQuestionDraft, setBankQuestionDraft] = useState<BankQuestionDraft | null>(null);
+  const [pendingDeleteQuestionId, setPendingDeleteQuestionId] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors>({ questionErrors: {} });
+  const { openModal } = useUIStore();
 
   const originalQuestionIds = useMemo(
     () => new Set((quiz?.questions ?? []).map(getQuestionId)),
@@ -242,12 +249,7 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   const publishLibraryMutation = useMutation({
     mutationFn: async () => {
       if (!activeImport) throw new Error('No question library to publish.');
-      if (activeImport.mode === 'replace' || usesQuestionBank) {
-        if (!window.confirm('Replace the active question library? The current library will be removed only after this preview is published successfully.')) {
-          throw new Error('Question library replacement was cancelled.');
-        }
-        return quizService.replaceQuestionBankImport(activeImport.id);
-      }
+      if (activeImport.mode === 'replace' || usesQuestionBank) return quizService.replaceQuestionBankImport(activeImport.id);
       return quizService.commitQuestionBankImport(activeImport.id);
     },
     onSuccess: (result) => {
@@ -517,6 +519,7 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
   const isSubmitting = createQuizMutation.isPending || updateQuizMutation.isPending;
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div className="grid md:grid-cols-2 gap-4">
         {isEditing ? (
@@ -678,7 +681,13 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
               className="mt-3"
               loading={publishLibraryMutation.isPending}
               disabled={activeImport.status === 'committed' || activeImport.validCount < Number(libraryQuestionCount)}
-              onClick={() => publishLibraryMutation.mutate()}
+              onClick={() => {
+                if (activeImport.mode === 'replace' || usesQuestionBank) {
+                  openModal(REPLACE_LIBRARY_CONFIRM_MODAL);
+                  return;
+                }
+                publishLibraryMutation.mutate();
+              }}
             >
               {activeImport.status === 'committed' ? 'Published' : 'Publish question library'}
             </Button>
@@ -749,9 +758,9 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
                 </div>
                 {question.explanation ? <p className="mt-2 rounded bg-black/[0.03] p-2 text-black/65">Explanation: {question.explanation}</p> : null}
                 <div className="mt-3 flex flex-wrap gap-3">
-                  <button type="button" className="underline" onClick={() => beginBankQuestionEdit(question)}>Edit</button>
-                  <button type="button" className="underline" disabled={toggleBankQuestionMutation.isPending} onClick={() => toggleBankQuestionMutation.mutate({ questionId: question.id, status: question.status === 'active' ? 'disabled' : 'active' })}>{question.status === 'active' ? 'Disable' : 'Enable'}</button>
-                  <button type="button" className="text-rose-700 underline" disabled={deleteBankQuestionMutation.isPending} onClick={() => { if (window.confirm('Delete this question from the active library?')) deleteBankQuestionMutation.mutate(question.id); }}>Delete</button>
+                  <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => beginBankQuestionEdit(question)}><Pencil size={13} />Edit</Button>
+                  <Button type="button" size="sm" variant="outline" className="gap-1.5" loading={toggleBankQuestionMutation.isPending} disabled={toggleBankQuestionMutation.isPending} onClick={() => toggleBankQuestionMutation.mutate({ questionId: question.id, status: question.status === 'active' ? 'disabled' : 'active' })}><Power size={13} />{question.status === 'active' ? 'Disable' : 'Enable'}</Button>
+                  <Button type="button" size="sm" variant="outline" className="gap-1.5 border-rose-200 text-rose-700 hover:bg-rose-50" loading={deleteBankQuestionMutation.isPending} disabled={deleteBankQuestionMutation.isPending} onClick={() => { setPendingDeleteQuestionId(question.id); openModal(DELETE_LIBRARY_QUESTION_CONFIRM_MODAL); }}><Trash2 size={13} />Delete</Button>
                 </div>
               </article>
             ))}
@@ -861,5 +870,25 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
         </Button>
       </div>
     </form>
+    <ConfirmModal
+      name={REPLACE_LIBRARY_CONFIRM_MODAL}
+      title="Replace question library?"
+      description="The current library is replaced only after this preview is published successfully."
+      confirmLabel="Replace library"
+      danger
+      onConfirm={() => publishLibraryMutation.mutate()}
+    />
+    <ConfirmModal
+      name={DELETE_LIBRARY_QUESTION_CONFIRM_MODAL}
+      title="Delete library question?"
+      description="This removes the question from the active library. Existing student attempts remain unchanged."
+      confirmLabel="Delete question"
+      danger
+      onConfirm={() => {
+        if (pendingDeleteQuestionId) deleteBankQuestionMutation.mutate(pendingDeleteQuestionId);
+        setPendingDeleteQuestionId(null);
+      }}
+    />
+    </>
   );
 };
