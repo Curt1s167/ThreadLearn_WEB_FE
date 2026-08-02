@@ -6,6 +6,11 @@ import {
   type DiscussionCommentWire,
   type DiscussionModerationReportWire,
 } from './comment-normalizer';
+import {
+  normalizeCodeAssignment,
+  normalizeCodeAssignments,
+  type CodeAssignmentWire,
+} from './code-assignment-normalizer';
 export { certificatesService } from './certificates.service';
 import type {
   ApiResponse,
@@ -634,16 +639,16 @@ export const codeExecutionService = {
 
 export const codeAssignmentService = {
   listByLesson: async (lessonId: string) => {
-    const { data } = await apiClient.get<ApiResponse<import('../types').CodeAssignment[]>>('/exercises', { params: { lessonId } });
-    return data.data;
+    const { data } = await apiClient.get<ApiResponse<CodeAssignmentWire[]>>('/exercises', { params: { lessonId } });
+    return normalizeCodeAssignments(data.data);
   },
   listAllForAdmin: async () => {
-    const { data } = await apiClient.get<ApiResponse<import('../types').CodeAssignment[]>>('/exercises/admin/all');
-    return data.data;
+    const { data } = await apiClient.get<ApiResponse<CodeAssignmentWire[]>>('/exercises/admin/all');
+    return normalizeCodeAssignments(data.data);
   },
   get: async (assignmentId: string) => {
-    const { data } = await apiClient.get<ApiResponse<import('../types').CodeAssignment>>(`/exercises/${assignmentId}`);
-    return data.data;
+    const { data } = await apiClient.get<ApiResponse<CodeAssignmentWire>>(`/exercises/${assignmentId}`);
+    return normalizeCodeAssignment(data.data);
   },
   create: async (payload: import('../types').AssignmentPayload) => {
     const { data } = await apiClient.post<ApiResponse<import('../types').CodeAssignment>>('/exercises', payload);
