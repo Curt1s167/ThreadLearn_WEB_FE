@@ -524,6 +524,7 @@ export interface QuizSubmitResult {
 // ─── Comments ─────────────────────────────────────────────────────────────────
 
 export interface Comment {
+  id?: string;
   _id: string;
   lessonId?: string;
   courseId?: string;
