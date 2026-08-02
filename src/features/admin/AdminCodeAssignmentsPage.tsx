@@ -9,46 +9,137 @@ import { codeAssignmentService } from '../../services';
 import type { AssignmentPayload, AssignmentTestCase, CodeAssignment } from '../../types';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
-const emptyForm = (): AssignmentPayload => ({ lessonId: '', title: '', description: '', starterCode: '', language: 'javascript', testCases: [{ input: '', expectedOutput: '', isHidden: false }, { input: '', expectedOutput: '', isHidden: true }], timeLimitMs: 5000, memoryLimitKb: 131072, status: 'DRAFT', deadline: null, maxSubmissions: null });
+
+type FormTestCase = NonNullable<AssignmentPayload['testCases']>[number] & { clientId: string };
+type AssignmentForm = Omit<AssignmentPayload, 'testCases'> & { testCases: FormTestCase[] };
+
+const createTestCase = (isHidden = false): FormTestCase => ({
+  clientId: crypto.randomUUID(),
+  input: '',
+  expectedOutput: '',
+  isHidden,
+});
+
+const emptyForm = (): AssignmentForm => ({
+  lessonId: '',
+  title: '',
+  description: '',
+  starterCode: '',
+  language: 'javascript',
+  testCases: [createTestCase(), createTestCase(true)],
+  timeLimitMs: 5000,
+  memoryLimitKb: 131072,
+  status: 'DRAFT',
+  deadline: null,
+  maxSubmissions: null,
+});
 
 export function AdminCodeAssignmentsPage() {
   const client = useQueryClient();
   const [editing, setEditing] = useState<CodeAssignment | null>(null);
-  const [form, setForm] = useState<AssignmentPayload>(emptyForm());
+  const [form, setForm] = useState<AssignmentForm>(emptyForm());
   const assignments = useQuery({ queryKey: ['admin-code-assignments'], queryFn: codeAssignmentService.listAllForAdmin });
   const assignmentSubmissions = useQuery({
     queryKey: ['admin-code-assignment-submissions', editing?._id],
     queryFn: () => codeAssignmentService.submissionsForAdmin(editing!._id),
     enabled: Boolean(editing?._id),
   });
-  const testCases = useMemo(() => form.testCases ?? [], [form.testCases]);
+  const testCases = useMemo(() => form.testCases, [form.testCases]);
   const save = useMutation({
-    mutationFn: () => editing ? codeAssignmentService.update(editing._id, form) : codeAssignmentService.create(form),
-    onSuccess: () => { client.invalidateQueries({ queryKey: ['admin-code-assignments'] }); setEditing(null); setForm(emptyForm()); toast.success('Code assignment saved'); },
+    mutationFn: () => {
+      const { testCases: formTestCases, ...payload } = form;
+      const cleanPayload = {
+        ...payload,
+        testCases: formTestCases.map(({ clientId, ...testCase }) => testCase),
+      };
+      return editing
+        ? codeAssignmentService.update(editing._id, cleanPayload)
+        : codeAssignmentService.create(cleanPayload);
+    },
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['admin-code-assignments'] });
+      setEditing(null);
+      setForm(emptyForm());
+      toast.success('Code assignment saved');
+    },
     onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Could not save assignment'),
   });
   const remove = useMutation({
     mutationFn: codeAssignmentService.remove,
-    onSuccess: () => { client.invalidateQueries({ queryKey: ['admin-code-assignments'] }); toast.success('Code assignment deleted'); },
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['admin-code-assignments'] });
+      toast.success('Code assignment deleted');
+    },
     onError: () => toast.error('Could not delete assignment'),
   });
-  const warning = useMemo(() => ({ public: testCases.filter((test) => !test.isHidden).length, hidden: testCases.filter((test) => test.isHidden).length }), [testCases]);
+  const warning = useMemo(() => ({
+    public: testCases.filter((test) => !test.isHidden).length,
+    hidden: testCases.filter((test) => test.isHidden).length,
+  }), [testCases]);
+
   const edit = (assignment: CodeAssignment) => {
     setEditing(assignment);
-    setForm({ lessonId: assignment.lessonId, title: assignment.title, description: assignment.description, starterCode: assignment.starterCode, language: assignment.language, testCases: assignment.testCases.map((test) => ({ input: test.input ?? '', expectedOutput: test.expectedOutput ?? '', isHidden: test.isHidden, points: test.points })), timeLimitMs: assignment.timeLimitMs, memoryLimitKb: assignment.memoryLimitKb, status: assignment.status, deadline: assignment.deadline ? new Date(assignment.deadline).toISOString().slice(0, 16) : null, maxSubmissions: assignment.maxSubmissions ?? null });
+    setForm({
+      lessonId: assignment.lessonId,
+      title: assignment.title,
+      description: assignment.description,
+      starterCode: assignment.starterCode,
+      language: assignment.language,
+      testCases: assignment.testCases.map((test) => ({
+        clientId: test.id ?? crypto.randomUUID(),
+        input: test.input ?? '',
+        expectedOutput: test.expectedOutput ?? '',
+        isHidden: test.isHidden,
+        points: test.points,
+      })),
+      timeLimitMs: assignment.timeLimitMs,
+      memoryLimitKb: assignment.memoryLimitKb,
+      status: assignment.status,
+      deadline: assignment.deadline ? new Date(assignment.deadline).toISOString().slice(0, 16) : null,
+      maxSubmissions: assignment.maxSubmissions ?? null,
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const updateTest = (index: number, field: keyof AssignmentTestCase, value: string | boolean) => setForm((current) => ({ ...current, testCases: (current.testCases ?? []).map((test, testIndex) => testIndex === index ? { ...test, [field]: value } : test) }));
+
+  const updateTest = (clientId: string, field: keyof AssignmentTestCase, value: string | boolean) => {
+    setForm((current) => ({
+      ...current,
+      testCases: current.testCases.map((test) => test.clientId === clientId ? { ...test, [field]: value } : test),
+    }));
+  };
 
   return <main className="mx-auto max-w-7xl space-y-6 p-6">
-    <header className="rounded-xl border border-black/10 bg-white p-6 shadow-sm"><p className="text-xs font-semibold uppercase tracking-widest text-black/45">Admin</p><h1 className="mt-2 text-3xl font-semibold text-ink">Code Assignments</h1><p className="mt-2 text-sm text-black/60">Configure visible and hidden tests. Hidden data is only returned to administrators.</p></header>
-    <section className="rounded-xl border border-black/10 bg-white p-5"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">{editing ? 'Edit assignment' : 'New assignment'}</h2>{editing ? <button type="button" onClick={() => { setEditing(null); setForm(emptyForm()); }} className="text-sm text-black/60">Cancel edit</button> : null}</div>
-      <div className="grid gap-3 md:grid-cols-2"><input aria-label="Lesson ID" value={form.lessonId} onChange={(event) => setForm({ ...form, lessonId: event.target.value })} placeholder="Lesson ID" className="rounded-md border border-black/15 p-2 text-sm" /><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Assignment title" className="rounded-md border border-black/15 p-2 text-sm" /><select aria-label="Language" value={form.language} onChange={(event) => setForm({ ...form, language: event.target.value as AssignmentPayload['language'] })} className="rounded-md border border-black/15 p-2 text-sm"><option value="javascript">JavaScript</option><option value="python">Python</option><option value="java">Java</option><option value="cpp">C++</option><option value="c">C</option></select><select aria-label="Status" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as AssignmentPayload['status'] })} className="rounded-md border border-black/15 p-2 text-sm"><option value="DRAFT">Draft</option><option value="PUBLISHED">Published</option><option value="CLOSED">Closed</option></select><input type="number" min="100" value={form.timeLimitMs ?? 5000} onChange={(event) => setForm({ ...form, timeLimitMs: Number(event.target.value) })} placeholder="Time limit ms" className="rounded-md border border-black/15 p-2 text-sm" /><input type="number" min="16384" value={form.memoryLimitKb ?? 131072} onChange={(event) => setForm({ ...form, memoryLimitKb: Number(event.target.value) })} placeholder="Memory limit KB" className="rounded-md border border-black/15 p-2 text-sm" /><input type="number" min="1" value={form.maxSubmissions ?? ''} onChange={(event) => setForm({ ...form, maxSubmissions: event.target.value ? Number(event.target.value) : null })} placeholder="Unlimited submissions" className="rounded-md border border-black/15 p-2 text-sm" /><input type="datetime-local" value={form.deadline ?? ''} onChange={(event) => setForm({ ...form, deadline: event.target.value || null })} className="rounded-md border border-black/15 p-2 text-sm" /></div>
+    <header className="rounded-xl border border-black/10 bg-white p-6 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-widest text-black/45">Admin</p>
+      <h1 className="mt-2 text-3xl font-semibold text-ink">Code Assignments</h1>
+      <p className="mt-2 text-sm text-black/60">Configure visible and hidden tests. Hidden data is only returned to administrators.</p>
+    </header>
+
+    <section className="rounded-xl border border-black/10 bg-white p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-semibold">{editing ? 'Edit assignment' : 'New assignment'}</h2>
+        {editing ? <button type="button" onClick={() => { setEditing(null); setForm(emptyForm()); }} className="text-sm text-black/60">Cancel edit</button> : null}
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <input aria-label="Lesson ID" value={form.lessonId} onChange={(event) => setForm({ ...form, lessonId: event.target.value })} placeholder="Lesson ID" className="rounded-md border border-black/15 p-2 text-sm" />
+        <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Assignment title" className="rounded-md border border-black/15 p-2 text-sm" />
+        <select aria-label="Language" value={form.language} onChange={(event) => setForm({ ...form, language: event.target.value as AssignmentPayload['language'] })} className="rounded-md border border-black/15 p-2 text-sm"><option value="javascript">JavaScript</option><option value="python">Python</option><option value="java">Java</option><option value="cpp">C++</option><option value="c">C</option></select>
+        <select aria-label="Status" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as AssignmentPayload['status'] })} className="rounded-md border border-black/15 p-2 text-sm"><option value="DRAFT">Draft</option><option value="PUBLISHED">Published</option><option value="CLOSED">Closed</option></select>
+        <input type="number" min="100" value={form.timeLimitMs ?? 5000} onChange={(event) => setForm({ ...form, timeLimitMs: Number(event.target.value) })} placeholder="Time limit ms" className="rounded-md border border-black/15 p-2 text-sm" />
+        <input type="number" min="16384" value={form.memoryLimitKb ?? 131072} onChange={(event) => setForm({ ...form, memoryLimitKb: Number(event.target.value) })} placeholder="Memory limit KB" className="rounded-md border border-black/15 p-2 text-sm" />
+        <input type="number" min="1" value={form.maxSubmissions ?? ''} onChange={(event) => setForm({ ...form, maxSubmissions: event.target.value ? Number(event.target.value) : null })} placeholder="Unlimited submissions" className="rounded-md border border-black/15 p-2 text-sm" />
+        <input type="datetime-local" value={form.deadline ?? ''} onChange={(event) => setForm({ ...form, deadline: event.target.value || null })} className="rounded-md border border-black/15 p-2 text-sm" />
+      </div>
       <textarea value={form.description ?? ''} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Problem description" rows={5} className="mt-3 w-full rounded-md border border-black/15 p-2 text-sm" />
       <div className="mt-3 overflow-hidden rounded-md border border-black/15"><p className="bg-black/[0.03] px-3 py-2 text-xs font-semibold">Starter code</p><MonacoEditor height="220px" language={form.language === 'cpp' ? 'cpp' : form.language} value={form.starterCode ?? ''} onChange={(value) => setForm({ ...form, starterCode: value ?? '' })} options={{ minimap: { enabled: false }, automaticLayout: true }} /></div>
-      <div className="mt-5"><div className="flex items-center justify-between"><h3 className="font-semibold">Test cases</h3><button type="button" onClick={() => setForm({ ...form, testCases: [...testCases, { input: '', expectedOutput: '', isHidden: false }] })} className="inline-flex items-center gap-1 text-sm text-indigo-700"><Plus size={15} /> Add test</button></div><p className={`mt-1 text-xs ${warning.public && warning.hidden ? 'text-emerald-700' : 'text-amber-700'}`}>{warning.public} public · {warning.hidden} hidden. Published assignments should have both.</p><div className="mt-3 space-y-3">{testCases.map((test, index) => <div key={index} className="rounded-lg border border-black/10 p-3"><div className="mb-2 flex items-center justify-between"><label className="inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={test.isHidden} onChange={(event) => updateTest(index, 'isHidden', event.target.checked)} /> Hidden test</label><button type="button" aria-label={`Remove test ${index + 1}`} onClick={() => setForm({ ...form, testCases: testCases.filter((_, testIndex) => testIndex !== index) })} className="text-rose-600"><Trash2 size={15} /></button></div><div className="grid gap-2 md:grid-cols-2"><textarea value={test.input ?? ''} onChange={(event) => updateTest(index, 'input', event.target.value)} placeholder="stdin" rows={3} className="rounded border border-black/15 p-2 font-mono text-xs" /><textarea value={test.expectedOutput ?? ''} onChange={(event) => updateTest(index, 'expectedOutput', event.target.value)} placeholder="expected output" rows={3} className="rounded border border-black/15 p-2 font-mono text-xs" /></div></div>)}</div></div>
+      <div className="mt-5">
+        <div className="flex items-center justify-between"><h3 className="font-semibold">Test cases</h3><button type="button" onClick={() => setForm({ ...form, testCases: [...testCases, createTestCase()] })} className="inline-flex items-center gap-1 text-sm text-indigo-700"><Plus size={15} /> Add test</button></div>
+        <p className={`mt-1 text-xs ${warning.public && warning.hidden ? 'text-emerald-700' : 'text-amber-700'}`}>{warning.public} public · {warning.hidden} hidden. Published assignments should have both.</p>
+        <div className="mt-3 space-y-3">{testCases.map((test, index) => <div key={test.clientId} className="rounded-lg border border-black/10 p-3"><div className="mb-2 flex items-center justify-between"><label className="inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={test.isHidden} onChange={(event) => updateTest(test.clientId, 'isHidden', event.target.checked)} /> Hidden test</label><button type="button" aria-label={`Remove test ${index + 1}`} onClick={() => setForm({ ...form, testCases: testCases.filter((item) => item.clientId !== test.clientId) })} className="text-rose-600"><Trash2 size={15} /></button></div><div className="grid gap-2 md:grid-cols-2"><textarea value={test.input ?? ''} onChange={(event) => updateTest(test.clientId, 'input', event.target.value)} placeholder="stdin" rows={3} className="rounded border border-black/15 p-2 font-mono text-xs" /><textarea value={test.expectedOutput ?? ''} onChange={(event) => updateTest(test.clientId, 'expectedOutput', event.target.value)} placeholder="expected output" rows={3} className="rounded border border-black/15 p-2 font-mono text-xs" /></div></div>)}</div>
+      </div>
       <button type="button" disabled={save.isPending || !form.lessonId || !form.title} onClick={() => save.mutate()} className="mt-5 inline-flex items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Save size={15} /> {save.isPending ? 'Saving…' : 'Save assignment'}</button>
     </section>
+
     {editing ? <section className="overflow-hidden rounded-xl border border-black/10 bg-white"><div className="border-b border-black/10 p-5"><h2 className="font-semibold">Submissions for {editing.title}</h2></div>{assignmentSubmissions.isLoading ? <p className="p-5 text-sm text-black/50">Loading submissions…</p> : <div className="divide-y divide-black/10">{assignmentSubmissions.data?.items.map((submission) => <details key={submission._id} className="p-4"><summary className="cursor-pointer text-sm"><span className="font-medium">Attempt {submission.attemptNumber}</span> · {submission.score}% · {submission.verdict ?? submission.submissionStatus} · {new Date(submission.submittedAt).toLocaleString()}</summary><div className="mt-3 grid gap-3 lg:grid-cols-2"><pre className="overflow-auto rounded bg-slate-950 p-3 text-xs text-lime-200">{submission.sourceCode}</pre><div className="text-sm text-black/65"><p>{submission.testCasesPassed}/{submission.totalTestCases} tests · {submission.executionTime}s · {submission.memoryUsage} KB</p>{submission.aiFeedback?.summary ? <p className="mt-2">AI: {submission.aiFeedback.summary}</p> : null}{submission.similarityResult ? <p className="mt-2 text-amber-700">Similarity warning: {(submission.similarityResult.similarityScore * 100).toFixed(1)}%</p> : null}</div></div></details>)}{!assignmentSubmissions.data?.items.length ? <p className="p-5 text-sm text-black/50">No submissions yet.</p> : null}</div>}</section> : null}
     <section className="overflow-hidden rounded-xl border border-black/10 bg-white"><div className="border-b border-black/10 p-5"><h2 className="font-semibold">Configured assignments</h2></div>{assignments.isLoading ? <p className="p-5 text-sm text-black/50">Loading…</p> : <div className="divide-y divide-black/10">{assignments.data?.map((assignment) => <div key={assignment._id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-medium">{assignment.title}</p><p className="text-xs text-black/55">{assignment.status} · {assignment.totalTestCases} tests · lesson {assignment.lessonId.slice(-8)}</p></div><div className="flex gap-2"><a href={`/ide/assignments/${assignment._id}`} className="inline-flex items-center gap-1 rounded-md border border-black/15 px-3 py-2 text-xs"><Eye size={14} /> Preview</a><button type="button" onClick={() => edit(assignment)} className="inline-flex items-center gap-1 rounded-md border border-black/15 px-3 py-2 text-xs"><Edit3 size={14} /> Edit</button><button type="button" onClick={() => { if (window.confirm(`Delete ${assignment.title}?`)) remove.mutate(assignment._id); }} className="rounded-md border border-rose-200 px-3 py-2 text-xs text-rose-700"><Trash2 size={14} /></button></div></div>)}{!assignments.data?.length ? <p className="p-5 text-sm text-black/50">No assignments yet.</p> : null}</div>}</section>
   </main>;
