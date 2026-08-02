@@ -5,10 +5,13 @@ import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Edit3, Eye, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmModal } from '../../components/shared/Modal';
 import { codeAssignmentService, coursesService, lessonsService } from '../../services';
+import { useUIStore } from '../../store';
 import type { AssignmentPayload, AssignmentTestCase, CodeAssignment } from '../../types';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
+const DELETE_ASSIGNMENT_MODAL = 'delete-code-assignment';
 
 type FormTestCase = NonNullable<AssignmentPayload['testCases']>[number] & { clientId: string };
 type AssignmentForm = Omit<AssignmentPayload, 'testCases'> & { testCases: FormTestCase[] };
@@ -64,8 +67,10 @@ const assignmentForm = (assignment: CodeAssignment): AssignmentForm => ({
 
 export function AdminCodeAssignmentsPage() {
   const client = useQueryClient();
+  const { openModal } = useUIStore();
   const editRequest = useRef(0);
   const [editing, setEditing] = useState<CodeAssignment | null>(null);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<CodeAssignment | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [linkedLessonError, setLinkedLessonError] = useState<string | null>(null);
   const [form, setForm] = useState<AssignmentForm>(emptyForm());
@@ -125,6 +130,7 @@ export function AdminCodeAssignmentsPage() {
     mutationFn: codeAssignmentService.remove,
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['admin-code-assignments'] });
+      setAssignmentToDelete(null);
       toast.success('Code assignment deleted');
     },
     onError: () => toast.error('Could not delete assignment'),
@@ -216,6 +222,14 @@ export function AdminCodeAssignmentsPage() {
     </section>
 
     {editing ? <section className="overflow-hidden rounded-xl border border-black/10 bg-white"><div className="border-b border-black/10 p-5"><h2 className="font-semibold">Submissions for {editing.title}</h2></div>{assignmentSubmissions.isLoading ? <p className="p-5 text-sm text-black/50">Loading submissions…</p> : <div className="divide-y divide-black/10">{assignmentSubmissions.data?.items.map((submission) => <details key={submission._id} className="p-4"><summary className="cursor-pointer text-sm"><span className="font-medium">Attempt {submission.attemptNumber}</span> · {submission.score}% · {submission.verdict ?? submission.submissionStatus} · {new Date(submission.submittedAt).toLocaleString()}</summary><div className="mt-3 grid gap-3 lg:grid-cols-2"><pre className="overflow-auto rounded bg-slate-950 p-3 text-xs text-lime-200">{submission.sourceCode}</pre><div className="text-sm text-black/65"><p>{submission.testCasesPassed}/{submission.totalTestCases} tests · {submission.executionTime}s · {submission.memoryUsage} KB</p>{submission.aiFeedback?.summary ? <p className="mt-2">AI: {submission.aiFeedback.summary}</p> : null}{submission.similarityResult ? <p className="mt-2 text-amber-700">Similarity warning: {(submission.similarityResult.similarityScore * 100).toFixed(1)}%</p> : null}</div></div></details>)}{!assignmentSubmissions.data?.items.length ? <p className="p-5 text-sm text-black/50">No submissions yet.</p> : null}</div>}</section> : null}
-    <section className="overflow-hidden rounded-xl border border-black/10 bg-white"><div className="border-b border-black/10 p-5"><h2 className="font-semibold">Configured assignments</h2></div>{assignments.isLoading ? <p className="p-5 text-sm text-black/50">Loading…</p> : <div className="divide-y divide-black/10">{assignments.data?.map((assignment) => <div key={assignment._id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-medium">{assignment.title}</p><p className="text-xs text-black/55">{assignment.status} · {assignment.totalTestCases} tests · lesson {assignment.lessonId.slice(-8)}</p></div><div className="flex gap-2"><a href={`/ide/assignments/${assignment._id}`} className="inline-flex items-center gap-1 rounded-md border border-black/15 px-3 py-2 text-xs"><Eye size={14} /> Preview</a><button type="button" onClick={() => { void edit(assignment); }} className="inline-flex items-center gap-1 rounded-md border border-black/15 px-3 py-2 text-xs"><Edit3 size={14} /> Edit</button><button type="button" onClick={() => { if (window.confirm(`Delete ${assignment.title}?`)) remove.mutate(assignment._id); }} className="rounded-md border border-rose-200 px-3 py-2 text-xs text-rose-700"><Trash2 size={14} /></button></div></div>)}{!assignments.data?.length ? <p className="p-5 text-sm text-black/50">No assignments yet.</p> : null}</div>}</section>
+    <section className="overflow-hidden rounded-xl border border-black/10 bg-white"><div className="border-b border-black/10 p-5"><h2 className="font-semibold">Configured assignments</h2></div>{assignments.isLoading ? <p className="p-5 text-sm text-black/50">Loading…</p> : <div className="divide-y divide-black/10">{assignments.data?.map((assignment) => <div key={assignment._id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-medium">{assignment.title}</p><p className="text-xs text-black/55">{assignment.status} · {assignment.totalTestCases} tests · lesson {assignment.lessonId.slice(-8)}</p></div><div className="flex gap-2"><a href={`/ide/assignments/${assignment._id}`} className="inline-flex items-center gap-1 rounded-md border border-black/15 px-3 py-2 text-xs"><Eye size={14} /> Preview</a><button type="button" onClick={() => { void edit(assignment); }} className="inline-flex items-center gap-1 rounded-md border border-black/15 px-3 py-2 text-xs"><Edit3 size={14} /> Edit</button><button type="button" aria-label={`Delete ${assignment.title}`} onClick={() => { setAssignmentToDelete(assignment); openModal(DELETE_ASSIGNMENT_MODAL); }} className="rounded-md border border-rose-200 px-3 py-2 text-xs text-rose-700"><Trash2 size={14} /></button></div></div>)}{!assignments.data?.length ? <p className="p-5 text-sm text-black/50">No assignments yet.</p> : null}</div>}</section>
+    <ConfirmModal
+      name={DELETE_ASSIGNMENT_MODAL}
+      title="Delete code assignment"
+      description={assignmentToDelete ? `Delete “${assignmentToDelete.title}”? Students will no longer be able to open or submit this assignment.` : 'Delete this code assignment?'}
+      confirmLabel="Delete assignment"
+      danger
+      onConfirm={() => { if (assignmentToDelete) remove.mutate(assignmentToDelete._id); }}
+    />
   </main>;
 }

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AdminCodeAssignmentsPage } from './AdminCodeAssignmentsPage';
 import { codeAssignmentService, coursesService, lessonsService } from '../../services';
+import { useUIStore } from '../../store';
 
 vi.mock('next/dynamic', () => ({
   default: () => () => <textarea aria-label="Starter code editor" />,
@@ -32,6 +33,7 @@ function renderPage() {
 describe('AdminCodeAssignmentsPage course and lesson selector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useUIStore.getState().closeModal();
     vi.mocked(codeAssignmentService.listAllForAdmin).mockResolvedValue([]);
     vi.mocked(coursesService.list).mockResolvedValue({
       items: [course('course-a', 'Course A'), course('course-b', 'Course B')], total: 2, page: 1, limit: 100, totalPages: 1,
@@ -79,5 +81,24 @@ describe('AdminCodeAssignmentsPage course and lesson selector', () => {
       lessonId: 'lesson-a',
       title: 'Assignment for lesson A',
     })));
+  });
+
+  it('uses the project confirmation modal before deleting an assignment', async () => {
+    const configuredAssignment = {
+      _id: 'assignment-1', lessonId: 'lesson-a', title: 'Assignment for lesson A', status: 'PUBLISHED',
+      totalTestCases: 2, testCases: [], language: 'javascript', description: '', starterCode: '',
+      timeLimitMs: 5000, memoryLimitKb: 131072,
+    };
+    vi.mocked(codeAssignmentService.listAllForAdmin).mockResolvedValue([configuredAssignment] as any);
+    vi.mocked(codeAssignmentService.remove).mockResolvedValue({ id: 'assignment-1' } as any);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Assignment for lesson A' }));
+    expect(screen.getByRole('heading', { name: 'Delete code assignment' })).toBeInTheDocument();
+    expect(screen.getByText(/Students will no longer be able/)).toBeInTheDocument();
+    expect(codeAssignmentService.remove).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete assignment' }));
+    await waitFor(() => expect(vi.mocked(codeAssignmentService.remove).mock.calls[0]?.[0]).toBe('assignment-1'));
   });
 });
