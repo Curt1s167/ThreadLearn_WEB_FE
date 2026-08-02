@@ -685,6 +685,49 @@ export const codeExecutionService = {
   },
 };
 
+export const codeAssignmentService = {
+  listByLesson: async (lessonId: string) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').CodeAssignment[]>>('/exercises', { params: { lessonId } });
+    return data.data;
+  },
+  listAllForAdmin: async () => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').CodeAssignment[]>>('/exercises/admin/all');
+    return data.data;
+  },
+  get: async (assignmentId: string) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').CodeAssignment>>(`/exercises/${assignmentId}`);
+    return data.data;
+  },
+  create: async (payload: import('../types').AssignmentPayload) => {
+    const { data } = await apiClient.post<ApiResponse<import('../types').CodeAssignment>>('/exercises', payload);
+    return data.data;
+  },
+  update: async (assignmentId: string, payload: Partial<import('../types').AssignmentPayload>) => {
+    const { data } = await apiClient.patch<ApiResponse<import('../types').CodeAssignment>>(`/exercises/${assignmentId}`, payload);
+    return data.data;
+  },
+  remove: async (assignmentId: string) => {
+    const { data } = await apiClient.delete<ApiResponse<{ id: string }>>(`/exercises/${assignmentId}`);
+    return data.data;
+  },
+  runPublic: async (assignmentId: string, payload: { sourceCode: string; language?: string }) => {
+    const { data } = await apiClient.post<ApiResponse<import('../types').AssignmentRunResult>>(`/exercises/${assignmentId}/run-public`, payload);
+    return data.data;
+  },
+  submit: async (assignmentId: string, payload: { sourceCode: string; language?: string; idempotencyKey?: string }) => {
+    const { data } = await apiClient.post<ApiResponse<import('../types').CodeSubmission>>(`/exercises/${assignmentId}/submit`, payload);
+    return data.data;
+  },
+  historyMine: async (assignmentId: string, page = 1, limit = 20) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<import('../types').CodeSubmission>>>(`/exercises/${assignmentId}/submissions/me`, { params: { page, limit } });
+    return data.data;
+  },
+  submissionsForAdmin: async (assignmentId: string, page = 1, limit = 50) => {
+    const { data } = await apiClient.get<ApiResponse<import('../types').HistoryPage<import('../types').CodeSubmission>>>(`/exercises/${assignmentId}/submissions`, { params: { page, limit } });
+    return data.data;
+  },
+};
+
 // ─── Notifications (UC32) ─────────────────────────────────────────────────────
 export const notificationsService = {
   getAll: async () => {
