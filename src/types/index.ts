@@ -627,6 +627,95 @@ export interface CodeExecutionResult {
   stdin?: string;
 }
 
+// ─── Code assignments ───────────────────────────────────────────────────────
+export type AssignmentStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED';
+export type SubmissionStatus = 'QUEUED' | 'JUDGING' | 'GRADED' | 'SYSTEM_ERROR';
+export type SubmissionVerdict = 'PASS' | 'PARTIAL' | 'FAIL' | 'ERROR';
+
+export interface AssignmentTestCase {
+  id?: string;
+  index?: number;
+  input?: string;
+  expectedOutput?: string;
+  isHidden: boolean;
+  points?: number;
+}
+
+export interface CodeAssignment {
+  id?: string;
+  _id: string;
+  lessonId: string;
+  title: string;
+  description: string;
+  starterCode: string;
+  language: 'javascript' | 'python' | 'java' | 'cpp' | 'c';
+  testCases: AssignmentTestCase[];
+  totalTestCases: number;
+  publicTestCases: number;
+  hiddenTestCases?: number;
+  status: AssignmentStatus;
+  deadline?: string | null;
+  maxSubmissions?: number | null;
+  timeLimitMs: number;
+  memoryLimitKb: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AssignmentTestResult {
+  index: number;
+  passed: boolean;
+  isHidden: boolean;
+  input?: string;
+  expectedOutput?: string;
+  actualOutput?: string;
+  runtime?: string;
+  memory?: number;
+  error?: string;
+}
+
+export interface AssignmentRunResult {
+  exerciseId: string;
+  verdict: SubmissionVerdict;
+  testCasesPassed: number;
+  totalTestCases: number;
+  score: number;
+  executionTime: string;
+  memoryUsage: number;
+  testResults: AssignmentTestResult[];
+}
+
+export interface CodeSubmission extends AssignmentRunResult {
+  _id: string;
+  exerciseId: string;
+  lessonId: string;
+  userId: string;
+  attemptNumber: number;
+  sourceCode: string;
+  language: string;
+  submissionStatus: SubmissionStatus;
+  countsTowardLimit: boolean;
+  aiStatus: 'PENDING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
+  aiFeedback?: { summary?: string; suggestions?: string[]; timeComplexity?: string; memoryComplexity?: string };
+  similarityResult?: { matchedSubmissionId: string; similarityScore: number; checkedAt: string };
+  submittedAt: string;
+  completedAt?: string;
+}
+
+export interface AssignmentPayload {
+  lessonId: string;
+  title: string;
+  description?: string;
+  starterCode?: string;
+  language: CodeAssignment['language'];
+  testCases?: Array<{ input?: string; expectedOutput: string; isHidden?: boolean; points?: number }>;
+  timeLimitMs?: number;
+  memoryLimitKb?: number;
+  status?: AssignmentStatus;
+  deadline?: string | null;
+  maxSubmissions?: number | null;
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export type NotificationType =
