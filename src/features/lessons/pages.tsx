@@ -384,7 +384,7 @@ export const LessonPage: React.FC = () => {
   const { data: lessonAssignments = [] } = useQuery({
     queryKey: ['lesson-code-assignments', id],
     queryFn: () => codeAssignmentService.listByLesson(id!),
-    enabled: Boolean(id && lesson && (lesson.lessonType === 'coding' || lesson.lessonType === 'assignment' || lesson.lessonType === 'mixed')),
+    enabled: Boolean(id && lesson),
     retry: false,
   });
 
@@ -649,12 +649,12 @@ export const LessonPage: React.FC = () => {
               ) : null}
               {lessonAssignments.length ? (
                 <section className="mt-6 rounded-xl border border-indigo-200 bg-indigo-50 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-indigo-700">Code Assignment</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-indigo-700">Code Assignments</p>
                   <div className="mt-3 space-y-3">
                     {lessonAssignments.map((assignment) => (
                       <Link key={assignment._id} href={`/ide/assignments/${assignment._id}`} className="flex items-center justify-between rounded-lg bg-white p-4 shadow-sm transition hover:shadow">
                         <span><span className="block font-semibold text-ink">{assignment.title}</span><span className="mt-1 block text-xs text-black/55">{assignment.publicTestCases} public tests · {assignment.deadline ? `Due ${new Date(assignment.deadline).toLocaleString()}` : 'No deadline'}</span></span>
-                        <span className="rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white">Open assignment</span>
+                        <span className="rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white">Làm bài code</span>
                       </Link>
                     ))}
                   </div>
