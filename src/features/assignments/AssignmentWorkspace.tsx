@@ -6,9 +6,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Brain, CheckCircle2, Clock, Play, Send, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
-import { codeAssignmentService } from '../../services';
+import { codeAssignmentService, codeExecutionService } from '../../services';
 import { useAuthStore } from '../../store';
-import type { AssignmentRunResult, CodeSubmission } from '../../types';
+import type { AssignmentRunResult, CodeExecutionResult, CodeSubmission } from '../../types';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
@@ -19,6 +19,8 @@ export function AssignmentWorkspace({ assignmentId }: { assignmentId: string }) 
   const queryClient = useQueryClient();
   const userId = useAuthStore((state) => state.user?._id);
   const [code, setCode] = useState('');
+  const [customInput, setCustomInput] = useState('');
+  const [customResult, setCustomResult] = useState<CodeExecutionResult | null>(null);
   const [publicResult, setPublicResult] = useState<AssignmentRunResult | null>(null);
   const [lastSubmission, setLastSubmission] = useState<CodeSubmission | null>(null);
   const assignmentQuery = useQuery({ queryKey: ['code-assignment', assignmentId], queryFn: () => codeAssignmentService.get(assignmentId) });
@@ -42,6 +44,17 @@ export function AssignmentWorkspace({ assignmentId }: { assignmentId: string }) 
     mutationFn: () => codeAssignmentService.runPublic(assignmentId, { sourceCode: code, language: assignment?.language }),
     onSuccess: (result) => { setPublicResult(result); toast.success('Public tests completed'); },
     onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Could not run public tests'),
+  });
+  const customRunMutation = useMutation({
+    mutationFn: () => codeExecutionService.run({
+      sourceCode: code,
+      language: assignment!.language,
+      stdin: customInput,
+      lessonId: assignment!.lessonId,
+      exerciseId: assignmentId,
+    }),
+    onSuccess: (result) => { setCustomResult(result); toast.success('Custom input completed'); },
+    onError: (error: any) => toast.error(error?.response?.data?.message ?? 'Could not run custom input'),
   });
   const submitMutation = useMutation({
     mutationFn: () => codeAssignmentService.submit(assignmentId, {
@@ -80,10 +93,30 @@ export function AssignmentWorkspace({ assignmentId }: { assignmentId: string }) 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="overflow-hidden rounded-xl border border-black/10 bg-[#111827]">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-white"><span className="font-mono text-sm">{assignment.language}</span><div className="flex gap-2"><button type="button" disabled={runMutation.isPending || !code.trim()} onClick={() => runMutation.mutate()} className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm disabled:opacity-50"><Play size={15} /> {runMutation.isPending ? 'Running…' : 'Run public tests'}</button><button type="button" disabled={!canSubmit} onClick={() => submitMutation.mutate()} className="inline-flex items-center gap-2 rounded-md bg-[#d9f99d] px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"><Send size={15} /> {submitMutation.isPending ? 'Submitting…' : 'Submit'}</button></div></div>
-          <MonacoEditor height="620px" theme="vs-dark" language={assignment.language === 'cpp' ? 'cpp' : assignment.language} value={code} onChange={(value) => { setCode(value ?? ''); setPublicResult(null); }} options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true }} />
+          <MonacoEditor height="620px" theme="vs-dark" language={assignment.language === 'cpp' ? 'cpp' : assignment.language} value={code} onChange={(value) => { setCode(value ?? ''); setPublicResult(null); setCustomResult(null); }} options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true }} />
+          <section className="border-t border-white/10 bg-slate-950 p-4 text-white">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <label htmlFor="assignment-custom-input" className="text-sm font-semibold">Custom input (stdin)</label>
+                <p className="mt-1 text-xs text-white/55">Use your own input for debugging. This run is not graded and does not use a submission attempt.</p>
+              </div>
+              <button type="button" disabled={customRunMutation.isPending || !code.trim()} onClick={() => customRunMutation.mutate()} className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm hover:bg-white/15 disabled:opacity-50"><Play size={15} /> {customRunMutation.isPending ? 'Running…' : 'Run custom input'}</button>
+            </div>
+            <textarea id="assignment-custom-input" value={customInput} onChange={(event) => { setCustomInput(event.target.value); setCustomResult(null); }} rows={5} className="mt-3 w-full rounded-md border border-white/15 bg-black/30 p-3 font-mono text-sm text-white outline-none focus:border-[#d9f99d]" placeholder={'Example:\n5\n1 2 3 4 5'} />
+            <div className="mt-3 rounded-md border border-white/10 bg-black/30 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/55">Custom run output</p>
+              {customResult ? <div className="mt-2 space-y-2 text-xs">
+                <p className={customResult.status.id === 3 ? 'text-emerald-300' : 'text-rose-300'}>{customResult.status.description} · {customResult.runtime}s · {customResult.memory} KB</p>
+                {customResult.stdout ? <pre className="whitespace-pre-wrap"><span className="text-white/50">stdout</span>{'\n'}{customResult.stdout}</pre> : null}
+                {customResult.stderr ? <pre className="whitespace-pre-wrap text-rose-200"><span className="text-white/50">stderr</span>{'\n'}{customResult.stderr}</pre> : null}
+                {customResult.compileOutput ? <pre className="whitespace-pre-wrap text-rose-200"><span className="text-white/50">compiler output</span>{'\n'}{customResult.compileOutput}</pre> : null}
+                {!customResult.stdout && !customResult.stderr && !customResult.compileOutput ? <p className="text-white/50">Program produced no output.</p> : null}
+              </div> : <p className="mt-2 text-xs text-white/45">Run custom input to inspect stdout, stderr and compiler output.</p>}
+            </div>
+          </section>
         </div>
         <aside className="space-y-4">
-          <section className="rounded-xl border border-black/10 bg-white p-4"><div className="flex items-center gap-2 font-semibold text-ink"><Terminal size={16} /> Public test results</div>{publicResult ? <div className="mt-3 space-y-2"><p className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${verdictTone(publicResult.verdict)}`}>{publicResult.verdict} · {publicResult.testCasesPassed}/{publicResult.totalTestCases}</p>{publicResult.testResults.map((test) => <div key={test.index} className="rounded-md border border-black/10 p-2 text-xs"><p className={test.passed ? 'text-emerald-700' : 'text-rose-700'}>Case {test.index + 1}: {test.passed ? 'Passed' : 'Failed'}</p>{!test.passed ? <pre className="mt-1 whitespace-pre-wrap text-black/65">Expected: {test.expectedOutput ?? ''}{'\n'}Actual: {test.actualOutput ?? test.error ?? ''}</pre> : null}</div>)}</div> : <p className="mt-3 text-xs text-black/50">Run code to see public test results. Hidden tests are never shown.</p>}</section>
+          <section className="rounded-xl border border-black/10 bg-white p-4"><div className="flex items-center gap-2 font-semibold text-ink"><Terminal size={16} /> Public test results</div>{publicResult ? <div className="mt-3 space-y-2"><p className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${verdictTone(publicResult.verdict)}`}>{publicResult.verdict} · {publicResult.testCasesPassed}/{publicResult.totalTestCases}</p>{publicResult.testResults.map((test) => <div key={test.index} className="rounded-md border border-black/10 p-2 text-xs"><p className={test.passed ? 'text-emerald-700' : 'text-rose-700'}>Case {test.index + 1}: {test.passed ? 'Passed' : 'Failed'}</p><dl className="mt-2 space-y-2 text-black/65"><div><dt className="font-semibold text-black/50">Input</dt><dd><pre aria-label={`Public test ${test.index + 1} input`} className="mt-0.5 whitespace-pre-wrap rounded bg-black/[0.03] p-2">{test.input || '(empty input)'}</pre></dd></div><div><dt className="font-semibold text-black/50">Expected output</dt><dd><pre aria-label={`Public test ${test.index + 1} expected output`} className="mt-0.5 whitespace-pre-wrap rounded bg-black/[0.03] p-2">{test.expectedOutput ?? ''}</pre></dd></div><div><dt className="font-semibold text-black/50">Actual output</dt><dd><pre aria-label={`Public test ${test.index + 1} actual output`} className="mt-0.5 whitespace-pre-wrap rounded bg-black/[0.03] p-2">{test.actualOutput || '(no output)'}</pre></dd></div>{test.error ? <div><dt className="font-semibold text-rose-700">Execution error</dt><dd><pre aria-label={`Public test ${test.index + 1} execution error`} className="mt-0.5 whitespace-pre-wrap rounded bg-rose-50 p-2 text-rose-700">{test.error}</pre></dd></div> : null}</dl></div>)}</div> : <p className="mt-3 text-xs text-black/50">Run code to see public inputs and results. Hidden tests are never shown.</p>}</section>
           <section className="rounded-xl border border-black/10 bg-white p-4"><div className="flex items-center gap-2 font-semibold text-ink"><CheckCircle2 size={16} /> Latest submission</div>{displayedSubmission ? <div className="mt-3 text-sm"><p className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${verdictTone(displayedSubmission.verdict)}`}>{displayedSubmission.submissionStatus === 'SYSTEM_ERROR' ? 'System error — attempt restored' : `${displayedSubmission.verdict ?? 'JUDGING'} · ${displayedSubmission.score}%`}</p><p className="mt-2 text-black/65">{displayedSubmission.testCasesPassed}/{displayedSubmission.totalTestCases} official tests · {displayedSubmission.executionTime}s · {displayedSubmission.memoryUsage} KB</p></div> : <p className="mt-3 text-xs text-black/50">No submissions yet.</p>}</section>
           <section className="rounded-xl border border-black/10 bg-white p-4"><div className="flex items-center gap-2 font-semibold text-ink"><Brain size={16} /> AI feedback</div>{displayedSubmission?.aiFeedback ? <div className="mt-3 space-y-2 text-sm text-black/70"><p>{displayedSubmission.aiFeedback.summary}</p><p><b>Time:</b> {displayedSubmission.aiFeedback.timeComplexity}</p><p><b>Memory:</b> {displayedSubmission.aiFeedback.memoryComplexity}</p>{displayedSubmission.aiFeedback.suggestions?.map((suggestion) => <p key={suggestion}>• {suggestion}</p>)}</div> : <p className="mt-3 text-xs text-black/50">Feedback will appear after judging.</p>}</section>
           <section className="rounded-xl border border-black/10 bg-white p-4"><div className="flex items-center gap-2 font-semibold text-ink"><Clock size={16} /> Submission history</div><div className="mt-3 space-y-2">{submissions.map((submission) => <button type="button" key={submission._id} onClick={() => setCode(submission.sourceCode)} className="w-full rounded-md border border-black/10 p-2 text-left text-xs hover:bg-black/[0.03]">Attempt {submission.attemptNumber} · {submission.score}% · {new Date(submission.submittedAt).toLocaleString()}</button>)}{best ? <p className="pt-1 text-xs text-emerald-700">Best score: {best.score}%</p> : null}</div></section>
