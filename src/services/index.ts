@@ -1,4 +1,11 @@
 import { apiClient } from './apiClient';
+import {
+  normalizeDiscussionComment,
+  normalizeDiscussionComments,
+  normalizeDiscussionModerationReport,
+  type DiscussionCommentWire,
+  type DiscussionModerationReportWire,
+} from './comment-normalizer';
 export { certificatesService } from './certificates.service';
 import type {
   ApiResponse,
@@ -421,36 +428,36 @@ export const quizService = {
 // ─── Comments (UC34–UC37) ─────────────────────────────────────────────────────
 export const commentsService = {
   getByLesson: async (lessonId: string) => {
-    const { data } = await apiClient.get<ApiResponse<Comment[]>>('/comments', {
+    const { data } = await apiClient.get<ApiResponse<DiscussionCommentWire[]>>('/comments', {
       params: { targetType: 'LESSON', targetId: lessonId },
     });
-    return data.data;
+    return normalizeDiscussionComments(data.data);
   },
   create: async (payload: { lessonId: string; content: string; isAnonymous?: boolean }) => {
-    const { data } = await apiClient.post<ApiResponse<Comment>>('/comments', {
+    const { data } = await apiClient.post<ApiResponse<DiscussionCommentWire>>('/comments', {
       targetType: 'LESSON',
       targetId: payload.lessonId,
       content: payload.content,
       isAnonymous: payload.isAnonymous ?? false,
     });
-    return data.data;
+    return normalizeDiscussionComment(data.data);
   },
   getReplies: async (commentId: string) => {
-    const { data } = await apiClient.get<ApiResponse<Comment[]>>(`/comments/${commentId}/replies`);
-    return data.data;
+    const { data } = await apiClient.get<ApiResponse<DiscussionCommentWire[]>>(`/comments/${commentId}/replies`);
+    return normalizeDiscussionComments(data.data);
   },
   reply: async (commentId: string, payload: { content: string; isAnonymous?: boolean }) => {
-    const { data } = await apiClient.post<ApiResponse<Comment>>(`/comments/${commentId}/replies`, {
+    const { data } = await apiClient.post<ApiResponse<DiscussionCommentWire>>(`/comments/${commentId}/replies`, {
       content: payload.content,
       isAnonymous: payload.isAnonymous ?? false,
     });
-    return data.data;
+    return normalizeDiscussionComment(data.data);
   },
   update: async (id: string, content: string) => {
-    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${id}`, {
+    const { data } = await apiClient.patch<ApiResponse<DiscussionCommentWire>>(`/comments/${id}`, {
       content,
     });
-    return data.data;
+    return normalizeDiscussionComment(data.data);
   },
   delete: async (id: string) => {
     const { data } = await apiClient.delete<ApiResponse<null>>(`/comments/${id}`);
@@ -460,63 +467,63 @@ export const commentsService = {
 
 export const discussionService = {
   list: async (targetType: 'COURSE' | 'LESSON', targetId: string, page = 1, limit = 20, filters?: { postType?: NonNullable<Comment['postType']>; questionStatus?: NonNullable<Comment['questionStatus']> }) => {
-    const { data } = await apiClient.get<ApiResponse<Comment[]>>('/comments', {
+    const { data } = await apiClient.get<ApiResponse<DiscussionCommentWire[]>>('/comments', {
       params: { targetType, targetId, page, limit, ...filters },
     });
-    return { items: data.data, meta: data.meta };
+    return { items: normalizeDiscussionComments(data.data), meta: data.meta };
   },
   create: async (payload: {
     targetType: 'COURSE' | 'LESSON'; targetId: string; content: string; isAnonymous?: boolean;
     postType?: Comment['postType']; codeShareId?: string;
     learningContext?: { expectedResult: string; actualResult: string; tried: string };
   }) => {
-    const { data } = await apiClient.post<ApiResponse<Comment>>('/comments', payload);
-    return data.data;
+    const { data } = await apiClient.post<ApiResponse<DiscussionCommentWire>>('/comments', payload);
+    return normalizeDiscussionComment(data.data);
   },
   replies: commentsService.getReplies,
   reply: async (commentId: string, payload: { content: string; isAnonymous?: boolean; codeShareId?: string }) => {
-    const { data } = await apiClient.post<ApiResponse<Comment>>(`/comments/${commentId}/replies`, {
+    const { data } = await apiClient.post<ApiResponse<DiscussionCommentWire>>(`/comments/${commentId}/replies`, {
       content: payload.content,
       isAnonymous: payload.isAnonymous ?? false,
       postType: payload.codeShareId ? 'CODE_SOLUTION' : 'TEXT_REPLY',
       codeShareId: payload.codeShareId,
     });
-    return data.data;
+    return normalizeDiscussionComment(data.data);
   },
   accept: async (commentId: string, replyId: string) => {
-    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${commentId}/accept`, { replyId });
-    return data.data;
+    const { data } = await apiClient.patch<ApiResponse<DiscussionCommentWire>>(`/comments/${commentId}/accept`, { replyId });
+    return normalizeDiscussionComment(data.data);
   },
   close: async (commentId: string) => {
-    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${commentId}/close`);
-    return data.data;
+    const { data } = await apiClient.patch<ApiResponse<DiscussionCommentWire>>(`/comments/${commentId}/close`);
+    return normalizeDiscussionComment(data.data);
   },
   reopen: async (commentId: string) => {
-    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${commentId}/reopen`);
-    return data.data;
+    const { data } = await apiClient.patch<ApiResponse<DiscussionCommentWire>>(`/comments/${commentId}/reopen`);
+    return normalizeDiscussionComment(data.data);
   },
   toggleHelpful: async (commentId: string) => {
-    const { data } = await apiClient.put<ApiResponse<{ helpful: boolean; comment: Comment }>>(`/comments/${commentId}/helpful`);
-    return data.data;
+    const { data } = await apiClient.put<ApiResponse<{ helpful: boolean; comment: DiscussionCommentWire }>>(`/comments/${commentId}/helpful`);
+    return { ...data.data, comment: normalizeDiscussionComment(data.data.comment) };
   },
   report: async (commentId: string, payload: { reason: 'SPAM' | 'ABUSE' | 'INCORRECT' | 'SPOILER' | 'UNSAFE_CODE' | 'OTHER'; details?: string }) => {
     const { data } = await apiClient.post<ApiResponse<{ _id: string; status: string }>>(`/comments/${commentId}/reports`, payload);
     return data.data;
   },
   verify: async (commentId: string) => {
-    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${commentId}/verify`);
-    return data.data;
+    const { data } = await apiClient.patch<ApiResponse<DiscussionCommentWire>>(`/comments/${commentId}/verify`);
+    return normalizeDiscussionComment(data.data);
   },
   moderate: async (commentId: string, payload: { action: 'HIDE' | 'RESTORE'; reason: string }) => {
-    const { data } = await apiClient.patch<ApiResponse<Comment>>(`/comments/${commentId}/moderation`, payload);
-    return data.data;
+    const { data } = await apiClient.patch<ApiResponse<DiscussionCommentWire>>(`/comments/${commentId}/moderation`, payload);
+    return normalizeDiscussionComment(data.data);
   },
   moderationQueue: async (filters: {
     page?: number; limit?: number; status?: 'OPEN' | 'RESOLVED'; reason?: string;
     courseId?: string; lessonId?: string;
   }) => {
-    const { data } = await apiClient.get<ApiResponse<import('../types').DiscussionModerationReport[]>>('/comments/moderation/queue', { params: filters });
-    return { items: data.data, meta: data.meta };
+    const { data } = await apiClient.get<ApiResponse<DiscussionModerationReportWire[]>>('/comments/moderation/queue', { params: filters });
+    return { items: data.data.map(normalizeDiscussionModerationReport), meta: data.meta };
   },
 };
 
