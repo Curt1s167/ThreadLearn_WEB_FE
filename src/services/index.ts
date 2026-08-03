@@ -63,6 +63,9 @@ import type {
   AdminStudentFilters,
   AdminStudentCreatePayload,
   AdminStudentUpdatePayload,
+  AdminInstructorFilters,
+  AdminInstructorCreatePayload,
+  AdminInstructorUpdatePayload,
 } from '../types';
 
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
@@ -884,6 +887,57 @@ export const adminService = {
     const { data } = await apiClient.patch<ApiResponse<User>>(
       `/admin/students/${id}/unlock`
     );
+    return data.data;
+  },
+  listInstructors: async (pageOrFilters: number | AdminInstructorFilters = 1, limit = 20) => {
+    const filters: AdminInstructorFilters =
+      typeof pageOrFilters === 'number'
+        ? { page: pageOrFilters, limit }
+        : pageOrFilters;
+    const page = filters.page ?? 1;
+    const pageSize = filters.limit ?? limit;
+    const { data } = await apiClient.get<ApiResponse<User[] | PaginatedResponse<User>>>(
+      '/admin/instructors',
+      {
+        params: {
+          page,
+          limit: pageSize,
+          search: filters.search || undefined,
+          isActive: filters.isActive,
+          isVerified: filters.isVerified,
+        },
+      }
+    );
+    const meta = data.meta;
+    const payload = data.data;
+    const items = Array.isArray(payload) ? payload : payload.items;
+
+    return {
+      items: items ?? [],
+      total: meta?.total ?? (Array.isArray(payload) ? payload.length : payload.total) ?? 0,
+      page: meta?.page ?? (Array.isArray(payload) ? page : payload.page) ?? page,
+      limit: meta?.limit ?? (Array.isArray(payload) ? pageSize : payload.limit) ?? pageSize,
+      totalPages: meta?.totalPages ?? (Array.isArray(payload) ? 1 : payload.totalPages) ?? 1,
+    } satisfies PaginatedResponse<User>;
+  },
+  createInstructor: async (payload: AdminInstructorCreatePayload) => {
+    const { data } = await apiClient.post<ApiResponse<User>>('/admin/instructors', payload);
+    return data.data;
+  },
+  updateInstructor: async (id: string, payload: AdminInstructorUpdatePayload) => {
+    const { data } = await apiClient.patch<ApiResponse<User>>(`/admin/instructors/${id}`, payload);
+    return data.data;
+  },
+  lockInstructor: async (id: string, lockedReason?: string) => {
+    const payload = lockedReason?.trim() ? { lockedReason: lockedReason.trim() } : undefined;
+    const { data } = await apiClient.patch<ApiResponse<User>>(
+      `/admin/instructors/${id}/lock`,
+      payload
+    );
+    return data.data;
+  },
+  unlockInstructor: async (id: string) => {
+    const { data } = await apiClient.patch<ApiResponse<User>>(`/admin/instructors/${id}/unlock`);
     return data.data;
   },
   toggleUserLock: async (id: string, isLocked: boolean, lockedReason?: string) => {
