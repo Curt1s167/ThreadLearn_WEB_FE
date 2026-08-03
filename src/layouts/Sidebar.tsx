@@ -24,6 +24,7 @@ import {
   Code2,
   Award,
   CalendarDays,
+  GraduationCap,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { getDisplayName } from '../utils';
@@ -79,6 +80,7 @@ const studentNavItems: NavItem[] = [
 const adminNavigationItems: NavItem[] = [
   { to: '/admin', icon: <BarChart2 size={16} />, label: 'Analytics' },
   { to: '/admin/users', icon: <Users size={16} />, label: 'Users' },
+  { to: '/admin/instructors', icon: <GraduationCap size={16} />, label: 'Instructors' },
   { to: '/admin/notifications', icon: <Bell size={16} />, label: 'Notifications' },
   { to: '/admin/courses', icon: <BookOpen size={16} />, label: 'Manage Courses' },
   { to: '/admin/quizzes', icon: <CheckCircle size={16} />, label: 'Quizzes' },

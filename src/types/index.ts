@@ -76,6 +76,17 @@ export interface AdminStudentUpdatePayload {
   isVerified?: boolean;
 }
 
+/** Contracts for the Admin-only Instructor management endpoints. */
+export interface AdminInstructorFilters extends AdminStudentFilters {}
+
+export interface AdminInstructorCreatePayload {
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface AdminInstructorUpdatePayload extends AdminStudentUpdatePayload {}
+
 // ─── User Stats & Gamification ───────────────────────────────────────────────
 
 export interface UserStats {
