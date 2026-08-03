@@ -14,6 +14,7 @@ import { extractApiError } from '../../services/apiClient';
 import { useAuthStore } from '../../store';
 import { Button, Input } from '../../components/shared';
 import { AuthShell } from './AuthShell';
+import { getPostLoginPath } from '../../utils/roleNavigation';
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
@@ -55,7 +56,7 @@ export const LoginPage: React.FC = () => {
   const { setAuth } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get('from') || '/dashboard';
+  const from = searchParams.get('from');
 
   const {
     register,
@@ -68,7 +69,7 @@ export const LoginPage: React.FC = () => {
       const result = await authService.login(data);
       setAuth(result.user, result.accessToken, result.refreshToken);
       toast.success('Welcome back!');
-      router.replace(from);
+      router.replace(getPostLoginPath(result.user.role, from));
     } catch (error) {
       toast.error(getLoginErrorMessage(error));
     }
