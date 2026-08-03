@@ -1,6 +1,6 @@
 // ─── Auth & User ────────────────────────────────────────────────────────────
 
-export type UserRole = 'STUDENT' | 'ADMIN';
+export type UserRole = 'STUDENT' | 'INSTRUCTOR' | 'ADMIN';
 
 export type PlanType = 'FREE' | 'PREMIUM';
 
