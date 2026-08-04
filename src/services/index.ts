@@ -130,6 +130,28 @@ export const coursesService = {
       totalPages: meta.totalPages,
     };
   },
+  createMyInstructorCourse: async (payload: Omit<CourseCreatePayload, 'instructorId' | 'isPremium' | 'price' | 'status'>) => {
+    const { data } = await apiClient.post<ApiResponse<Course>>('/instructor/courses', payload);
+    return data.data;
+  },
+  updateMyInstructorCourse: async (id: string, payload: Omit<CourseUpdatePayload, 'instructorId' | 'isPremium' | 'price' | 'status'>) => {
+    const { data } = await apiClient.put<ApiResponse<Course>>(`/instructor/courses/${id}`, payload);
+    return data.data;
+  },
+  getMyInstructorCourseById: async (id: string) => {
+    const { data } = await apiClient.get<ApiResponse<CourseDetail>>(`/instructor/courses/${id}`);
+    return data.data;
+  },
+  uploadMyInstructorCourseThumbnail: async (courseId: string, file: File) => {
+    const form = new FormData();
+    form.append('thumbnail', file);
+    const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string; course: Course }>>(
+      `/instructor/courses/${courseId}/thumbnail`,
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return data.data;
+  },
   uploadThumbnail: async (courseId: string, file: File) => {
     const form = new FormData();
     form.append('thumbnail', file);
