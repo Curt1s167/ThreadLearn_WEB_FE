@@ -31,7 +31,7 @@ const formatLessonId = (lessonId: string) =>
  * PR8 — admin quiz list visual polish.
  * LOGIC LOCK: listAll, remove, modal form create/edit.
  */
-export const AdminQuizManagementPage: React.FC = () => {
+export const AdminQuizManagementPage: React.FC<{ managementScope?: 'admin' | 'instructor' }> = ({ managementScope = 'admin' }) => {
   const queryClient = useQueryClient();
   const { openModal, closeModal } = useUIStore();
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
@@ -42,7 +42,7 @@ export const AdminQuizManagementPage: React.FC = () => {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['admin-quizzes'],
+    queryKey: [managementScope, 'quizzes'],
     queryFn: quizService.listAll,
   });
 
@@ -53,7 +53,7 @@ export const AdminQuizManagementPage: React.FC = () => {
   const deleteQuizMutation = useMutation({
     mutationFn: (quizId: string) => quizService.remove(quizId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-quizzes'] });
+      queryClient.invalidateQueries({ queryKey: [managementScope, 'quizzes'] });
       toast.success('Quiz deleted');
       setQuizToDelete(null);
     },
@@ -100,7 +100,7 @@ export const AdminQuizManagementPage: React.FC = () => {
         action={(
           <Button
             variant="outline"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-quizzes'] })}
+            onClick={() => queryClient.invalidateQueries({ queryKey: [managementScope, 'quizzes'] })}
           >
             Retry
           </Button>
@@ -258,7 +258,7 @@ export const AdminQuizManagementPage: React.FC = () => {
         size="xl"
         onClose={() => setEditingQuiz(null)}
       >
-        <AdminQuizForm quiz={editingQuiz} onSaved={handleFormSaved} />
+        <AdminQuizForm quiz={editingQuiz} onSaved={handleFormSaved} managementScope={managementScope} />
       </Modal>
 
       <ConfirmModal

@@ -7,7 +7,7 @@ export const instructorService = {
     return data.data ?? [];
   },
   getCourse: async (id: string) => {
-    const { data } = await apiClient.get<ApiResponse<{ course: CourseDetail }>>(`/instructor/courses/${id}`);
-    return data.data.course;
+    const { data } = await apiClient.get<ApiResponse<CourseDetail>>(`/instructor/courses/${id}`);
+    return data.data;
   },
 };

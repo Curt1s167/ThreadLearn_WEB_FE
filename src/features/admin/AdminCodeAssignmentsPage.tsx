@@ -7,6 +7,7 @@ import { Edit3, Eye, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmModal } from '../../components/shared/Modal';
 import { codeAssignmentService, coursesService, lessonsService } from '../../services';
+import { instructorService } from '../../services/instructor.service';
 import { useUIStore } from '../../store';
 import type { AssignmentPayload, AssignmentTestCase, CodeAssignment } from '../../types';
 
@@ -65,7 +66,7 @@ const assignmentForm = (assignment: CodeAssignment): AssignmentForm => ({
   maxSubmissions: assignment.maxSubmissions ?? null,
 });
 
-export function AdminCodeAssignmentsPage() {
+export function AdminCodeAssignmentsPage({ managementScope = 'admin' }: { managementScope?: 'admin' | 'instructor' }) {
   const client = useQueryClient();
   const { openModal } = useUIStore();
   const editRequest = useRef(0);
@@ -74,8 +75,13 @@ export function AdminCodeAssignmentsPage() {
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [linkedLessonError, setLinkedLessonError] = useState<string | null>(null);
   const [form, setForm] = useState<AssignmentForm>(emptyForm());
-  const assignments = useQuery({ queryKey: ['admin-code-assignments'], queryFn: codeAssignmentService.listAllForAdmin });
-  const courses = useQuery({ queryKey: ['admin-code-assignment-courses'], queryFn: () => coursesService.list({ limit: 100 }) });
+  const assignments = useQuery({ queryKey: [managementScope, 'code-assignments'], queryFn: codeAssignmentService.listAllForAdmin });
+  const courses = useQuery({
+    queryKey: [managementScope, 'code-assignment-courses'],
+    queryFn: async () => managementScope === 'instructor'
+      ? { items: await instructorService.listCourses() }
+      : coursesService.list({ includeAll: true, limit: 100 }),
+  });
   const lessons = useQuery({
     queryKey: ['admin-code-assignment-lessons', selectedCourseId],
     queryFn: () => lessonsService.getByCourse(selectedCourseId),
@@ -118,7 +124,7 @@ export function AdminCodeAssignmentsPage() {
     },
     onSuccess: async () => {
       await Promise.all([
-        client.invalidateQueries({ queryKey: ['admin-code-assignments'] }),
+        client.invalidateQueries({ queryKey: [managementScope, 'code-assignments'] }),
         client.invalidateQueries({ queryKey: ['lesson-code-assignments', form.lessonId] }),
       ]);
       resetEditor();
@@ -129,7 +135,7 @@ export function AdminCodeAssignmentsPage() {
   const remove = useMutation({
     mutationFn: codeAssignmentService.remove,
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: ['admin-code-assignments'] });
+      client.invalidateQueries({ queryKey: [managementScope, 'code-assignments'] });
       setAssignmentToDelete(null);
       toast.success('Code assignment deleted');
     },

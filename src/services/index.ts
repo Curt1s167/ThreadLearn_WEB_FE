@@ -1043,6 +1043,34 @@ export const adminService = {
       ? adminService.unlockStudent(id)
       : adminService.lockStudent(id, lockedReason);
   },
+  listInstructors: async (filters: import('../types').AdminInstructorFilters = {}) => {
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 50;
+    const { data } = await apiClient.get<ApiResponse<import('../types').User[]>>('/admin/instructors', {
+      params: { page, limit, search: filters.search || undefined, isActive: filters.isActive, isVerified: filters.isVerified },
+    });
+    return { items: data.data ?? [], meta: data.meta };
+  },
+  createInstructor: async (payload: import('../types').AdminInstructorCreatePayload) => {
+    const { data } = await apiClient.post<ApiResponse<import('../types').User>>('/admin/instructors', payload);
+    return data.data;
+  },
+  updateInstructor: async (id: string, payload: import('../types').AdminInstructorUpdatePayload) => {
+    const { data } = await apiClient.patch<ApiResponse<import('../types').User>>(`/admin/instructors/${id}`, payload);
+    return data.data;
+  },
+  lockInstructor: async (id: string, lockedReason?: string) => {
+    const { data } = await apiClient.patch<ApiResponse<import('../types').User>>(`/admin/instructors/${id}/lock`, lockedReason?.trim() ? { lockedReason: lockedReason.trim() } : undefined);
+    return data.data;
+  },
+  unlockInstructor: async (id: string) => {
+    const { data } = await apiClient.patch<ApiResponse<import('../types').User>>(`/admin/instructors/${id}/unlock`);
+    return data.data;
+  },
+  assignCourseInstructor: async (courseId: string, instructorId: string | null) => {
+    const { data } = await apiClient.patch<ApiResponse<Course>>(`/admin/courses/${courseId}/instructor`, { instructorId });
+    return data.data;
+  },
   toggleCoursePublish: async (id: string, status: 'published' | 'hidden' | 'draft' = 'published') => {
     const { data } = await apiClient.patch<ApiResponse<Course>>(
       `/courses/${id}/publish`,
