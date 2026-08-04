@@ -24,6 +24,7 @@ import {
   Code2,
   Award,
   CalendarDays,
+  GraduationCap,
 } from 'lucide-react';
 import { useAuthStore, useUIStore } from '../store';
 import { getDisplayName } from '../utils';
@@ -79,6 +80,7 @@ const studentNavItems: NavItem[] = [
 const adminNavigationItems: NavItem[] = [
   { to: '/admin', icon: <BarChart2 size={16} />, label: 'Analytics' },
   { to: '/admin/users', icon: <Users size={16} />, label: 'Users' },
+  { to: '/admin/instructors', icon: <GraduationCap size={16} />, label: 'Instructors' },
   { to: '/admin/notifications', icon: <Bell size={16} />, label: 'Notifications' },
   { to: '/admin/courses', icon: <BookOpen size={16} />, label: 'Manage Courses' },
   { to: '/admin/quizzes', icon: <CheckCircle size={16} />, label: 'Quizzes' },
@@ -88,6 +90,16 @@ const adminNavigationItems: NavItem[] = [
 
 const adminAccountItems: NavItem[] = [
   { to: '/profile', icon: <User size={16} />, label: 'Profile' },
+];
+
+const instructorNavGroups: NavGroup[] = [
+  { label: 'Instructor', icon: <Shield size={10} />, items: [
+    { to: '/instructor', icon: <LayoutDashboard size={16} />, label: 'Overview' },
+    { to: '/instructor/courses', icon: <BookOpen size={16} />, label: 'My Courses' },
+    { to: '/instructor/assignments', icon: <Code2 size={16} />, label: 'Code Assignments' },
+    { to: '/instructor/quizzes', icon: <CheckCircle size={16} />, label: 'Quizzes' },
+  ] },
+  { label: 'Account', items: [{ to: '/profile', icon: <User size={16} />, label: 'Profile' }] },
 ];
 
 const studentNavGroups: NavGroup[] = [{ items: studentNavItems }];
@@ -111,7 +123,8 @@ export const Sidebar: React.FC = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN';
-  const navGroups = isAdmin ? adminNavGroups : studentNavGroups;
+  const isInstructor = user?.role === 'INSTRUCTOR';
+  const navGroups = isAdmin ? adminNavGroups : isInstructor ? instructorNavGroups : studentNavGroups;
 
   React.useEffect(() => {
     setSidebarOpen(false);

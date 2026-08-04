@@ -19,6 +19,7 @@ import type {
   Course,
   CourseDetail,
   CourseCreatePayload,
+  CourseInstructorAssignmentPayload,
   CourseUpdatePayload,
   CourseStatusPayload,
   CourseFilters,
@@ -68,6 +69,9 @@ import type {
   AdminStudentFilters,
   AdminStudentCreatePayload,
   AdminStudentUpdatePayload,
+  AdminInstructorFilters,
+  AdminInstructorCreatePayload,
+  AdminInstructorUpdatePayload,
 } from '../types';
 
 // ─── Courses (UC15–UC25) ──────────────────────────────────────────────────────
@@ -102,6 +106,55 @@ export const coursesService = {
   },
   update: async (id: string, payload: CourseUpdatePayload) => {
     const { data } = await apiClient.put<ApiResponse<Course>>(`/courses/${id}`, payload);
+    return data.data;
+  },
+  assignInstructor: async (id: string, payload: CourseInstructorAssignmentPayload) => {
+    const { data } = await apiClient.patch<ApiResponse<Course>>(
+      `/admin/courses/${id}/instructor`,
+      payload,
+    );
+    return data.data;
+  },
+  /** Read-only instructor route. The server derives the owner from the access token. */
+  listMyInstructorCourses: async (filters: Pick<CourseFilters, 'page' | 'limit' | 'q' | 'search' | 'level' | 'language' | 'status'> = {}) => {
+    const { page, limit, q, search, level, language, status } = filters;
+    const { data } = await apiClient.get<ApiResponse<Course[]>>('/instructor/courses', {
+      params: { page, limit, q, search, level, language, status },
+    });
+    const meta = data.meta ?? {
+      page: page ?? 1,
+      limit: limit ?? data.data.length,
+      total: data.data.length,
+      totalPages: 1,
+    };
+    return {
+      items: data.data,
+      total: meta.total,
+      page: meta.page,
+      limit: meta.limit,
+      totalPages: meta.totalPages,
+    };
+  },
+  createMyInstructorCourse: async (payload: Omit<CourseCreatePayload, 'instructorId' | 'isPremium' | 'price' | 'status'>) => {
+    const { data } = await apiClient.post<ApiResponse<Course>>('/instructor/courses', payload);
+    return data.data;
+  },
+  updateMyInstructorCourse: async (id: string, payload: Omit<CourseUpdatePayload, 'instructorId' | 'isPremium' | 'price' | 'status'>) => {
+    const { data } = await apiClient.put<ApiResponse<Course>>(`/instructor/courses/${id}`, payload);
+    return data.data;
+  },
+  getMyInstructorCourseById: async (id: string) => {
+    const { data } = await apiClient.get<ApiResponse<CourseDetail>>(`/instructor/courses/${id}`);
+    return data.data;
+  },
+  uploadMyInstructorCourseThumbnail: async (courseId: string, file: File) => {
+    const form = new FormData();
+    form.append('thumbnail', file);
+    const { data } = await apiClient.post<ApiResponse<{ thumbnailUrl: string; course: Course }>>(
+      `/instructor/courses/${courseId}/thumbnail`,
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
     return data.data;
   },
   uploadThumbnail: async (courseId: string, file: File) => {
@@ -932,6 +985,57 @@ export const adminService = {
     const { data } = await apiClient.patch<ApiResponse<User>>(
       `/admin/students/${id}/unlock`
     );
+    return data.data;
+  },
+  listInstructors: async (pageOrFilters: number | AdminInstructorFilters = 1, limit = 20) => {
+    const filters: AdminInstructorFilters =
+      typeof pageOrFilters === 'number'
+        ? { page: pageOrFilters, limit }
+        : pageOrFilters;
+    const page = filters.page ?? 1;
+    const pageSize = filters.limit ?? limit;
+    const { data } = await apiClient.get<ApiResponse<User[] | PaginatedResponse<User>>>(
+      '/admin/instructors',
+      {
+        params: {
+          page,
+          limit: pageSize,
+          search: filters.search || undefined,
+          isActive: filters.isActive,
+          isVerified: filters.isVerified,
+        },
+      }
+    );
+    const meta = data.meta;
+    const payload = data.data;
+    const items = Array.isArray(payload) ? payload : payload.items;
+
+    return {
+      items: items ?? [],
+      total: meta?.total ?? (Array.isArray(payload) ? payload.length : payload.total) ?? 0,
+      page: meta?.page ?? (Array.isArray(payload) ? page : payload.page) ?? page,
+      limit: meta?.limit ?? (Array.isArray(payload) ? pageSize : payload.limit) ?? pageSize,
+      totalPages: meta?.totalPages ?? (Array.isArray(payload) ? 1 : payload.totalPages) ?? 1,
+    } satisfies PaginatedResponse<User>;
+  },
+  createInstructor: async (payload: AdminInstructorCreatePayload) => {
+    const { data } = await apiClient.post<ApiResponse<User>>('/admin/instructors', payload);
+    return data.data;
+  },
+  updateInstructor: async (id: string, payload: AdminInstructorUpdatePayload) => {
+    const { data } = await apiClient.patch<ApiResponse<User>>(`/admin/instructors/${id}`, payload);
+    return data.data;
+  },
+  lockInstructor: async (id: string, lockedReason?: string) => {
+    const payload = lockedReason?.trim() ? { lockedReason: lockedReason.trim() } : undefined;
+    const { data } = await apiClient.patch<ApiResponse<User>>(
+      `/admin/instructors/${id}/lock`,
+      payload
+    );
+    return data.data;
+  },
+  unlockInstructor: async (id: string) => {
+    const { data } = await apiClient.patch<ApiResponse<User>>(`/admin/instructors/${id}/unlock`);
     return data.data;
   },
   toggleUserLock: async (id: string, isLocked: boolean, lockedReason?: string) => {

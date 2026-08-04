@@ -3,16 +3,17 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
+import { getRoleHomePath } from '@/utils/roleNavigation';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { hasHydrated, isAuthenticated } = useAuthStore();
+  const { hasHydrated, isAuthenticated, user } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace('/dashboard');
+      router.replace(getRoleHomePath(user?.role ?? 'STUDENT'));
     }
-  }, [hasHydrated, isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router, user?.role]);
 
   if (!hasHydrated || isAuthenticated) {
     return (

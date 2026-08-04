@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 import { Button, EmptyState, Input, Skeleton } from '../../components/shared';
 import { ConfirmModal, Modal } from '../../components/shared/Modal';
 import { extractApiError } from '../../services/apiClient';
-import { coursesService, lessonsService, sectionsService } from '../../services';
+import { adminService, coursesService, lessonsService, sectionsService } from '../../services';
 import { useUIStore } from '../../store';
 import type {
   Course,
@@ -36,6 +36,7 @@ import type {
   CourseStatus,
   Lesson,
   LessonManagementPayload,
+  User,
 } from '../../types';
 import {
   DemoDisplayTitle,
@@ -54,6 +55,8 @@ const LESSON_DELETE = 'admin-course-lesson-delete';
 const SECTION_DELETE = 'admin-course-section-delete';
 
 const getCourseId = (course: Course) => course.id ?? course._id;
+const getUserId = (user: User) => user.id ?? user._id;
+const instructorLabel = (instructor: User) => instructor.name || [instructor.firstName, instructor.lastName].filter(Boolean).join(' ') || instructor.email;
 const getLessonId = (lesson: Lesson) => lesson.id ?? lesson._id;
 const getSectionId = (section: CourseSection) => section.id ?? section._id;
 const tagsFromInput = (value: string) => Array.from(new Set(value.split(',').map((tag) => tag.trim()).filter(Boolean)));
@@ -79,10 +82,12 @@ const statusClass = (status?: CourseStatus) => {
 interface CourseFormProps {
   course: Course | null;
   courses: Course[];
+  instructors: User[];
   onSaved: (courseId: string) => void;
 }
 
-const CourseForm: React.FC<CourseFormProps> = ({ course, courses, onSaved }) => {
+const CourseForm: React.FC<CourseFormProps> = ({ course, courses, instructors, onSaved }) => {
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState(course?.title ?? '');
   const [description, setDescription] = useState(course?.description ?? '');
   const [shortDescription, setShortDescription] = useState(course?.shortDescription ?? '');
@@ -95,6 +100,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, courses, onSaved }) => 
   const [price, setPrice] = useState(String(course?.price ?? 0));
   const [threshold, setThreshold] = useState(String(course?.prerequisiteThreshold ?? 80));
   const [prerequisites, setPrerequisites] = useState(course?.prerequisites ?? []);
+  const [instructorId, setInstructorId] = useState(course?.instructorId ?? '');
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -113,6 +119,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, courses, onSaved }) => 
         price: isPremium ? Number(price) : 0,
         prerequisites,
         prerequisiteThreshold: Number(threshold),
+        ...(!course && instructorId ? { instructorId } : {}),
       };
       const saved = course
         ? await coursesService.update(getCourseId(course), payload)
@@ -126,6 +133,19 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, courses, onSaved }) => 
       onSaved(courseId);
     },
     onError: (error) => toast.error(extractApiError(error, 'Unable to save course')),
+  });
+
+  const assign = useMutation({
+    mutationFn: (nextInstructorId: string) =>
+      coursesService.assignInstructor(getCourseId(course!), {
+        instructorId: nextInstructorId || null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-course-detail', getCourseId(course!)] });
+      toast.success('Course instructor updated');
+    },
+    onError: (error) => toast.error(extractApiError(error, 'Unable to update course instructor')),
   });
 
   const submit = (event: React.FormEvent) => {
@@ -163,6 +183,8 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, courses, onSaved }) => 
         <label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Level<select value={level} onChange={(event) => setLevel(event.target.value as CourseLevel)} className="input-field"><option value="BEGINNER">Beginner</option><option value="INTERMEDIATE">Intermediate</option><option value="ADVANCED">Advanced</option></select></label>
         <Input label="Duration (minutes)" type="number" min={0} value={duration} onChange={(event) => setDuration(event.target.value)} error={errors.duration} />
       </div>
+      {!course ? <label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Instructor owner (optional)<select value={instructorId} onChange={(event) => setInstructorId(event.target.value)} className="input-field"><option value="">Unassigned</option>{instructors.map((instructor) => <option key={getUserId(instructor)} value={getUserId(instructor)}>{instructorLabel(instructor)} · {instructor.email}</option>)}</select><span className="text-[11px] font-normal text-black/50">Only an active Instructor can own a course. Ownership cannot be changed from general course editing.</span></label> : null}
+      {course ? <label className="flex flex-col gap-1.5 text-xs font-medium text-ink-muted">Instructor owner<select value={instructorId} disabled={assign.isPending} onChange={(event) => { const nextInstructorId = event.target.value; setInstructorId(nextInstructorId); assign.mutate(nextInstructorId); }} className="input-field"><option value="">Unassigned</option>{course.instructorId && !instructors.some((instructor) => getUserId(instructor) === course.instructorId) ? <option value={course.instructorId}>Currently assigned (inactive or unavailable)</option> : null}{instructors.map((instructor) => <option key={getUserId(instructor)} value={getUserId(instructor)}>{instructorLabel(instructor)} · {instructor.email}</option>)}</select><span className="text-[11px] font-normal text-black/50">This uses the dedicated assignment API. Save course never sends instructorId.</span></label> : null}
       <Input label="Tags (comma separated)" value={tags} onChange={(event) => setTags(event.target.value)} placeholder="async, nodejs, concurrency" />
       <div className="grid gap-4 rounded-xl border border-black/10 p-4 md:grid-cols-[1fr_12rem]">
         <label className="flex items-center gap-2 self-center text-sm font-medium text-ink"><input type="checkbox" checked={isPremium} onChange={(event) => setIsPremium(event.target.checked)} className="size-4 accent-black" />Premium course</label>
@@ -252,6 +274,20 @@ export const AdminCourseManagementPage: React.FC = () => {
   const [sectionToDelete, setSectionToDelete] = useState<CourseSection | null>(null);
   const courseQuery = useQuery({ queryKey: ['admin-courses', statusFilter], queryFn: () => coursesService.list({ includeAll: true, status: statusFilter === 'all' ? undefined : statusFilter, limit: 100 }) });
   const courses = useMemo(() => courseQuery.data?.items ?? [], [courseQuery.data?.items]);
+  const instructorQuery = useQuery({
+    queryKey: ['admin-instructors', 'active', 'all-pages'],
+    queryFn: async () => {
+      const firstPage = await adminService.listInstructors({ page: 1, limit: 100, isActive: true });
+      const instructors = [...firstPage.items];
+      for (let page = 2; page <= firstPage.totalPages; page += 1) {
+        const nextPage = await adminService.listInstructors({ page, limit: 100, isActive: true });
+        instructors.push(...nextPage.items);
+      }
+      return instructors;
+    },
+  });
+
+  const instructors = useMemo(() => instructorQuery.data ?? [], [instructorQuery.data]);
   const selectedCourse = useMemo(() => courses.find((course) => getCourseId(course) === selectedCourseId) ?? null, [courses, selectedCourseId]);
   const detailQuery = useQuery({ queryKey: ['admin-course-detail', selectedCourseId], queryFn: () => coursesService.getById(selectedCourseId!), enabled: Boolean(selectedCourseId) });
   const detail = detailQuery.data;
@@ -286,7 +322,7 @@ export const AdminCourseManagementPage: React.FC = () => {
           <section><div className="mb-3 flex items-center justify-between gap-2"><div className="flex items-center gap-2"><FilePlus2 size={17} /><h3 className="font-semibold text-ink">Lessons</h3></div><Button size="sm" onClick={() => { setEditingLesson(null); openModal(LESSON_FORM); }}><Plus size={13} />Lesson</Button></div>{lessons.length === 0 ? <div className="rounded-lg border border-dashed border-black/15 p-4 text-sm text-black/50">Create at least one active lesson before publishing this course.</div> : <div className="space-y-2">{lessons.map((lesson, index) => { const section = sections.find((item) => getSectionId(item) === lesson.sectionId); return <div key={getLessonId(lesson)} className="rounded-lg border border-black/10 p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-medium text-ink">{index + 1}. {lesson.title}</p><p className="mt-0.5 text-xs text-black/50">{section?.title ?? 'No section'} · {lesson.lessonType ?? 'article'} · {lesson.estimatedTime ?? 0} min</p></div><div className="flex shrink-0 items-center gap-1.5">{lesson.isPreview ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] text-sky-800">Preview</span> : null}{lesson.isLocked ? <Lock size={14} className="text-amber-700" /> : null}</div></div><div className="mt-2 flex flex-wrap gap-1.5"><button type="button" onClick={() => { setEditingLesson(lesson); openModal(LESSON_FORM); }} className="rounded border border-black/10 px-2 py-1 text-[11px] text-black/65">Edit</button><button type="button" onClick={() => lockMutation.mutate({ id: getLessonId(lesson), locked: !lesson.isLocked })} disabled={lockMutation.isPending} className="inline-flex items-center gap-1 rounded border border-black/10 px-2 py-1 text-[11px] text-black/65 disabled:opacity-40">{lesson.isLocked ? <LockKeyholeOpen size={11} /> : <Lock size={11} />}{lesson.isLocked ? 'Unlock' : 'Lock'}</button><button type="button" onClick={() => { setLessonToDelete(lesson); openModal(LESSON_DELETE); }} className="rounded border border-rose-200 px-2 py-1 text-[11px] text-rose-700">Delete</button></div></div>; })}</div>}</section></div>
       </div>}</DemoWhitePanel>
     </div>
-    <Modal name={COURSE_FORM} title={editingCourse ? 'Edit course' : 'Create course'} description={editingCourse ? 'Update course information and prerequisites.' : 'New courses are drafts until they contain lessons.'} size="xl" onClose={() => setEditingCourse(null)}><CourseForm course={editingCourse} courses={courses} onSaved={(id) => { closeModal(); setEditingCourse(null); setSelectedCourseId(id); invalidate(); }} /></Modal>
+    <Modal name={COURSE_FORM} title={editingCourse ? 'Edit course' : 'Create course'} description={editingCourse ? 'Update course information and prerequisites.' : 'New courses are drafts until they contain lessons.'} size="xl" onClose={() => setEditingCourse(null)}><CourseForm course={editingCourse} courses={courses} instructors={instructors} onSaved={(id) => { closeModal(); setEditingCourse(null); setSelectedCourseId(id); invalidate(); }} /></Modal>
     {selectedCourseId ? <><Modal name={LESSON_FORM} title={editingLesson ? 'Edit lesson' : 'Create lesson'} description="Lessons are assigned to this course." size="xl" onClose={() => setEditingLesson(null)}><LessonForm courseId={selectedCourseId} sections={sections} lesson={editingLesson} onSaved={() => { closeModal(); setEditingLesson(null); invalidate(); }} /></Modal><Modal name={SECTION_FORM} title={editingSection ? 'Edit section' : 'Create section'} description="Sections organize the curriculum and can be reordered." size="lg" onClose={() => setEditingSection(null)}><SectionForm courseId={selectedCourseId} section={editingSection} onSaved={() => { closeModal(); setEditingSection(null); invalidate(); }} /></Modal></> : null}
     <ConfirmModal name={COURSE_DELETE} title="Remove course" description={courseToDelete ? `Remove "${courseToDelete.title}"? This is a soft-delete; enrolled learners' data is preserved.` : 'Remove this course?'} confirmLabel="Remove course" danger onConfirm={() => { if (courseToDelete) removeCourseMutation.mutate(getCourseId(courseToDelete)); }} />
     <ConfirmModal name={LESSON_DELETE} title="Remove lesson" description={lessonToDelete ? `Remove "${lessonToDelete.title}"? It will no longer be available to learners.` : 'Remove this lesson?'} confirmLabel="Remove lesson" danger onConfirm={() => { if (lessonToDelete) removeLessonMutation.mutate(getLessonId(lessonToDelete)); }} />

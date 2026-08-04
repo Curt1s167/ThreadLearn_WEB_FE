@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Plus, Power, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { coursesService, lessonsService, quizService, sectionsService } from '../../services';
+import { instructorService } from '../../services/instructor.service';
 import { Button, Input } from '../../components/shared';
 import { ConfirmModal } from '../../components/shared/Modal';
 import { cn } from '../../utils';
@@ -25,6 +26,7 @@ type BankQuestionDraft = Omit<QuizBankQuestion, 'id' | 'quizId' | 'status' | 'ba
 interface AdminQuizFormProps {
   quiz?: Quiz | null;
   onSaved: () => void;
+  managementScope?: 'admin' | 'instructor';
 }
 
 interface FormErrors {
@@ -98,7 +100,7 @@ const toBankQuestionDraft = (question: QuizBankQuestion): BankQuestionDraft => (
   tags: [...question.tags],
 });
 
-export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) => {
+export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved, managementScope = 'admin' }) => {
   const queryClient = useQueryClient();
   const isEditing = Boolean(quiz);
   const [lessonId, setLessonId] = useState(quiz?.lessonId ?? '');
@@ -134,9 +136,11 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
     [quiz]
   );
 
-  const { data: coursesPage } = useQuery({
-    queryKey: ['admin-courses', 'quiz-selector'],
-    queryFn: () => coursesService.list({ includeAll: true, limit: 100 }),
+  const { data: selectableCourses = [] } = useQuery({
+    queryKey: [managementScope, 'quiz-course-selector'],
+    queryFn: async () => managementScope === 'instructor'
+      ? instructorService.listCourses()
+      : (await coursesService.list({ includeAll: true, limit: 100 })).items,
     enabled: !isEditing,
   });
   const { data: sections = [] } = useQuery({
@@ -533,7 +537,7 @@ export const AdminQuizForm: React.FC<AdminQuizFormProps> = ({ quiz, onSaved }) =
               onChange={(event) => { setCourseId(event.target.value); setSectionId(''); setLessonId(''); }}
             >
               <option value="">Choose a course</option>
-              {(coursesPage?.items ?? []).map((course) => <option key={course.id ?? course._id} value={course.id ?? course._id}>{course.title}</option>)}
+              {selectableCourses.map((course) => <option key={course.id ?? course._id} value={course.id ?? course._id}>{course.title}</option>)}
             </select>
             <select
               className="input-field"

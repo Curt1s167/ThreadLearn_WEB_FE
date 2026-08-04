@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { AuthShell } from './AuthShell';
 import { normalizeUser } from '../../services/auth.service';
 import { useAuthStore } from '../../store';
+import { getRoleHomePath } from '../../utils/roleNavigation';
 
 type CallbackStatus = 'processing' | 'error';
 
@@ -50,7 +51,7 @@ export const AuthCallbackPage: React.FC = () => {
       // The callback lives outside the authenticated route group. A hard
       // navigation avoids a client-router transition getting stuck here while
       // the persisted auth store is updating.
-      window.location.replace('/dashboard');
+      window.location.replace(getRoleHomePath(user.role));
     } catch {
       setStatus('error');
     }
