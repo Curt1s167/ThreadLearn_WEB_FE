@@ -135,6 +135,8 @@ export interface Course {
   totalEnrollments?: number;
   averageRating?: number;
   estimatedDuration?: number;
+  /** The instructor who owns this course. `createdBy` is not an ownership field. */
+  instructorId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -153,9 +155,17 @@ export interface CourseCreatePayload {
   prerequisites?: string[];
   prerequisiteThreshold?: number;
   estimatedDuration?: number;
+  /** Only supplied during Admin course creation. */
+  instructorId?: string;
 }
 
-export type CourseUpdatePayload = Partial<CourseCreatePayload>;
+/** Ownership is deliberately changed only through the dedicated Admin assignment API. */
+export type CourseUpdatePayload = Omit<Partial<CourseCreatePayload>, 'instructorId'>;
+
+export interface CourseInstructorAssignmentPayload {
+  /** `null` removes the course owner. */
+  instructorId: string | null;
+}
 
 export interface CourseStatusPayload {
   status: Extract<CourseStatus, 'draft' | 'published' | 'hidden'>;

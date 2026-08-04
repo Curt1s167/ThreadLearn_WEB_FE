@@ -14,6 +14,7 @@ import type {
   Course,
   CourseDetail,
   CourseCreatePayload,
+  CourseInstructorAssignmentPayload,
   CourseUpdatePayload,
   CourseStatusPayload,
   CourseFilters,
@@ -101,6 +102,33 @@ export const coursesService = {
   update: async (id: string, payload: CourseUpdatePayload) => {
     const { data } = await apiClient.put<ApiResponse<Course>>(`/courses/${id}`, payload);
     return data.data;
+  },
+  assignInstructor: async (id: string, payload: CourseInstructorAssignmentPayload) => {
+    const { data } = await apiClient.patch<ApiResponse<Course>>(
+      `/admin/courses/${id}/instructor`,
+      payload,
+    );
+    return data.data;
+  },
+  /** Read-only instructor route. The server derives the owner from the access token. */
+  listMyInstructorCourses: async (filters: Pick<CourseFilters, 'page' | 'limit' | 'q' | 'search' | 'level' | 'language' | 'status'> = {}) => {
+    const { page, limit, q, search, level, language, status } = filters;
+    const { data } = await apiClient.get<ApiResponse<Course[]>>('/instructor/courses', {
+      params: { page, limit, q, search, level, language, status },
+    });
+    const meta = data.meta ?? {
+      page: page ?? 1,
+      limit: limit ?? data.data.length,
+      total: data.data.length,
+      totalPages: 1,
+    };
+    return {
+      items: data.data,
+      total: meta.total,
+      page: meta.page,
+      limit: meta.limit,
+      totalPages: meta.totalPages,
+    };
   },
   uploadThumbnail: async (courseId: string, file: File) => {
     const form = new FormData();
