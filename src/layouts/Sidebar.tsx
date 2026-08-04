@@ -92,6 +92,16 @@ const adminAccountItems: NavItem[] = [
   { to: '/profile', icon: <User size={16} />, label: 'Profile' },
 ];
 
+const instructorNavGroups: NavGroup[] = [
+  { label: 'Instructor', icon: <Shield size={10} />, items: [
+    { to: '/instructor', icon: <LayoutDashboard size={16} />, label: 'Overview' },
+    { to: '/instructor/courses', icon: <BookOpen size={16} />, label: 'My Courses' },
+    { to: '/instructor/assignments', icon: <Code2 size={16} />, label: 'Code Assignments' },
+    { to: '/instructor/quizzes', icon: <CheckCircle size={16} />, label: 'Quizzes' },
+  ] },
+  { label: 'Account', items: [{ to: '/profile', icon: <User size={16} />, label: 'Profile' }] },
+];
+
 const studentNavGroups: NavGroup[] = [{ items: studentNavItems }];
 
 const adminNavGroups: NavGroup[] = [
@@ -113,7 +123,8 @@ export const Sidebar: React.FC = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'ADMIN';
-  const navGroups = isAdmin ? adminNavGroups : studentNavGroups;
+  const isInstructor = user?.role === 'INSTRUCTOR';
+  const navGroups = isAdmin ? adminNavGroups : isInstructor ? instructorNavGroups : studentNavGroups;
 
   React.useEffect(() => {
     setSidebarOpen(false);
