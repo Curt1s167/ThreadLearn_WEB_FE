@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('./apiClient', () => ({
   apiClient: {
     get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
     patch: vi.fn(),
   },
 }));
@@ -46,5 +48,41 @@ describe('course instructor ownership API client', () => {
         status: undefined,
       },
     });
+  });
+
+  it('uses POST /instructor/courses for instructor course creation', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { data: { id: 'course-1', title: 'New Course' } } });
+
+    const result = await coursesService.createMyInstructorCourse({
+      title: 'New Course',
+      description: 'Desc',
+    });
+
+    expect(apiClient.post).toHaveBeenCalledWith('/instructor/courses', {
+      title: 'New Course',
+      description: 'Desc',
+    });
+    expect(result.id).toBe('course-1');
+  });
+
+  it('uses PUT /instructor/courses/:id for instructor course update', async () => {
+    vi.mocked(apiClient.put).mockResolvedValue({ data: { data: { id: 'course-1', title: 'Updated' } } });
+
+    await coursesService.updateMyInstructorCourse('course-1', {
+      title: 'Updated',
+    });
+
+    expect(apiClient.put).toHaveBeenCalledWith('/instructor/courses/course-1', {
+      title: 'Updated',
+    });
+  });
+
+  it('uses GET /instructor/courses/:id for instructor course detail', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { data: { course: { id: 'course-1' }, sections: [], lessons: [] } } });
+
+    const result = await coursesService.getMyInstructorCourseById('course-1');
+
+    expect(apiClient.get).toHaveBeenCalledWith('/instructor/courses/course-1');
+    expect(result.course.id).toBe('course-1');
   });
 });
